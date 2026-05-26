@@ -26,7 +26,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
       creditCost: 500,
       cpuCost: 20,
       color: Colors.redAccent,
-      description: 'Overwhelm target with traffic flood',
+      description: 'Затопить цель трафиком',
     ),
     _AttackType(
       name: 'Malware',
@@ -35,7 +35,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
       creditCost: 1200,
       cpuCost: 35,
       color: Colors.purpleAccent,
-      description: 'Deploy malicious payload',
+      description: 'Развернуть вредоносную нагрузку',
     ),
     _AttackType(
       name: 'Phishing',
@@ -44,7 +44,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
       creditCost: 300,
       cpuCost: 10,
       color: Colors.tealAccent,
-      description: 'Social engineering credentials',
+      description: 'Социальная инженерия учётных данных',
     ),
     _AttackType(
       name: 'Brute Force',
@@ -53,7 +53,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
       creditCost: 800,
       cpuCost: 45,
       color: Colors.orangeAccent,
-      description: 'Exhaustive password cracking',
+      description: 'Полный перебор паролей',
     ),
     _AttackType(
       name: 'SQL Injection',
@@ -62,7 +62,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
       creditCost: 2000,
       cpuCost: 50,
       color: Colors.blueAccent,
-      description: 'Exploit database vulnerabilities',
+      description: 'Эксплуатация уязвимостей БД',
     ),
     _AttackType(
       name: 'Zero Day',
@@ -71,7 +71,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
       creditCost: 5000,
       cpuCost: 80,
       color: Colors.yellowAccent,
-      description: 'Unknown exploit — devastating',
+      description: 'Неизвестный эксплойт — разрушителен',
     ),
   ];
 
@@ -105,11 +105,11 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
 
     // Check resource requirements
     if (game.credits < attackType.creditCost) {
-      _showSnackBar('Insufficient credits! Need ${attackType.creditCost} CR');
+      _showSnackBar('Недостаточно кредитов! Нужно ${attackType.creditCost} CR');
       return;
     }
     if (game.cpu < attackType.cpuCost) {
-      _showSnackBar('Insufficient CPU! Need ${attackType.cpuCost} CPU');
+      _showSnackBar('Недостаточно ЦПУ! Нужно ${attackType.cpuCost} CPU');
       return;
     }
 
@@ -137,11 +137,11 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
     setState(() => _isAttacking = false);
 
     if (success) {
-      _showSnackBar('Attack launched against ${_selectedTarget!.username}!');
+      _showSnackBar('Атака запущена против ${_selectedTarget!.username}!');
       await game.refreshResources(auth.userId!);
       await game.refreshAttackHistory(auth.userId!);
     } else {
-      _showSnackBar(game.errorMessage ?? 'Attack failed');
+      _showSnackBar(game.errorMessage ?? 'Атака провалена');
     }
   }
 
@@ -163,18 +163,18 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
 
     if (auth.userId == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('ATTACK')),
-        body: Center(child: Text('Not authenticated', style: theme.textTheme.bodyLarge)),
+        appBar: AppBar(title: const Text('АТАКА')),
+        body: Center(child: Text('Не авторизован', style: theme.textTheme.bodyLarge)),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CYBERWARFARE'),
+        title: const Text('КИБЕРВОЙНА'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh targets',
+            tooltip: 'Обновить цели',
             onPressed: () {
               game.refreshTargets(auth.userId!);
               game.refreshAttackHistory(auth.userId!);
@@ -192,13 +192,13 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
             const SizedBox(height: 16),
 
             // ── Target Selection ──
-            _buildSectionTitle('SELECT TARGET', Icons.gps_fixed, theme),
+            _buildSectionTitle('ВЫБЕРИТЕ ЦЕЛЬ', Icons.gps_fixed, theme),
             const SizedBox(height: 8),
             _buildTargetSelector(game, theme),
             const SizedBox(height: 20),
 
             // ── Attack Type Selector ──
-            _buildSectionTitle('ATTACK VECTOR', Icons.flash_on, theme),
+            _buildSectionTitle('ВЕКТОР АТАКИ', Icons.flash_on, theme),
             const SizedBox(height: 8),
             _buildAttackTypeGrid(game, theme),
             const SizedBox(height: 20),
@@ -212,7 +212,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
             if (_isAttacking) const SizedBox(height: 20),
 
             // ── Attack History ──
-            _buildSectionTitle('ATTACK LOG', Icons.history, theme),
+            _buildSectionTitle('ЖУРНАЛ АТАК', Icons.history, theme),
             const SizedBox(height: 8),
             _buildAttackHistory(game, theme),
             const SizedBox(height: 32),
@@ -287,7 +287,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
             children: [
               Icon(Icons.search_off, size: 36, color: theme.colorScheme.outline),
               const SizedBox(height: 8),
-              Text('Scanning for targets...', style: theme.textTheme.bodySmall?.copyWith(
+              Text('Поиск целей...', style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.outline,
               )),
             ],
@@ -369,9 +369,9 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
                   const Spacer(),
                   Row(
                     children: [
-                      Text('LVL ${target.level}', style: theme.textTheme.labelSmall),
+                      Text('УР ${target.level}', style: theme.textTheme.labelSmall),
                       const SizedBox(width: 12),
-                      Text('STR', style: theme.textTheme.labelSmall),
+                      Text('СИЛ', style: theme.textTheme.labelSmall),
                       const SizedBox(width: 4),
                       Expanded(
                         child: LinearProgressIndicator(
@@ -508,7 +508,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
                 )
               : const Icon(Icons.rocket_launch),
           label: Text(
-            _isAttacking ? 'EXECUTING...' : 'LAUNCH ATTACK',
+            _isAttacking ? 'ВЫПОЛНЕНИЕ...' : 'НАЧАТЬ АТАКУ',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2),
           ),
           style: ElevatedButton.styleFrom(
@@ -538,7 +538,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'INITIATING ${_selectedAttackType?.name.toUpperCase() ?? ""}...',
+                'ИНИЦИАЛИЗАЦИЯ ${_selectedAttackType?.name.toUpperCase() ?? ""}...',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.bold,
@@ -563,7 +563,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
           if (_selectedTarget != null) ...[
             const SizedBox(height: 6),
             Text(
-              'Target: ${_selectedTarget!.username}',
+              'Цель: ${_selectedTarget!.username}',
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
             ),
           ],
@@ -587,11 +587,11 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
               Icon(Icons.shield_outlined, size: 36, color: theme.colorScheme.outline.withValues(alpha: 0.5)),
               const SizedBox(height: 8),
               Text(
-                'No attack records yet',
+                'Атак пока нет',
                 style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
               ),
               Text(
-                'Select a target and launch your first attack',
+                'Выберите цель и начните первую атаку',
                 style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline.withValues(alpha: 0.6)),
               ),
             ],
@@ -640,7 +640,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
                             borderRadius: BorderRadius.circular(3),
                           ),
                           child: Text(
-                            isOutgoing ? 'OUT' : 'IN',
+                            isOutgoing ? 'ИСХ' : 'ВХ',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: isOutgoing ? Colors.greenAccent : Colors.redAccent,
                               fontSize: 9,
@@ -651,7 +651,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            '${record.attackType} vs ${record.defenderName ?? "Unknown"}',
+                            '${record.attackType} vs ${record.defenderName ?? "Неизвестен"}',
                             style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -661,7 +661,7 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        Text('DMG: ${record.damage}', style: theme.textTheme.labelSmall?.copyWith(
+                        Text('Урон: ${record.damage}', style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant, fontSize: 11,
                         )),
                         if (record.creditsStolen > 0) ...[
@@ -708,9 +708,9 @@ class _AttackScreenState extends State<AttackScreen> with TickerProviderStateMix
   String _formatTimestamp(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inMinutes < 1) return 'Только что';
+    if (diff.inHours < 1) return '${diff.inMinutes}м назад';
+    if (diff.inDays < 1) return '${diff.inHours}ч назад';
     return '${dt.month}/${dt.day}';
   }
 }

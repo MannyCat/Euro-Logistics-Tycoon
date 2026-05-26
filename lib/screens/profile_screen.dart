@@ -113,24 +113,24 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   void _loadMockData() {
     _achievements.addAll([
-      Achievement(id: 'a1', name: 'First Blood', description: 'Complete your first attack', icon: Icons.bloodtype, unlocked: true, unlockedAt: DateTime(2025, 1, 15)),
-      Achievement(id: 'a2', name: 'Ghost Protocol', description: 'Win 10 attacks without being detected', icon: Icons.visibility_off, unlocked: true, unlockedAt: DateTime(2025, 2, 20)),
-      Achievement(id: 'a3', name: 'Millionaire', description: 'Earn 1,000,000 credits', icon: Icons.diamond, unlocked: true, unlockedAt: DateTime(2025, 3, 10)),
-      Achievement(id: 'a4', name: 'Network Terminator', description: 'Destroy 50 networks', icon: Icons.power, unlocked: true, unlockedAt: DateTime(2025, 4, 5)),
-      Achievement(id: 'a5', name: 'Clan Leader', description: 'Create or lead a clan', icon: Icons.emoji_events, unlocked: true, unlockedAt: DateTime(2025, 5, 1)),
-      Achievement(id: 'a6', name: 'Untouchable', description: 'Defend 100 attacks successfully', icon: Icons.shield, unlocked: false),
-      Achievement(id: 'a7', name: 'Deep Web', description: 'Reach level 50', icon: Icons.dangerous, unlocked: false),
-      Achievement(id: 'a8', name: 'Crypto King', description: 'Earn 10,000,000 credits', icon: Icons.currency_bitcoin, unlocked: false),
+      Achievement(id: 'a1', name: 'Первая кровь', description: 'Выполните первую атаку', icon: Icons.bloodtype, unlocked: true, unlockedAt: DateTime(2025, 1, 15)),
+      Achievement(id: 'a2', name: 'Протокол Призрак', description: 'Выиграйте 10 атак, оставшись необнаруженным', icon: Icons.visibility_off, unlocked: true, unlockedAt: DateTime(2025, 2, 20)),
+      Achievement(id: 'a3', name: 'Миллионер', description: 'Заработайте 1 000 000 кредитов', icon: Icons.diamond, unlocked: true, unlockedAt: DateTime(2025, 3, 10)),
+      Achievement(id: 'a4', name: 'Уничтожитель сетей', description: 'Уничтожьте 50 сетей', icon: Icons.power, unlocked: true, unlockedAt: DateTime(2025, 4, 5)),
+      Achievement(id: 'a5', name: 'Лидер клана', description: 'Создайте или возглавьте клан', icon: Icons.emoji_events, unlocked: true, unlockedAt: DateTime(2025, 5, 1)),
+      Achievement(id: 'a6', name: 'Неприкасаемый', description: 'Успешно защититесь от 100 атак', icon: Icons.shield, unlocked: false),
+      Achievement(id: 'a7', name: 'Даркнет', description: 'Достигните 50 уровня', icon: Icons.dangerous, unlocked: false),
+      Achievement(id: 'a8', name: 'Криптокороль', description: 'Заработайте 10 000 000 кредитов', icon: Icons.currency_bitcoin, unlocked: false),
     ]);
 
     _activity.addAll([
-      ActivityEntry(id: 'e1', type: 'attack', description: 'Successfully breached firewall of Corp_Net_42', timestamp: DateTime.now().subtract(const Duration(minutes: 15)), icon: Icons.bug_report, color: const Color(0xFF00FF41)),
-      ActivityEntry(id: 'e2', type: 'purchase', description: 'Purchased Advanced Firewall Module', timestamp: DateTime.now().subtract(const Duration(hours: 2)), icon: Icons.shopping_cart, color: const Color(0xFFFFD700)),
-      ActivityEntry(id: 'e3', type: 'defense', description: 'Repelled attack from n30ngh0st', timestamp: DateTime.now().subtract(const Duration(hours: 5)), icon: Icons.shield, color: const Color(0xFF00E5FF)),
-      ActivityEntry(id: 'e4', type: 'clan', description: 'Joined Shadow Collective', timestamp: DateTime.now().subtract(const Duration(days: 1)), icon: Icons.group_add, color: const Color(0xFF00E5FF)),
-      ActivityEntry(id: 'e5', type: 'level_up', description: 'Reached level 24', timestamp: DateTime.now().subtract(const Duration(days: 2)), icon: Icons.arrow_upward, color: const Color(0xFFFF0040)),
-      ActivityEntry(id: 'e6', type: 'attack', description: 'Failed intrusion on FortKnox_Server', timestamp: DateTime.now().subtract(const Duration(days: 3)), icon: Icons.bug_report, color: const Color(0xFFFF0040)),
-      ActivityEntry(id: 'e7', type: 'purchase', description: 'Upgraded CPU to Tier 4', timestamp: DateTime.now().subtract(const Duration(days: 4)), icon: Icons.memory, color: const Color(0xFFFFD700)),
+      ActivityEntry(id: 'e1', type: 'attack', description: 'Успешно взломан файрвол Corp_Net_42', timestamp: DateTime.now().subtract(const Duration(minutes: 15)), icon: Icons.bug_report, color: const Color(0xFF00FF41)),
+      ActivityEntry(id: 'e2', type: 'purchase', description: 'Куплен улучшенный модуль файрвола', timestamp: DateTime.now().subtract(const Duration(hours: 2)), icon: Icons.shopping_cart, color: const Color(0xFFFFD700)),
+      ActivityEntry(id: 'e3', type: 'defense', description: 'Отражена атака от n30ngh0st', timestamp: DateTime.now().subtract(const Duration(hours: 5)), icon: Icons.shield, color: const Color(0xFF00E5FF)),
+      ActivityEntry(id: 'e4', type: 'clan', description: 'Присоединился к Shadow Collective', timestamp: DateTime.now().subtract(const Duration(days: 1)), icon: Icons.group_add, color: const Color(0xFF00E5FF)),
+      ActivityEntry(id: 'e5', type: 'level_up', description: 'Достигнут 24 уровень', timestamp: DateTime.now().subtract(const Duration(days: 2)), icon: Icons.arrow_upward, color: const Color(0xFFFF0040)),
+      ActivityEntry(id: 'e6', type: 'attack', description: 'Неудачное вторжение на FortKnox_Server', timestamp: DateTime.now().subtract(const Duration(days: 3)), icon: Icons.bug_report, color: const Color(0xFFFF0040)),
+      ActivityEntry(id: 'e7', type: 'purchase', description: 'ЦПУ улучшен до 4 уровня', timestamp: DateTime.now().subtract(const Duration(days: 4)), icon: Icons.memory, color: const Color(0xFFFFD700)),
     ]);
   }
 
@@ -268,7 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
               child: CyberButton(
-                label: 'EDIT PROFILE',
+                label: 'РЕДАКТИРОВАТЬ',
                 variant: CyberButtonVariant.secondary,
                 icon: Icons.edit,
                 width: double.infinity,
@@ -300,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const Icon(Icons.stars, color: Color(0xFFFFD700), size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    'LEVEL ${widget.profile.level}',
+                    'УРОВЕНЬ ${widget.profile.level}',
                     style: const TextStyle(
                       color: Color(0xFFFFD700),
                       fontWeight: FontWeight.w800,
@@ -311,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ],
               ),
               Text(
-                'Rank #${widget.profile.ranking}',
+                'Рейтинг #${widget.profile.ranking}',
                 style: const TextStyle(
                   color: Color(0xFF00FF41),
                   fontWeight: FontWeight.w700,
@@ -358,32 +358,32 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildStatsGrid() {
     final stats = [
       _StatItem(
-          label: 'Total Attacks',
+          label: 'Всего атак',
           value: '${widget.profile.totalAttacks}',
           icon: Icons.bug_report,
           color: const Color(0xFF00FF41)),
       _StatItem(
-          label: 'Successful',
+          label: 'Успешных',
           value: '${widget.profile.successfulAttacks}',
           icon: Icons.check_circle,
           color: const Color(0xFF00E5FF)),
       _StatItem(
-          label: 'Credits Earned',
+          label: 'Заработано кредитов',
           value: _formatNum(widget.profile.creditsEarned),
           icon: Icons.monetization_on,
           color: const Color(0xFFFFD700)),
       _StatItem(
-          label: 'Networks Destroyed',
+          label: 'Сетей уничтожено',
           value: '${widget.profile.networksDestroyed}',
           icon: Icons.power_off,
           color: const Color(0xFFFF0040)),
       _StatItem(
-          label: 'Current Ranking',
+          label: 'Текущий рейтинг',
           value: '#${widget.profile.ranking}',
           icon: Icons.leaderboard,
           color: const Color(0xFF00FF41)),
       _StatItem(
-          label: 'Win Rate',
+          label: '% побед',
           value: widget.profile.totalAttacks > 0
               ? '${((widget.profile.successfulAttacks / widget.profile.totalAttacks) * 100).toStringAsFixed(1)}%'
               : '0%',
@@ -395,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'STATISTICS',
+          'СТАТИСТИКА',
           style: TextStyle(
             color: Color(0xFF00E5FF),
             fontSize: 12,
@@ -462,7 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'ACHIEVEMENTS',
+          'ДОСТИЖЕНИЯ',
           style: TextStyle(
             color: Color(0xFF00E5FF),
             fontSize: 12,
@@ -471,7 +471,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ),
         Text(
-          '${unlocked.length}/${_achievements.length} unlocked',
+          '${unlocked.length}/${_achievements.length} разблокировано',
           style: TextStyle(
               color: Colors.white.withOpacity(0.3), fontSize: 11),
         ),
@@ -487,7 +487,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         if (locked.isNotEmpty) ...[
           const SizedBox(height: 12),
           const Text(
-            'LOCKED',
+            'ЗАБЛОКИРОВАНО',
             style: TextStyle(
               color: Colors.white24,
               fontSize: 10,
@@ -585,7 +585,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             if (a.unlocked && a.unlockedAt != null) ...[
               const SizedBox(height: 10),
               Text(
-                'Unlocked ${_formatDate(a.unlockedAt!)}',
+                'Разблокировано ${_formatDate(a.unlockedAt!)}',
                 style: TextStyle(
                     color: Colors.white.withOpacity(0.3), fontSize: 11),
               ),
@@ -603,7 +603,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'RECENT ACTIVITY',
+          'ПОСЛЕДНЯЯ АКТИВНОСТЬ',
           style: TextStyle(
             color: Color(0xFF00E5FF),
             fontSize: 12,
@@ -693,16 +693,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   String _timeAgo(DateTime t) {
     final diff = DateTime.now().difference(t);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}м назад';
+    if (diff.inHours < 24) return '${diff.inHours}ч назад';
+    if (diff.inDays < 7) return '${diff.inDays}д назад';
     return _formatDate(t);
   }
 
   void _onEditProfile() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Edit profile coming soon...'),
+        content: Text('Редактирование профиля скоро будет доступно...'),
         backgroundColor: Color(0xFF00E5FF),
       ),
     );

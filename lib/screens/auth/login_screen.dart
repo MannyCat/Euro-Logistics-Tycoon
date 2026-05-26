@@ -399,7 +399,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                     // Email field
                     _CyberTextField(
-                      label: '[ EMAIL ADDRESS ]',
+                      label: '[ ЭЛ. ПОЧТА ]',
                       hintText: 'operator@darknet.io',
                       controller: _emailController,
                       icon: Icons.alternate_email,
@@ -408,7 +408,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                     // Password field
                     _CyberTextField(
-                      label: '[ ACCESS KEY ]',
+                      label: '[ ПАРОЛЬ ]',
                       hintText: '••••••••••••••••',
                       controller: _passwordController,
                       icon: Icons.lock_outline,
@@ -422,7 +422,7 @@ class _LoginScreenState extends State<LoginScreen>
                       child: TextButton(
                         onPressed: () {},
                         child: const Text(
-                          'FORGOT KEY?',
+                          'ЗАБЫЛ ПАРОЛЬ?',
                           style: TextStyle(
                             color: Color(0xFF00e5ff),
                             fontSize: 11,
@@ -463,7 +463,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             child: const Center(
                               child: Text(
-                                '▶ CONNECT TO THE NET',
+                                '▶ ПОДКЛЮЧИТЬСЯ К СЕТИ',
                                 style: TextStyle(
                                   color: Color(0xFF0a0e17),
                                   fontSize: 14,
@@ -491,7 +491,7 @@ class _LoginScreenState extends State<LoginScreen>
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'OR',
+                            'ИЛИ',
                             style: TextStyle(
                               color: Color(0xFF00ff41),
                               fontSize: 11,
@@ -515,7 +515,7 @@ class _LoginScreenState extends State<LoginScreen>
                       onTap: () => context.go('/register'),
                       child: RichText(
                         text: const TextSpan(
-                          text: 'NEW HACKER? ',
+                          text: 'НОВЫЙ ХАКЕР? ',
                           style: TextStyle(
                             color: Color(0xFF4a5568),
                             fontSize: 13,
@@ -524,7 +524,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                           children: [
                             TextSpan(
-                              text: 'REGISTER NOW',
+                              text: 'РЕГИСТРАЦИЯ',
                               style: TextStyle(
                                 color: Color(0xFF00e5ff),
                                 fontWeight: FontWeight.bold,
@@ -565,7 +565,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'SYSTEM ONLINE',
+                                'СИСТЕМА В СЕТИ',
                                 style: TextStyle(
                                   color: Color(0xFF00ff41),
                                   fontSize: 10,
@@ -576,7 +576,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ],
                           ),
                           const Text(
-                            'LATENCY: 12ms',
+                            'ЗАДЕРЖКА: 12мс',
                             style: TextStyle(
                               color: Color(0xFF00e5ff),
                               fontSize: 10,

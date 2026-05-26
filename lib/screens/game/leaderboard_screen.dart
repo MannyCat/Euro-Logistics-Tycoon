@@ -54,15 +54,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('LEADERBOARD'),
+        title: const Text('РЕЙТИНГ'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
           tabs: const [
-            Tab(text: 'TOP HACKERS'),
-            Tab(text: 'TOP CREWS'),
-            Tab(text: 'RICHEST'),
-            Tab(text: 'MOST DESTRUCTIVE'),
+            Tab(text: 'ЛУЧШИЕ ХАКЕРЫ'),
+            Tab(text: 'ЛУЧШИЕ БАНДЫ'),
+            Tab(text: 'БОГАЧЕЙШИЕ'),
+            Tab(text: 'САМЫЕ РАЗРУШИТЕЛЬНЫЕ'),
           ],
           labelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -99,7 +99,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                         Icon(Icons.error_outline,
                             size: 48, color: theme.colorScheme.error),
                         const SizedBox(height: 12),
-                        Text('Failed to load leaderboard',
+                        Text('Не удалось загрузить рейтинг',
                             style: theme.textTheme.bodyMedium),
                       ],
                     ),
@@ -117,11 +117,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                             size: 64,
                             color: theme.colorScheme.outline.withValues(alpha: 0.4)),
                         const SizedBox(height: 16),
-                        Text('No leaderboard data yet',
+                        Text('Данных рейтинга пока нет',
                             style: theme.textTheme.bodyLarge?.copyWith(
                                 color: theme.colorScheme.outline)),
                         const SizedBox(height: 8),
-                        Text('Start hacking to claim your spot!',
+                        Text('Начните взлом, чтобы занять своё место!',
                             style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.outline.withValues(alpha: 0.7))),
                       ],
@@ -247,7 +247,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     required double height,
   }) {
     final profiles = data['profiles'] as Map?;
-    final username = profiles?['username'] as String? ?? 'Unknown';
+    final username = profiles?['username'] as String? ?? 'Неизвестно';
     final level = profiles?['level'] as int? ?? 1;
     final isMe = data['player_id'] == userId;
     final statValue = _getStatValue(data);
@@ -324,7 +324,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           ),
           const SizedBox(height: 2),
           Text(
-            'LVL $level',
+            'УР $level',
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontSize: 10,
@@ -351,7 +351,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     ThemeData theme,
   ) {
     final profiles = data['profiles'] as Map?;
-    final username = profiles?['username'] as String? ?? 'Unknown';
+    final username = profiles?['username'] as String? ?? 'Неизвестно';
     final level = profiles?['level'] as int? ?? 1;
     final isMe = data['player_id'] == userId;
     final statValue = _getStatValue(data);
@@ -437,7 +437,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'YOU',
+                    'ВЫ',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
@@ -449,7 +449,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ],
           ),
           subtitle: Text(
-            'Lv.$level • ${_formatStatValue(statValue)}',
+            'Ур.$level • ${_formatStatValue(statValue)}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
               fontSize: 12,
@@ -521,7 +521,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'YOUR RANK',
+                'ВАШ РАНГ',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.primary.withValues(alpha: 0.8),
                   fontWeight: FontWeight.bold,
@@ -546,7 +546,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'TOP ${(_myRank + 1)}%',
+              'ТОП ${(_myRank + 1)}%',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,

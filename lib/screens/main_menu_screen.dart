@@ -494,14 +494,14 @@ class _MainMenuScreenState extends State<MainMenuScreen>
             child: Row(
               children: [
                 const _ResourceBar(
-                  label: 'CREDITS',
+                  label: 'КРЕДИТЫ',
                   value: '247,530',
                   icon: Icons.payments_outlined,
                   color: Color(0xFF00ff41),
                 ),
                 const SizedBox(width: 12),
                 const _ResourceBar(
-                  label: 'CPU',
+                  label: 'ЦПУ',
                   value: '8.4',
                   unit: ' THz',
                   icon: Icons.memory,
@@ -509,7 +509,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                 ),
                 const SizedBox(width: 12),
                 const _ResourceBar(
-                  label: 'BANDWIDTH',
+                  label: 'КАНАЛ',
                   value: '2.1',
                   unit: ' Gbps',
                   icon: Icons.wifi_tethering,
@@ -517,7 +517,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                 ),
                 const Spacer(),
                 const Text(
-                  'SESSION: 00:42:17',
+                  'СЕССИЯ: 00:42:17',
                   style: TextStyle(
                     color: Color(0xFF4a5568),
                     fontSize: 10,
@@ -597,7 +597,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                                       mainAxisSize: MainAxisSize.min,
                                       children: const [
                                         Text(
-                                          'NETWORK STATUS',
+                                          'СТАТУС СЕТИ',
                                           style: TextStyle(
                                             color: Color(0xFF00ff41),
                                             fontSize: 18,
@@ -614,7 +614,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                                         ),
                                         SizedBox(height: 4),
                                         Text(
-                                          '15 NODES ONLINE // 0 ALERTS',
+                                          '15 УЗЛОВ ОНЛАЙН // 0 ТРЕВОГ',
                                           style: TextStyle(
                                             color: Color(0xFF00e5ff),
                                             fontSize: 11,
@@ -648,7 +648,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                         const Padding(
                           padding: EdgeInsets.only(left: 4, bottom: 12),
                           child: Text(
-                            '// MAINFRAME MENU',
+                            '// МЕНЮ МАЙНФРЕЙМА'
                             style: TextStyle(
                               color: Color(0xFF4a5568),
                               fontSize: 11,
@@ -658,49 +658,49 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           ),
                         ),
                         _MenuButton(
-                          label: 'ENTER THE NET',
+                          label: 'ВОЙТИ В СЕТЬ',
                           icon: Icons.language,
-                          subtitle: 'Game map & operations',
+                          subtitle: 'Игровая карта и операции',
                           accentColor: const Color(0xFF00ff41),
                           onTap: () => context.go('/game-map'),
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
-                          label: 'TERMINAL',
+                          label: 'ТЕРМИНАЛ',
                           icon: Icons.terminal,
-                          subtitle: 'Encrypted communications',
+                          subtitle: 'Зашифрованные коммуникации',
                           accentColor: const Color(0xFF00e5ff),
                           onTap: () {},
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
-                          label: 'CREW',
+                          label: 'БАНДА',
                           icon: Icons.groups,
-                          subtitle: 'Your hacking syndicate',
+                          subtitle: 'Ваша хакерская группировка',
                           accentColor: const Color(0xFFa855f7),
                           onTap: () {},
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
-                          label: 'BLACK MARKET',
+                          label: 'ЧЁРНЫЙ РЫНОК',
                           icon: Icons.storefront,
-                          subtitle: 'Buy tools & exploits',
+                          subtitle: 'Покупка инструментов и эксплойтов',
                           accentColor: const Color(0xFFff9800),
                           onTap: () {},
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
-                          label: 'LEADERBOARD',
+                          label: 'РЕЙТИНГ',
                           icon: Icons.leaderboard,
-                          subtitle: 'Global rankings',
+                          subtitle: 'Мировой рейтинг',
                           accentColor: const Color(0xFFe91e63),
                           onTap: () {},
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
-                          label: 'SETTINGS',
+                          label: 'НАСТРОЙКИ',
                           icon: Icons.settings_outlined,
-                          subtitle: 'System configuration',
+                          subtitle: 'Конфигурация системы',
                           accentColor: const Color(0xFF78909c),
                           onTap: () {},
                         ),
@@ -711,9 +711,9 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
-                          label: 'DISCONNECT',
+                          label: 'ОТКЛЮЧИТЬСЯ',
                           icon: Icons.power_settings_new,
-                          subtitle: 'End session',
+                          subtitle: 'Завершить сессию',
                           accentColor: const Color(0xFFff4444),
                           onTap: () => context.go('/login'),
                         ),

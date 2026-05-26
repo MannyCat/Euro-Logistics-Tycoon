@@ -12,8 +12,8 @@ class MarketScreen extends StatefulWidget {
 
 class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMixin {
   late TabController _tabController;
-  String _selectedCategory = 'All';
-  final List<String> _categories = const ['All', 'Hardware', 'Software', 'Exploits', 'Tools'];
+  String _selectedCategory = 'Все';
+  final List<String> _categories = const ['Все', 'Оборудование', 'Софт', 'Эксплойты', 'Инструменты'];
 
   List<Map<String, dynamic>> _marketItems = [];
   List<Map<String, dynamic>> _inventory = [];
@@ -55,7 +55,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
       _errorMessage = null;
     });
     final game = context.read<GameProvider>();
-    final category = _selectedCategory == 'All' ? null : _selectedCategory.toLowerCase();
+    final category = _selectedCategory == 'Все' ? null : _selectedCategory.toLowerCase();
     final items = await game.getMarketItems(category: category);
     if (!mounted) return;
     setState(() {
@@ -98,7 +98,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Purchased ${item['name'] ?? "Item"}!'),
+          content: Text('Куплено ${item['name'] ?? "Товар"}!'),
           backgroundColor: Colors.greenAccent.withValues(alpha: 0.9),
           behavior: SnackBarBehavior.floating,
         ),
@@ -107,7 +107,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(game.errorMessage ?? 'Purchase failed'),
+          content: Text(game.errorMessage ?? 'Покупка не удалась'),
           backgroundColor: Colors.redAccent.withValues(alpha: 0.9),
           behavior: SnackBarBehavior.floating,
         ),
@@ -143,12 +143,12 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('BLACK MARKET'),
+        title: const Text('ЧЁРНЫЙ РЫНОК'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'SHOP', icon: Icon(Icons.storefront, size: 18)),
-            Tab(text: 'INVENTORY', icon: Icon(Icons.inventory_2, size: 18)),
+            Tab(text: 'МАГАЗИН', icon: Icon(Icons.storefront, size: 18)),
+            Tab(text: 'ИНВЕНТАРЬ', icon: Icon(Icons.inventory_2, size: 18)),
           ],
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
           indicatorSize: TabBarIndicatorSize.tab,
@@ -243,12 +243,12 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
                           const SizedBox(height: 12),
                           Text(_errorMessage!, style: theme.textTheme.bodyMedium),
                           const SizedBox(height: 12),
-                          ElevatedButton(onPressed: _loadMarketItems, child: const Text('RETRY')),
+                          ElevatedButton(onPressed: _loadMarketItems, child: const Text('ПОВТОРИТЬ')),
                         ],
                       ),
                     )
                   : _marketItems.isEmpty
-                      ? _buildEmptyState(theme, Icons.storefront_outlined, 'No items in this category', 'Try a different filter or check back later')
+                      ? _buildEmptyState(theme, Icons.storefront_outlined, 'Нет товаров в этой категории', 'Попробуйте другой фильтр или зайдите позже')
                       : RefreshIndicator(
                           onRefresh: _loadMarketItems,
                           child: GridView.builder(
@@ -280,7 +280,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
     return _isLoadingInventory
         ? const Center(child: CircularProgressIndicator())
         : _inventory.isEmpty
-            ? _buildEmptyState(theme, Icons.inventory_2_outlined, 'Inventory is empty', 'Purchase items from the Shop tab')
+            ? _buildEmptyState(theme, Icons.inventory_2_outlined, 'Инвентарь пуст', 'Купите товары на вкладке Магазин')
             : RefreshIndicator(
                 onRefresh: _loadInventory,
                 child: ListView.builder(
@@ -322,7 +322,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
                                 Row(
                                   children: [
                                     Text(
-                                      marketItem?['name'] as String? ?? 'Unknown Item',
+                                      marketItem?['name'] as String? ?? 'Неизвестный товар',
                                       style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                                     ),
                                     const SizedBox(width: 8),
@@ -344,7 +344,7 @@ class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMix
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  marketItem?['description'] as String? ?? 'No description',
+                                  marketItem?['description'] as String? ?? 'Нет описания',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
@@ -417,7 +417,7 @@ class _MarketItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final name = item['name'] as String? ?? 'Unknown';
+    final name = item['name'] as String? ?? 'Неизвестный товар';
     final description = item['description'] as String? ?? '';
     final price = (item['price'] as num?)?.toInt() ?? 0;
     final stock = (item['stock'] as num?)?.toInt() ?? 0;
@@ -489,7 +489,7 @@ class _MarketItemCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    'Stock: $stock',
+                    'На складе: $stock',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: stock > 5 ? Colors.greenAccent : Colors.redAccent,
                       fontSize: 10,
@@ -533,7 +533,7 @@ class _MarketItemCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                     ),
-                    child: const Text('BUY'),
+                    child: const Text('КУПИТЬ'),
                   ),
                 ),
               ],
@@ -554,7 +554,7 @@ class _PurchaseConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final name = item['name'] as String? ?? 'Unknown Item';
+    final name = item['name'] as String? ?? 'Неизвестный товар';
     final price = (item['price'] as num?)?.toInt() ?? 0;
     final canAfford = credits >= price;
     final description = item['description'] as String? ?? '';
@@ -569,7 +569,7 @@ class _PurchaseConfirmDialog extends StatelessWidget {
         children: [
           Icon(Icons.shopping_cart, color: theme.colorScheme.primary, size: 22),
           const SizedBox(width: 10),
-          const Text('Confirm Purchase'),
+          const Text('Подтвердить Покупку'),
         ],
       ),
       content: Column(
@@ -591,7 +591,7 @@ class _PurchaseConfirmDialog extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Price:', style: theme.textTheme.bodyMedium),
+                Text('Цена:', style: theme.textTheme.bodyMedium),
                 Row(
                   children: [
                     const Icon(Icons.monetization_on, color: Colors.amberAccent, size: 18),
@@ -607,14 +607,14 @@ class _PurchaseConfirmDialog extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Balance: $credits CR',
+            'Баланс: $credits CR',
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           if (!canAfford)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                '⚠ Insufficient credits!',
+                '⚠ Недостаточно кредитов!',
                 style: theme.textTheme.bodySmall?.copyWith(color: Colors.redAccent, fontWeight: FontWeight.bold),
               ),
             ),
@@ -623,14 +623,14 @@ class _PurchaseConfirmDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('CANCEL'),
+          child: const Text('ОТМЕНА'),
         ),
         ElevatedButton(
           onPressed: canAfford ? () => Navigator.pop(context, true) : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.colorScheme.primary,
           ),
-          child: const Text('PURCHASE'),
+          child: const Text('ПОКУПИТЬ'),
         ),
       ],
     );

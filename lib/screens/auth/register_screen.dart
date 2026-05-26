@@ -198,7 +198,7 @@ class _CyberCheckboxState extends State<_CyberCheckbox> {
                 ),
                 children: [
                   TextSpan(
-                    text: ' TERMS OF SERVICE',
+                    text: ' УСЛОВИЯ ИСПОЛЬЗОВАНИЯ',
                     style: TextStyle(
                       color: const Color(0xFF00e5ff).withOpacity(0.7),
                       decoration: TextDecoration.underline,
@@ -343,7 +343,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                         colors: [Color(0xFF00e5ff), Color(0xFF00ff41)],
                       ).createShader(bounds),
                       child: const Text(
-                        'CREATE OPERATOR',
+                        'СОЗДАТЬ ОПЕРАТОРА',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w900,
@@ -359,7 +359,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      '// INITIALIZE NEW IDENTITY',
+                      '// ИНИЦИАЛИЗАЦИЯ НОВОЙ ЛИЧНОСТИ',
                       style: TextStyle(
                         color: Color(0xFF4a5568),
                         fontSize: 11,
@@ -371,7 +371,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                     // Hacker alias field
                     _CyberTextField(
-                      label: '[ HACKER ALIAS ]',
+                      label: '[ ПСЕВДОНИМ ХАКЕРА ]',
                       hintText: 'shadow_byte',
                       controller: _aliasController,
                       icon: Icons.hub_outlined,
@@ -380,7 +380,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                     // Email field
                     _CyberTextField(
-                      label: '[ EMAIL ADDRESS ]',
+                      label: '[ ЭЛ. ПОЧТА ]',
                       hintText: 'operator@darknet.io',
                       controller: _emailController,
                       icon: Icons.alternate_email,
@@ -389,7 +389,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                     // Password field
                     _CyberTextField(
-                      label: '[ ACCESS KEY ]',
+                      label: '[ ПАРОЛЬ ]',
                       hintText: '••••••••••••',
                       controller: _passwordController,
                       icon: Icons.lock_outline,
@@ -399,7 +399,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                     // Confirm password
                     _CyberTextField(
-                      label: '[ CONFIRM KEY ]',
+                      label: '[ ПОДТВЕРДИТЕ ПАРОЛЬ ]',
                       hintText: '••••••••••••',
                       controller: _confirmPasswordController,
                       icon: Icons.lock_reset,
@@ -415,7 +415,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                     // Terms checkbox
                     _CyberCheckbox(
-                      label: 'I ACKNOWLEDGE AND ACCEPT THE',
+                      label: 'Я ПРИНИМАЮ',
                       onChanged: (v) => setState(() => _termsAccepted = v),
                     ),
                     const SizedBox(height: 24),
@@ -458,7 +458,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                               ),
                               child: const Center(
                                 child: Text(
-                                  '⚡ JACK IN',
+                                  '⚡ ПОДКЛЮЧИТЬСЯ',
                                   style: TextStyle(
                                     color: Color(0xFF0a0e17),
                                     fontSize: 15,
@@ -480,7 +480,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                       onTap: () => context.go('/login'),
                       child: RichText(
                         text: const TextSpan(
-                          text: 'ALREADY WIRED? ',
+                          text: 'УЖЕ ПОДКЛЮЧЕНЫ? ',
                           style: TextStyle(
                             color: Color(0xFF4a5568),
                             fontSize: 12,
@@ -489,7 +489,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                           ),
                           children: [
                             TextSpan(
-                              text: 'LOGIN',
+                              text: 'ВОЙТИ',
                               style: TextStyle(
                                 color: Color(0xFF00ff41),
                                 fontWeight: FontWeight.bold,
@@ -514,9 +514,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                         ),
                       ),
                       child: const Text(
-                        '> ENCRYPTED CONNECTION ESTABLISHED\n'
-                        '> PROTOCOL: TLS 1.3 | CIPHER: AES-256-GCM\n'
-                        '> IDENTITY ANONYMIZATION: ACTIVE',
+                        '> ЗАШИФРОВАННОЕ СОЕДИНЕНИЕ УСТАНОВЛЕНО\n'
+                        '> ПРОТОКОЛ: TLS 1.3 | ШИФР: AES-256-GCM\n'
+                        '> АНОНИМИЗАЦИЯ ЛИЧНОСТИ: АКТИВНА',
                         style: TextStyle(
                           color: Color(0xFF00ff41),
                           fontSize: 9,
@@ -556,10 +556,10 @@ class _PasswordStrengthIndicator extends StatelessWidget {
     if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
 
     final strengthLevel = strength <= 1
-        ? (strength == 0 ? ('NONE' as dynamic) : 'WEAK')
+        ? (strength == 0 ? ('НЕТ' as dynamic) : 'СЛАБЫЙ')
         : strength <= 3
-            ? 'MODERATE'
-            : 'STRONG';
+            ? 'СРЕДНИЙ'
+            : 'СИЛЬНЫЙ';
     final color = strength <= 1
         ? (strength == 0 ? const Color(0xFF4a5568) : const Color(0xFFff4444))
         : strength <= 3
@@ -569,7 +569,7 @@ class _PasswordStrengthIndicator extends StatelessWidget {
     return Row(
       children: [
         const Text(
-          'KEY STRENGTH: ',
+          'НАДЁЖНОСТЬ КЛЮЧА: ',
           style: TextStyle(
             color: Color(0xFF4a5568),
             fontSize: 10,

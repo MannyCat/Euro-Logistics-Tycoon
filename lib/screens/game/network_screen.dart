@@ -5,12 +5,12 @@ import 'package:go_router/go_router.dart';
 // ─── Data Models ───────────────────────────────────────────────────────────────
 
 enum NodeType {
-  server('Server', Icons.dns, 'High CPU power and storage'),
-  firewall('Firewall', Icons.shield, 'Blocks incoming attacks'),
-  proxy('Proxy', Icons.vpn_lock, 'Hides your identity online'),
-  router('Router', Icons.router, 'Connects and routes traffic'),
-  miner('Miner', Icons.currency_bitcoin, 'Generates passive income'),
-  scanner('Scanner', Icons.radar, 'Discovers nearby networks');
+  server('Сервер', Icons.dns, 'Высокая мощность ЦПУ и хранилище'),
+  firewall('Файрвол', Icons.shield, 'Блокирует входящие атаки'),
+  proxy('Прокси', Icons.vpn_lock, 'Скрывает вашу личность'),
+  router('Роутер', Icons.router, 'Соединяет и направляет трафик'),
+  miner('Майнер', Icons.currency_bitcoin, 'Генерирует пассивный доход'),
+  scanner('Сканер', Icons.radar, 'Обнаруживает ближайшие сети');
 
   const NodeType(this.label, this.icon, this.description);
   final String label;
@@ -215,7 +215,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
             _recalcStats();
           });
           Navigator.pop(context);
-          _showSnackBar('Node ${type.label} deployed successfully!', _Theme.accentGreen);
+          _showSnackBar('Узел ${type.label} успешно развёрнут!', _Theme.accentGreen);
         },
       ),
     );
@@ -223,7 +223,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
 
   void _showUpgradeDialog(NetworkNode node) {
     if (node.upgradeCost > _playerCredits) {
-      _showSnackBar('Insufficient credits! Need ${node.upgradeCost}₿', _Theme.warningRed);
+      _showSnackBar('Недостаточно кредитов! Нужно ${node.upgradeCost}₿', _Theme.warningRed);
       return;
     }
 
@@ -235,24 +235,24 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: _Theme.accentCyan, width: 1),
         ),
-        title: const Text('Upgrade Node', style: TextStyle(color: _Theme.accentCyan, fontSize: 18)),
+        title: const Text('Улучшить Узел'), style: TextStyle(color: _Theme.accentCyan, fontSize: 18)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Node: ${node.name}', style: const TextStyle(color: _Theme.textPrimary)),
+            Text('Узел: ${node.name}', style: const TextStyle(color: _Theme.textPrimary)),
             const SizedBox(height: 8),
-            Text('Current Level: ${node.level}', style: const TextStyle(color: _Theme.textSecondary)),
-            Text('New Level: ${node.level + 1}', style: const TextStyle(color: _Theme.accentGreen)),
+            Text('Текущий Уровень: ${node.level}', style: const TextStyle(color: _Theme.textSecondary)),
+            Text('Новый Уровень: ${node.level + 1}', style: const TextStyle(color: _Theme.accentGreen)),
             const SizedBox(height: 8),
-            Text('Cost: ${node.upgradeCost}₿', style: const TextStyle(color: _Theme.warningRed)),
-            Text('+${50 + node.level * 20} Max Health', style: const TextStyle(color: _Theme.accentGreen)),
+            Text('Стоимость: ${node.upgradeCost}₿', style: const TextStyle(color: _Theme.warningRed)),
+            Text('+${50 + node.level * 20} Макс. здоровье', style: const TextStyle(color: _Theme.accentGreen)),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: _Theme.textSecondary)),
+            child: const Text('Отмена', style: TextStyle(color: _Theme.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -264,13 +264,13 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                 _recalcStats();
               });
               Navigator.pop(context);
-              _showSnackBar('${node.name} upgraded to level ${node.level}!', _Theme.accentGreen);
+              _showSnackBar('${node.name} улучшен до уровня ${node.level}!', _Theme.accentGreen);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: _Theme.accentGreen,
               foregroundColor: _Theme.bg,
             ),
-            child: const Text('Upgrade'),
+            child: const Text('Улучшить'),
           ),
         ],
       ),
@@ -286,16 +286,16 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: _Theme.warningRed, width: 1),
         ),
-        title: const Text('Destroy Node', style: TextStyle(color: _Theme.warningRed, fontSize: 18)),
+        title: const Text('Уничтожить Узел', style: TextStyle(color: _Theme.warningRed, fontSize: 18)),
         content: Text(
-          'Are you sure you want to destroy ${node.name}?\n\n'
-          'You will receive ${node.destroyRefund}₿ refund.',
+          'Вы уверены, что хотите уничтожить ${node.name}?\n\n'
+          'Вы получите возврат ${node.destroyRefund}₿.',
           style: const TextStyle(color: _Theme.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: _Theme.textSecondary)),
+            child: const Text('Отмена', style: TextStyle(color: _Theme.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -305,13 +305,13 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                 _recalcStats();
               });
               Navigator.pop(context);
-              _showSnackBar('${node.name} destroyed. +${node.destroyRefund}₿', _Theme.warningRed);
+              _showSnackBar('${node.name} уничтожен. +${node.destroyRefund}₿', _Theme.warningRed);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: _Theme.warningRed,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Destroy'),
+            child: const Text('Уничтожить'),
           ),
         ],
       ),
@@ -346,7 +346,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
           children: [
             const Icon(Icons.hub, color: _Theme.accentCyan, size: 22),
             const SizedBox(width: 10),
-            const Text('Network Control', style: TextStyle(color: _Theme.textPrimary, fontSize: 18)),
+            const Text('Управление Сетью', style: TextStyle(color: _Theme.textPrimary, fontSize: 18)),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -388,7 +388,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
         foregroundColor: _Theme.accentGreen,
         elevation: 0,
         icon: const Icon(Icons.add_circle),
-        label: const Text('Build New Node', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Создать Узел', style: TextStyle(fontWeight: FontWeight.bold)),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
           side: BorderSide(color: _Theme.accentGreen.withValues(alpha: 0.4)),
@@ -413,10 +413,10 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _statChip(Icons.memory, 'CPU', '$_playerCpu', _Theme.accentCyan),
-          _statChip(Icons.speed, 'Bandwidth', '${_playerBandwidth}MB/s', _Theme.accentGreen),
-          _statChip(Icons.shield, 'Security', '$_playerSecurity%', _Theme.warningRed),
-          _statChip(Icons.devices, 'Nodes', '${_nodes.length}', _Theme.accentCyan),
+          _statChip(Icons.memory, 'ЦПУ', '$_playerCpu', _Theme.accentCyan),
+          _statChip(Icons.speed, 'Канал', '${_playerBandwidth}MB/s', _Theme.accentGreen),
+          _statChip(Icons.shield, 'Защита', '$_playerSecurity%', _Theme.warningRed),
+          _statChip(Icons.devices, 'Узлы', '${_nodes.length}', _Theme.accentCyan),
         ],
       ),
     );
@@ -441,10 +441,10 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
       NodeStatus.underAttack => _Theme.warningRed,
     };
     final statusLabel = switch (node.status) {
-      NodeStatus.online => 'ONLINE',
-      NodeStatus.offline => 'OFFLINE',
-      NodeStatus.upgrading => 'UPGRADING',
-      NodeStatus.underAttack => 'ATTACKED',
+      NodeStatus.online => 'ОНЛАЙН',
+      NodeStatus.offline => 'ОФФЛАЙН',
+      NodeStatus.upgrading => 'ОБНОВЛЕНИЕ',
+      NodeStatus.underAttack => 'ПОД АТАКОЙ',
     };
 
     return AnimatedBuilder(
@@ -527,7 +527,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                 // ── Health Bar ──
                 Row(
                   children: [
-                    const Text('HP', style: TextStyle(color: _Theme.textSecondary, fontSize: 11, fontFamily: 'monospace')),
+                    const Text('ОЗ', style: TextStyle(color: _Theme.textSecondary, fontSize: 11, fontFamily: 'monospace')),
                     const SizedBox(width: 8),
                     Expanded(
                       child: LayoutBuilder(
@@ -577,7 +577,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                   children: [
                     _actionButton(
                       icon: Icons.arrow_upward,
-                      label: 'Upgrade',
+                      label: 'Улучшить',
                       cost: '${node.upgradeCost}₿',
                       color: _Theme.accentCyan,
                       enabled: node.status != NodeStatus.offline && _playerCredits >= node.upgradeCost,
@@ -586,7 +586,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                     const SizedBox(width: 10),
                     _actionButton(
                       icon: Icons.delete_forever,
-                      label: 'Destroy',
+                      label: 'Уничтожить',
                       cost: '+${node.destroyRefund}₿',
                       color: _Theme.warningRed,
                       enabled: true,
@@ -596,7 +596,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                     if (node.status == NodeStatus.offline)
                       _actionButton(
                         icon: Icons.power_settings_new,
-                        label: 'Reboot',
+                        label: 'Перезагрузить',
                         cost: '200₿',
                         color: _Theme.accentGreen,
                         enabled: _playerCredits >= 200,
@@ -608,7 +608,7 @@ class _NetworkOverviewScreenState extends State<NetworkOverviewScreen>
                               _playerCredits -= 200;
                               _recalcStats();
                             });
-                            _showSnackBar('${node.name} rebooted!', _Theme.accentGreen);
+                            _showSnackBar('${node.name} перезагружен!', _Theme.accentGreen);
                           }
                         },
                       ),
@@ -691,9 +691,9 @@ class _BuildNodeDialog extends StatelessWidget {
           const SizedBox(height: 16),
 
           // ── Title ──
-          const Text('Deploy New Node', style: TextStyle(color: _Theme.accentCyan, fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text('Развернуть Новый Узел'), style: TextStyle(color: _Theme.accentCyan, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          Text('Available Credits: $playerCredits₿', style: const TextStyle(color: _Theme.accentGreen, fontSize: 14)),
+          Text('Доступные Кредиты: $playerCredits₿', style: const TextStyle(color: _Theme.accentGreen, fontSize: 14)),
           const Divider(color: _Theme.border, height: 24),
 
           // ── Node Types ──
@@ -760,7 +760,7 @@ class _BuildNodeDialog extends StatelessWidget {
                     color: canAfford ? _Theme.accentGreen : _Theme.warningRed,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(canAfford ? 'DEPLOY' : 'NO FUNDS', style: const TextStyle(color: _Theme.bg, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  child: Text(canAfford ? 'РАЗВЕРНУТЬ' : 'НЕТ СРЕДСТВ', style: const TextStyle(color: _Theme.bg, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ),
               ],
             ),

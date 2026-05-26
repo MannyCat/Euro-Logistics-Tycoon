@@ -18,7 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushAttackAlerts = true;
   bool _pushClanMessages = true;
   bool _pushUpdates = false;
-  String _language = 'English';
+  String _language = 'Английский';
 
   // Change password
   final _currentPassCtrl = TextEditingController();
@@ -40,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: const Color(0xFF0A0E17),
       appBar: AppBar(
         title: const Text(
-          'SETTINGS',
+          'НАСТРОЙКИ',
           style: TextStyle(
             color: Color(0xFF00FF41),
             fontWeight: FontWeight.w800,
@@ -54,12 +54,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           // ── Appearance ────────────────────────────────────────
-          _sectionHeader('APPEARANCE'),
+          _sectionHeader('ВНЕШНИЙ ВИД'),
           _sectionCard([
             _switchRow(
               icon: Icons.dark_mode,
-              label: 'Deep Dark Mode',
-              subtitle: _darkTheme ? 'Deep black background' : 'Lighter dark variant',
+              label: 'Тёмный режим',
+              subtitle: _darkTheme ? 'Чёрный фон' : 'Более светлый вариант',
               value: _darkTheme,
               onChanged: (v) => setState(() => _darkTheme = v),
             ),
@@ -68,12 +68,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── Sound ────────────────────────────────────────────
-          _sectionHeader('AUDIO'),
+          _sectionHeader('ЗВУК'),
           _sectionCard([
             _switchRow(
               icon: Icons.volume_up,
-              label: 'Sound Effects',
-              subtitle: 'UI sounds & attack feedback',
+              label: 'Звуковые эффекты',
+              subtitle: 'Звуки интерфейса и обратная связь',
               value: _soundEffects,
               onChanged: (v) => setState(() => _soundEffects = v),
             ),
@@ -82,12 +82,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── Notifications ────────────────────────────────────
-          _sectionHeader('NOTIFICATIONS'),
+          _sectionHeader('УВЕДОМЛЕНИЯ'),
           _sectionCard([
             _switchRow(
               icon: Icons.notifications_active,
-              label: 'Enable Notifications',
-              subtitle: 'Receive push notifications',
+              label: 'Включить уведомления',
+              subtitle: 'Получать push-уведомления',
               value: _notifications,
               onChanged: (v) => setState(() {
                 _notifications = v;
@@ -102,24 +102,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const _Divider(),
               _switchRow(
                 icon: Icons.shield,
-                label: 'Attack Alerts',
-                subtitle: 'When your network is attacked',
+                label: 'Оповещения об атаках',
+                subtitle: 'Когда вашу сеть атакуют',
                 value: _pushAttackAlerts,
                 onChanged: (v) => setState(() => _pushAttackAlerts = v),
               ),
               const _Divider(),
               _switchRow(
                 icon: Icons.group,
-                label: 'Clan Messages',
-                subtitle: 'New clan chat & events',
+                label: 'Сообщения клана',
+                subtitle: 'Новый чат и события клана',
                 value: _pushClanMessages,
                 onChanged: (v) => setState(() => _pushClanMessages = v),
               ),
               const _Divider(),
               _switchRow(
                 icon: Icons.system_update,
-                label: 'Game Updates',
-                subtitle: 'New features & patches',
+                label: 'Обновления игры',
+                subtitle: 'Новые функции и патчи',
                 value: _pushUpdates,
                 onChanged: (v) => setState(() => _pushUpdates = v),
               ),
@@ -129,12 +129,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── Language ─────────────────────────────────────────
-          _sectionHeader('LANGUAGE'),
+          _sectionHeader('ЯЗЫК'),
           _sectionCard([
             _radioRow(
               icon: Icons.language,
-              label: 'Interface Language',
-              options: ['English', 'Русский'],
+              label: 'Язык интерфейса',
+              options: ['Английский', 'Русский'],
               selected: _language,
               onChanged: (v) => setState(() => _language = v),
             ),
@@ -143,17 +143,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── Account ──────────────────────────────────────────
-          _sectionHeader('ACCOUNT'),
+          _sectionHeader('АККАУНТ'),
           _sectionCard([
             _navRow(
               icon: Icons.lock,
-              label: 'Change Password',
+              label: 'Сменить пароль',
               onTap: _showChangePasswordDialog,
             ),
             const _Divider(),
             _navRow(
               icon: Icons.delete_forever,
-              label: 'Delete Account',
+              label: 'Удалить аккаунт',
               labelColor: const Color(0xFFFF0040),
               onTap: _showDeleteAccountDialog,
             ),
@@ -162,28 +162,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // ── About ────────────────────────────────────────────
-          _sectionHeader('ABOUT'),
+          _sectionHeader('О ПРИЛОЖЕНИИ'),
           _sectionCard([
-            _infoRow('Game', 'CyberHack'),
-            _infoRow('Version', '1.0.0-alpha'),
-            _infoRow('Build', '2025.06.01'),
+            _infoRow('Игра', 'CyberHack'),
+            _infoRow('Версия', '1.0.0-alpha'),
+            _infoRow('Сборка', '2025.06.01'),
             const _Divider(),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Credits',
+                  Text('Авторы',
                       style: TextStyle(
                           color: Colors.white.withOpacity(0.4), fontSize: 11)),
                   const SizedBox(height: 4),
                   const Text(
-                    'Designed & developed with 💀 by the CyberHack Team.',
+                    'Разработано с 💀 командой CyberHack.',
                     style: TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                   const SizedBox(height: 2),
                   const Text(
-                    'All characters and events are fictitious.',
+                    'Все персонажи и события вымышлены.',
                     style: TextStyle(color: Colors.white38, fontSize: 11),
                   ),
                 ],
@@ -195,7 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // ── Disconnect ───────────────────────────────────────
           CyberButton(
-            label: 'DISCONNECT',
+            label: 'ОТКЛЮЧИТЬСЯ',
             variant: CyberButtonVariant.danger,
             icon: Icons.power_settings_new,
             width: double.infinity,
@@ -394,23 +394,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: Color(0xFF00E5FF)),
         ),
-        title: const Text('Change Password',
+        title: const Text('Сменить пароль',
             style: TextStyle(color: Color(0xFF00E5FF))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _dialogField(
-                label: 'Current Password',
+                label: 'Текущий пароль',
                 controller: _currentPassCtrl,
                 obscure: true),
             const SizedBox(height: 10),
             _dialogField(
-                label: 'New Password',
+                label: 'Новый пароль',
                 controller: _newPassCtrl,
                 obscure: true),
             const SizedBox(height: 10),
             _dialogField(
-                label: 'Confirm New Password',
+                label: 'Подтвердите новый пароль',
                 controller: _confirmPassCtrl,
                 obscure: true),
           ],
@@ -419,10 +419,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child:
-                const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+                const Text('ОТМЕНА', style: TextStyle(color: Colors.white54)),
           ),
           CyberButton(
-            label: 'UPDATE',
+            label: 'ОБНОВИТЬ',
             variant: CyberButtonVariant.secondary,
             height: 36,
             onPressed: () {
@@ -432,7 +432,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _confirmPassCtrl.clear();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Password updated.'),
+                  content: Text('Пароль обновлён.'),
                   backgroundColor: Color(0xFF00FF41),
                 ),
               );
@@ -452,27 +452,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: Color(0xFFFF0040)),
         ),
-        title: const Text('Delete Account?',
+        title: const Text('Удалить аккаунт?',
             style: TextStyle(color: Color(0xFFFF0040))),
         content: const Text(
-          'This action is irreversible. All progress, credits, and clan membership will be permanently lost.',
+          'Это действие необратимо. Весь прогресс, кредиты и членство в клане будут навсегда утрачены.',
           style: TextStyle(color: Colors.white70, fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child:
-                const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+                const Text('ОТМЕНА', style: TextStyle(color: Colors.white54)),
           ),
           CyberButton(
-            label: 'DELETE',
+            label: 'УДАЛИТЬ',
             variant: CyberButtonVariant.danger,
             height: 36,
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Account deletion requested.'),
+                  content: Text('Запрос на удаление аккаунта отправлен.'),
                   backgroundColor: Color(0xFFFF0040),
                 ),
               );
@@ -492,27 +492,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: Color(0xFF00E5FF)),
         ),
-        title: const Text('Disconnect?',
+        title: const Text('Отключиться?',
             style: TextStyle(color: Color(0xFF00E5FF))),
         content: const Text(
-          'You will be disconnected from the game server. Your progress is saved automatically.',
+          'Вы будете отключены от игрового сервера. Ваш прогресс сохраняется автоматически.',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child:
-                const Text('CANCEL', style: TextStyle(color: Colors.white54)),
+                const Text('ОТМЕНА', style: TextStyle(color: Colors.white54)),
           ),
           CyberButton(
-            label: 'DISCONNECT',
+            label: 'ОТКЛЮЧИТЬСЯ',
             variant: CyberButtonVariant.secondary,
             height: 36,
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Disconnected.'),
+                  content: Text('Отключено.'),
                   backgroundColor: Color(0xFF00E5FF),
                 ),
               );

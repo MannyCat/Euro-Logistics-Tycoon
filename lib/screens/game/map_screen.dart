@@ -411,15 +411,15 @@ class _ActionPanel extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Node stats
-          _buildStat('TYPE', node.type.name.toUpperCase(), const Color(0xFF00e5ff)),
+          _buildStat('ТИП', node.type.name.toUpperCase(), const Color(0xFF00e5ff)),
           const SizedBox(height: 6),
-          _buildStat('HEALTH', '${node.health.toInt()}/${node.maxHealth.toInt()}',
+          _buildStat('ЗДОРОВЬЕ', '${node.health.toInt()}/${node.maxHealth.toInt()}',
               node.health > 50 ? const Color(0xFF00ff41) : const Color(0xFFff4444)),
           const SizedBox(height: 6),
-          _buildStat('FIREWALL', '${node.firewallStrength}/10',
+          _buildStat('ФАЙРВОЛ', '${node.firewallStrength}/10',
               const Color(0xFFff9800)),
           const SizedBox(height: 6),
-          _buildStat('STATUS', node.isOnline ? 'ONLINE' : 'OFFLINE',
+          _buildStat('СТАТУС', node.isOnline ? 'ОНЛАЙН' : 'ОФФЛАЙН',
               node.isOnline ? const Color(0xFF00ff41) : const Color(0xFFff4444)),
           const SizedBox(height: 16),
 
@@ -429,7 +429,7 @@ class _ActionPanel extends StatelessWidget {
               if (!node.isPlayerOwned) ...[
                 Expanded(
                   child: _ActionBtn(
-                    label: '⚔ ATTACK',
+                    label: '⚔ АТАКА',
                     color: const Color(0xFFff4444),
                     onTap: onAttack,
                   ),
@@ -439,7 +439,7 @@ class _ActionPanel extends StatelessWidget {
               if (node.isPlayerOwned) ...[
                 Expanded(
                   child: _ActionBtn(
-                    label: '🛡 DEFEND',
+                    label: '🛡 ЗАЩИТА',
                     color: const Color(0xFF00ff41),
                     onTap: onDefend,
                   ),
@@ -448,7 +448,7 @@ class _ActionPanel extends StatelessWidget {
               ],
               Expanded(
                 child: _ActionBtn(
-                  label: '📡 SCAN',
+                  label: '📡 СКАН',
                   color: const Color(0xFF00e5ff),
                   onTap: onScan,
                 ),
@@ -844,7 +844,7 @@ class _GameMapScreenState extends State<GameMapScreen>
 
                 // Map title
                 const Text(
-                  '◆ NETWORK TOPOLOGY',
+                  '◆ ТОПОЛОГИЯ СЕТИ',
                   style: TextStyle(
                     color: Color(0xFF00ff41),
                     fontSize: 13,
@@ -920,7 +920,7 @@ class _GameMapScreenState extends State<GameMapScreen>
                         Icon(Icons.radar, color: Color(0xFF0a0e17), size: 16),
                         SizedBox(width: 6),
                         Text(
-                          'SCAN NETWORK',
+                          'СКАНИРОВАТЬ СЕТЬ',
                           style: TextStyle(
                             color: Color(0xFF0a0e17),
                             fontSize: 11,
@@ -996,7 +996,7 @@ class _GameMapScreenState extends State<GameMapScreen>
                       ),
                     ),
                     child: const Text(
-                      '▸ YOUR NETWORK',
+                      '▸ ВАША СЕТЬ',
                       style: TextStyle(
                         color: Color(0xFF00ff41),
                         fontSize: 11,
@@ -1021,7 +1021,7 @@ class _GameMapScreenState extends State<GameMapScreen>
                       ),
                     ),
                     child: const Text(
-                      'HOSTILE ZONE ◂',
+                      'ВРАЖДЕБНАЯ ЗОНА ◂',
                       style: TextStyle(
                         color: Color(0xFFff4444),
                         fontSize: 11,
@@ -1073,7 +1073,7 @@ class _GameMapScreenState extends State<GameMapScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          'LEGEND',
+                          'ЛЕГЕНДА',
                           style: TextStyle(
                             color: Color(0xFF4a5568),
                             fontSize: 9,
@@ -1082,14 +1082,14 @@ class _GameMapScreenState extends State<GameMapScreen>
                           ),
                         ),
                         const SizedBox(height: 6),
-                        _legendItem(const Color(0xFF00ff41), 'Your Nodes'),
-                        _legendItem(const Color(0xFFff4444), 'Enemy Nodes'),
-                        _legendItem(const Color(0xFFff9800), 'Target'),
-                        _legendItem(const Color(0xFF00e5ff), 'Router'),
-                        _legendItem(const Color(0xFFa855f7), 'Database'),
+                        _legendItem(const Color(0xFF00ff41), 'Ваши узлы'),
+                        _legendItem(const Color(0xFFff4444), 'Чужие узлы'),
+                        _legendItem(const Color(0xFFff9800), 'Цель'),
+                        _legendItem(const Color(0xFF00e5ff), 'Роутер'),
+                        _legendItem(const Color(0xFFa855f7), 'База данных'),
                         const SizedBox(height: 4),
                         const Text(
-                          'Drag your nodes to reposition',
+                          'Перетащите свои узлы для перемещения',
                           style: TextStyle(
                             color: Color(0xFF4a5568),
                             fontSize: 8,

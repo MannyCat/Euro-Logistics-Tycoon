@@ -57,21 +57,21 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   ];
 
   static const _sampleMessages = [
-    'Anyone want to trade CPU modules?',
-    'Just got a Zero Day exploit from the market!',
-    'Watch out for PhantomGhost — strong network defense.',
-    'Looking for clan recruits. DM me.',
-    'That SQL Injection worked perfectly on my last target.',
-    'Anyone know a good brute force strategy?',
-    'The black market restocked! Check it out.',
-    'Just hit Level 25, feeling strong.',
-    'DDoS attack incoming on sector 7...',
-    'New clan formed — looking for experienced hackers.',
-    'My malware payload netted 5000 credits!',
-    'Who controls the downtown nodes?',
-    'Pro tip: always upgrade bandwidth before attacking.',
-    'This phishing kit is amazing — 90% success rate.',
-    'Anyone selling hardware at discount?',
+    'Кто хочет обменять модули ЦПУ?',
+    'Только что получил эксплойт нулевого дня с рынка!',
+    'Остерегайтесь PhantomGhost — сильная защита сети.',
+    'Ищу рекрутов в клан. Пишите в личку.',
+    'SQL-инъекция сработала идеально на моей последней цели.',
+    'Кто знает хорошую стратегию брутфорса?',
+    'Чёрный рынок пополнился! Загляните.',
+    'Только что достиг 25 уровня, чувствую силу.',
+    'DDoS-атака на сектор 7...',
+    'Новый клан создан — ищем опытных хакеров.',
+    'Мой малварный груз принёс 5000 кредитов!',
+    'Кто контролирует узлы в центре?',
+    'Совет: всегда улучшайте канал перед атакой.',
+    'Этот фишинговый набор невероятен — 90% успеха.',
+    'Кто продаёт железо со скидкой?',
   ];
 
   @override
@@ -98,7 +98,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _globalMessages.insert(0, _ChatMessage(
       id: 'sys_1',
       senderName: 'SYSTEM',
-      content: 'Welcome to the Global Comms channel. Stay sharp, stay anonymous.',
+      content: 'Добро пожаловать в общий канал связи. Будьте бдительны, оставайтесь анонимны.',
       timestamp: now.subtract(const Duration(hours: 1)),
       isOwn: false,
       isSystem: true,
@@ -108,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _clanMessages.add(_ChatMessage(
       id: 'clan_sys_1',
       senderName: 'SYSTEM',
-      content: 'Clan channel — coordination only. No leaks.',
+      content: 'Клан-канал — только координация. Никаких утечек.',
       timestamp: now.subtract(const Duration(minutes: 45)),
       isOwn: false,
       isSystem: true,
@@ -116,7 +116,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _clanMessages.add(_ChatMessage(
       id: 'clan_msg_1',
       senderName: 'PhantomGhost',
-      content: 'Raid at 2200 hours. Everyone ready?',
+      content: 'Рейд в 22:00. Все готовы?',
       timestamp: now.subtract(const Duration(minutes: 20)),
       isOwn: false,
       senderClanTag: '[SYN]',
@@ -216,7 +216,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('COMMS'),
+        title: const Text('СВЯЗЬ'),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -226,7 +226,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 children: const [
                   Icon(Icons.public, size: 16),
                   SizedBox(width: 6),
-                  Text('GLOBAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  Text('ОБЩИЙ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ],
               ),
             ),
@@ -236,7 +236,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 children: const [
                   Icon(Icons.groups, size: 16),
                   SizedBox(width: 6),
-                  Text('CLAN', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  Text('КЛАН', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ],
               ),
             ),
@@ -263,7 +263,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '$_onlineCount operators online',
+                  '$_onlineCount операторов онлайн',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: Colors.greenAccent,
                     fontWeight: FontWeight.w600,
@@ -276,7 +276,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'someone is typing',
+                        'кто-то печатает',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.outline,
                           fontStyle: FontStyle.italic,
@@ -502,7 +502,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   fontSize: 14,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Type a message...',
+                  hintText: 'Введите сообщение...',
                   hintStyle: TextStyle(
                     color: theme.colorScheme.outline.withValues(alpha: 0.5),
                     fontFamily: 'monospace',
@@ -539,7 +539,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               child: IconButton(
                 icon: const Icon(Icons.send, color: Colors.cyanAccent, size: 20),
                 onPressed: _sendMessage,
-                tooltip: 'Send',
+                tooltip: 'Отправить',
               ),
             ),
           ],

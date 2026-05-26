@@ -14,11 +14,11 @@ class _GameShellState extends State<GameShell> {
   int _currentIndex = 0;
 
   final _screens = const [
-    _GameTab(label: 'Map', icon: Icons.map, path: '/game/map'),
-    _GameTab(label: 'Network', icon: Icons.account_tree, path: '/game/network'),
-    _GameTab(label: 'Attack', icon: Icons.gps_fixed, path: '/game/attack'),
-    _GameTab(label: 'Market', icon: Icons.storefront, path: '/game/market'),
-    _GameTab(label: 'Comms', icon: Icons.chat, path: '/game/chat'),
+    _GameTab(label: 'Карта', icon: Icons.map, path: '/game/map'),
+    _GameTab(label: 'Сеть', icon: Icons.account_tree, path: '/game/network'),
+    _GameTab(label: 'Атака', icon: Icons.gps_fixed, path: '/game/attack'),
+    _GameTab(label: 'Рынок', icon: Icons.storefront, path: '/game/market'),
+    _GameTab(label: 'Связь', icon: Icons.chat, path: '/game/chat'),
   ];
 
   @override

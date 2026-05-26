@@ -70,7 +70,7 @@ class _ClanScreenState extends State<ClanScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Failed to load clans';
+        _errorMessage = 'Не удалось загрузить кланы';
         _isLoadingClans = false;
       });
     }
@@ -130,7 +130,7 @@ class _ClanScreenState extends State<ClanScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Clan created successfully!'),
+          content: Text('Клан создан успешно!'),
           backgroundColor: Colors.greenAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -140,7 +140,7 @@ class _ClanScreenState extends State<ClanScreen> {
       setState(() => _isCreating = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to create clan: $e'),
+          content: Text('Не удалось создать клан: $e'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -161,7 +161,7 @@ class _ClanScreenState extends State<ClanScreen> {
       _loadMyClan(clanId);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Joined clan!'),
+          content: Text('Вступили в клан!'),
           backgroundColor: Colors.greenAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -169,7 +169,7 @@ class _ClanScreenState extends State<ClanScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to join clan'),
+          content: Text('Не удалось вступить в клан'),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -193,21 +193,21 @@ class _ClanScreenState extends State<ClanScreen> {
           children: const [
             Icon(Icons.warning, color: Colors.redAccent),
             SizedBox(width: 10),
-            Text('Leave Clan?'),
+            Text('Покинуть клан?'),
           ],
         ),
         content: const Text(
-          'Are you sure you want to leave your clan? This action cannot be undone.',
+          'Вы уверены, что хотите покинуть клан? Это действие нельзя отменить.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
+            child: const Text('ОТМЕНА'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('LEAVE'),
+            child: const Text('ПОКИНУТЬ'),
           ),
         ],
       ),
@@ -225,7 +225,7 @@ class _ClanScreenState extends State<ClanScreen> {
       _loadPublicClans();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Left clan'),
+          content: Text('Покинули клан'),,
           backgroundColor: Colors.orangeAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -233,7 +233,7 @@ class _ClanScreenState extends State<ClanScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to leave clan'),
+          content: Text('Не удалось покинуть клан'),,
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -250,12 +250,12 @@ class _ClanScreenState extends State<ClanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CLAN'),
+        title: const Text('БАНДА'),
         actions: [
           if (isInClan)
             IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: 'Refresh',
+              tooltip: 'Обновить',
               onPressed: () {
                 if (profile?.clanId != null) _loadMyClan(profile!.clanId!);
               },
@@ -301,7 +301,7 @@ class _ClanScreenState extends State<ClanScreen> {
                     Icon(Icons.groups_outlined, size: 32, color: theme.colorScheme.primary),
                     const SizedBox(width: 12),
                     Text(
-                      'NO CLAN',
+                      'НЕТ БАНДЫ',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
@@ -311,7 +311,7 @@ class _ClanScreenState extends State<ClanScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Join a crew or forge your own syndicate.',
+                  'Вступите в банду или создайте свою.',
                   style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
@@ -326,7 +326,7 @@ class _ClanScreenState extends State<ClanScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => setState(() => _showCreateForm = !_showCreateForm),
                   icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('CREATE CLAN'),
+                  label: const Text('СОЗДАТЬ БАНДУ'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: theme.colorScheme.onPrimary,
@@ -339,7 +339,7 @@ class _ClanScreenState extends State<ClanScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _loadPublicClans,
                   icon: const Icon(Icons.search),
-                  label: const Text('BROWSE'),
+                  label: const Text('ОБЗОР'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
@@ -355,7 +355,7 @@ class _ClanScreenState extends State<ClanScreen> {
           if (_showCreateForm) const SizedBox(height: 20),
 
           // ── Section Title ──
-          _buildSectionTitle('PUBLIC CREWS', Icons.explore, theme),
+          _buildSectionTitle('ПУБЛИЧНЫЕ БАНДЫ', Icons.explore, theme),
           const SizedBox(height: 10),
 
           // ── Clan List ──
@@ -367,7 +367,7 @@ class _ClanScreenState extends State<ClanScreen> {
               : _errorMessage != null
                   ? _buildErrorWidget(theme, _errorMessage!, _loadPublicClans)
                   : _publicClans.isEmpty
-                      ? _buildEmptyState(theme, Icons.groups_outlined, 'No public clans found', 'Be the first to create one!')
+                      ? _buildEmptyState(theme, Icons.groups_outlined, 'Публичных банд не найдено', 'Станьте первым!')
                       : Column(
                           children: _publicClans.map((clan) {
                             final members = (clan['clan_members'] as List?)?.firstOrNull;
@@ -398,7 +398,7 @@ class _ClanScreenState extends State<ClanScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('CREATE NEW CLAN', style: theme.textTheme.titleSmall?.copyWith(
+            Text('СОЗДАТЬ НОВУЮ БАНДУ', style: theme.textTheme.titleSmall?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.5,
@@ -409,7 +409,7 @@ class _ClanScreenState extends State<ClanScreen> {
               controller: _clanNameController,
               style: const TextStyle(fontFamily: 'monospace'),
               decoration: InputDecoration(
-                labelText: 'Clan Name',
+                labelText: 'Название Банды',
                 prefixIcon: const Icon(Icons.label),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -417,9 +417,9 @@ class _ClanScreenState extends State<ClanScreen> {
                 ),
               ),
               validator: (value) {
-                if (value == null || value.trim().isEmpty) return 'Name is required';
-                if (value.trim().length < 3) return 'Min 3 characters';
-                if (value.trim().length > 24) return 'Max 24 characters';
+                if (value == null || value.trim().isEmpty) return 'Введите название';
+                if (value.trim().length < 3) return 'Минимум 3 символа';
+                if (value.trim().length > 24) return 'Максимум 24 символа';
                 return null;
               },
             ),
@@ -431,7 +431,7 @@ class _ClanScreenState extends State<ClanScreen> {
               maxLength: 5,
               textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
-                labelText: 'Tag (3-5 chars)',
+                labelText: 'Тег (3-5 символов)',
                 prefixText: '[ ',
                 suffixText: ' ]',
                 prefixStyle: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
@@ -443,9 +443,9 @@ class _ClanScreenState extends State<ClanScreen> {
                 ),
               ),
               validator: (value) {
-                if (value == null || value.trim().isEmpty) return 'Tag is required';
-                if (value.trim().length < 3) return 'Min 3 characters';
-                if (value.trim().length > 5) return 'Max 5 characters';
+                if (value == null || value.trim().isEmpty) return 'Введите тег';
+                if (value.trim().length < 3) return 'Минимум 3 символа';
+                if (value.trim().length > 5) return 'Максимум 5 символов';
                 return null;
               },
             ),
@@ -456,7 +456,7 @@ class _ClanScreenState extends State<ClanScreen> {
               style: const TextStyle(fontFamily: 'monospace'),
               maxLines: 3,
               decoration: InputDecoration(
-                labelText: 'Description (optional)',
+                labelText: 'Описание (необязательно)',
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -473,7 +473,7 @@ class _ClanScreenState extends State<ClanScreen> {
                 icon: _isCreating
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.group_add),
-                label: Text(_isCreating ? 'CREATING...' : 'CREATE CLAN'),
+                label: Text(_isCreating ? 'СОЗДАНИЕ...' : 'СОЗДАТЬ БАНДУ'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
@@ -503,14 +503,14 @@ class _ClanScreenState extends State<ClanScreen> {
           children: [
             const CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text('Loading clan data...', style: theme.textTheme.bodyMedium),
+            Text('Загрузка данных клана...', style: theme.textTheme.bodyMedium),
           ],
         ),
       );
     }
 
     final clanData = _myClanInfo.first;
-    final name = clanData['name'] as String? ?? 'Unknown Clan';
+    final name = clanData['name'] as String? ?? 'Неизвестный клан';
     final tag = clanData['tag'] as String? ?? '???';
     final description = clanData['description'] as String? ?? '';
     final members = clanData['clan_members'] as List? ?? [];
@@ -579,7 +579,7 @@ class _ClanScreenState extends State<ClanScreen> {
                     Icon(Icons.people, size: 16, color: theme.colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
-                      '${members.length} member${members.length != 1 ? 's' : ''}',
+                      '${members.length} участников',
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
@@ -590,7 +590,7 @@ class _ClanScreenState extends State<ClanScreen> {
           const SizedBox(height: 20),
 
           // ── Members Section ──
-          _buildSectionTitle('MEMBERS', Icons.person, theme),
+          _buildSectionTitle('УЧАСТНИКИ', Icons.person, theme),
           const SizedBox(height: 10),
 
           // Sort members: leader first, then officers, then members
@@ -603,7 +603,7 @@ class _ClanScreenState extends State<ClanScreen> {
               });
             return sorted.map((member) {
               final memberProfile = member['profiles'] as Map<String, dynamic>?;
-              final username = memberProfile?['username'] as String? ?? 'Unknown';
+              final username = memberProfile?['username'] as String? ?? 'Неизвестный';
               final role = member['role'] as String? ?? 'member';
               final playerId = member['player_id'] as String?;
               final isMe = playerId == context.read<AuthProvider>().userId;
@@ -624,7 +624,7 @@ class _ClanScreenState extends State<ClanScreen> {
               child: OutlinedButton.icon(
                 onPressed: _leaveClan,
                 icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
-                label: const Text('LEAVE CLAN', style: TextStyle(color: Colors.redAccent)),
+                label: const Text('ПОКИНУТЬ БАНДУ', style: TextStyle(color: Colors.redAccent)),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.redAccent, width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -680,7 +680,7 @@ class _ClanScreenState extends State<ClanScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              username + (isMe ? ' (YOU)' : ''),
+              username + (isMe ? ' (ВЫ)' : ''),
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: isMe ? FontWeight.bold : FontWeight.w600,
                 color: isMe ? theme.colorScheme.primary : theme.colorScheme.onSurface,
@@ -695,7 +695,7 @@ class _ClanScreenState extends State<ClanScreen> {
               border: Border.all(color: roleColor.withValues(alpha: 0.3)),
             ),
             child: Text(
-              role.toUpperCase(),
+              role == 'leader' ? 'ЛИДЕР' : role == 'officer' ? 'ОФИЦЕР' : 'УЧАСТНИК',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: roleColor,
                 fontWeight: FontWeight.bold,
@@ -758,7 +758,7 @@ class _ClanScreenState extends State<ClanScreen> {
             const SizedBox(height: 12),
             Text(message, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 12),
-            ElevatedButton(onPressed: onRetry, child: const Text('RETRY')),
+            ElevatedButton(onPressed: onRetry, child: const Text('ПОВТОРИТЬ')),
           ],
         ),
       ),
@@ -792,7 +792,7 @@ class _PublicClanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final name = clan['name'] as String? ?? 'Unknown';
+    final name = clan['name'] as String? ?? 'Неизвестный';
     final tag = clan['tag'] as String? ?? '???';
     final description = clan['description'] as String? ?? '';
 
@@ -854,7 +854,7 @@ class _PublicClanCard extends StatelessWidget {
                     Icon(Icons.people, size: 13, color: theme.colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
-                      '$memberCount member${memberCount != 1 ? 's' : ''}',
+                      '$memberCount участников',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -874,7 +874,7 @@ class _PublicClanCard extends StatelessWidget {
               textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
             ),
-            child: const Text('JOIN'),
+            child: const Text('ВСТУПИТЬ'),
           ),
         ],
       ),
