@@ -180,7 +180,7 @@ class _MenuButton extends StatefulWidget {
 }
 
 class _MenuButtonState extends State<_MenuButton>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _hoverController;
   bool _isHovered = false;
 

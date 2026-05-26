@@ -224,7 +224,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _scanController;
   late AnimationController _glowController;
   final _aliasController = TextEditingController();

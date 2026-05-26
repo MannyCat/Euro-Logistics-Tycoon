@@ -10,7 +10,7 @@ class MarketScreen extends StatefulWidget {
   State<MarketScreen> createState() => _MarketScreenState();
 }
 
-class _MarketScreenState extends State<MarketScreen> with SingleTickerProviderStateMixin {
+class _MarketScreenState extends State<MarketScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   String _selectedCategory = 'All';
   final List<String> _categories = const ['All', 'Hardware', 'Software', 'Exploits', 'Tools'];

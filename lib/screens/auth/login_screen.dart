@@ -79,7 +79,7 @@ class GlitchText extends StatefulWidget {
   State<GlitchText> createState() => _GlitchTextState();
 }
 
-class _GlitchTextState extends State<GlitchText> with SingleTickerProviderStateMixin {
+class _GlitchTextState extends State<GlitchText> with TickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -243,7 +243,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _matrixController;
   late List<_MatrixColumn> _matrixColumns;
   late AnimationController _glowController;

@@ -38,7 +38,7 @@ class CyberButton extends StatefulWidget {
 }
 
 class _CyberButtonState extends State<CyberButton>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   bool _isHovered = false;

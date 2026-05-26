@@ -52,7 +52,7 @@ class ResourceBar extends StatefulWidget {
 }
 
 class _ResourceBarState extends State<ResourceBar>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _creditsAnim;
   late Animation<double> _cpuAnim;
