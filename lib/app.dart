@@ -29,14 +29,23 @@ class _CyberHackAppState extends State<CyberHackApp> {
   final _router = GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
-      final session = Supabase.instance.client.auth.currentSession;
-      final isLoggedIn = session != null;
-      final isAuthRoute = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+      try {
+        final supabase = Supabase.instance.client;
+        final session = supabase.auth.currentSession;
+        final isLoggedIn = session != null;
+        final isAuthRoute = state.matchedLocation == '/login' ||
+            state.matchedLocation == '/register';
 
-      if (!isLoggedIn && !isAuthRoute) return '/login';
-      if (isLoggedIn && isAuthRoute) return '/main_menu';
-      return null;
+        if (!isLoggedIn && !isAuthRoute) return '/login';
+        if (isLoggedIn && isAuthRoute) return '/main_menu';
+        return null;
+      } catch (e) {
+        // If Supabase is not available, go to login
+        final isAuthRoute = state.matchedLocation == '/login' ||
+            state.matchedLocation == '/register';
+        if (!isAuthRoute) return '/login';
+        return null;
+      }
     },
     routes: [
       GoRoute(
