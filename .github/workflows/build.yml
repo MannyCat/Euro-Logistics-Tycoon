@@ -29,18 +29,21 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
+      - name: Copy APK with correct name
+        run: cp build/app/outputs/flutter-apk/app-release.apk cyberhack-game.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: cyberhack-game-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: cyberhack-game.apk
 
       - name: Release APK
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
           tag_name: latest
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: cyberhack-game.apk
           overwrite: true
           name: "CyberHack Game APK"
         env:
