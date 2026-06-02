@@ -20,6 +20,91 @@ import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/navigation_shell.dart';
 
+late final GoRouter _router = GoRouter(
+  initialLocation: '/login',
+  redirect: (context, state) {
+    final auth = context.read<AuthProvider>();
+    final isAuthRoute = state.matchedLocation == '/login' ||
+        state.matchedLocation == '/register';
+    if (!auth.isAuthenticated && !isAuthRoute) {
+      return '/login';
+    }
+    if (auth.isAuthenticated && isAuthRoute) {
+      return '/';
+    }
+    return null;
+  },
+  routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterScreen(),
+    ),
+    ShellRoute(
+      builder: (context, state, child) => NavigationShell(child: child),
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => const DashboardScreen(),
+        ),
+        GoRoute(
+          path: '/ports',
+          builder: (context, state) => const PortsScreen(),
+        ),
+        GoRoute(
+          path: '/ports/:id',
+          builder: (context, state) {
+            final portId = state.pathParameters['id'] ?? '';
+            return PortDetailScreen(portId: portId);
+          },
+        ),
+        GoRoute(
+          path: '/fleet',
+          builder: (context, state) => const FleetScreen(),
+        ),
+        GoRoute(
+          path: '/fleet/:id',
+          builder: (context, state) {
+            final shipId = state.pathParameters['id'] ?? '';
+            return ShipDetailScreen(shipId: shipId);
+          },
+        ),
+        GoRoute(
+          path: '/market',
+          builder: (context, state) => const ShipMarketScreen(),
+        ),
+        GoRoute(
+          path: '/voyages',
+          builder: (context, state) => const VoyagesScreen(),
+        ),
+        GoRoute(
+          path: '/finance',
+          builder: (context, state) => const FinanceScreen(),
+        ),
+        GoRoute(
+          path: '/production',
+          builder: (context, state) => const ProductionScreen(),
+        ),
+        GoRoute(
+          path: '/personnel',
+          builder: (context, state) => const PersonnelScreen(),
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: '/profile',
+          builder: (context, state) => const ProfileScreen(),
+        ),
+      ],
+    ),
+  ],
+);
+
 class ShippingManagerApp extends StatelessWidget {
   const ShippingManagerApp({super.key});
 
@@ -38,89 +123,4 @@ class ShippingManagerApp extends StatelessWidget {
       ),
     );
   }
-
-  final GoRouter _router = GoRouter(
-    initialLocation: '/login',
-    redirect: (context, state) {
-      final auth = context.read<AuthProvider>();
-      final isAuthRoute = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
-      if (!auth.isAuthenticated && !isAuthRoute) {
-        return '/login';
-      }
-      if (auth.isAuthenticated && isAuthRoute) {
-        return '/';
-      }
-      return null;
-    },
-    routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/register',
-        builder: (context, state) => const RegisterScreen(),
-      ),
-      ShellRoute(
-        builder: (context, state, child) => NavigationShell(child: child),
-        routes: [
-          GoRoute(
-            path: '/',
-            builder: (context, state) => const DashboardScreen(),
-          ),
-          GoRoute(
-            path: '/ports',
-            builder: (context, state) => const PortsScreen(),
-          ),
-          GoRoute(
-            path: '/ports/:id',
-            builder: (context, state) {
-              final portId = state.pathParameters['id'] ?? '';
-              return PortDetailScreen(portId: portId);
-            },
-          ),
-          GoRoute(
-            path: '/fleet',
-            builder: (context, state) => const FleetScreen(),
-          ),
-          GoRoute(
-            path: '/fleet/:id',
-            builder: (context, state) {
-              final shipId = state.pathParameters['id'] ?? '';
-              return ShipDetailScreen(shipId: shipId);
-            },
-          ),
-          GoRoute(
-            path: '/market',
-            builder: (context, state) => const ShipMarketScreen(),
-          ),
-          GoRoute(
-            path: '/voyages',
-            builder: (context, state) => const VoyagesScreen(),
-          ),
-          GoRoute(
-            path: '/finance',
-            builder: (context, state) => const FinanceScreen(),
-          ),
-          GoRoute(
-            path: '/production',
-            builder: (context, state) => const ProductionScreen(),
-          ),
-          GoRoute(
-            path: '/personnel',
-            builder: (context, state) => const PersonnelScreen(),
-          ),
-          GoRoute(
-            path: '/settings',
-            builder: (context, state) => const SettingsScreen(),
-          ),
-          GoRoute(
-            path: '/profile',
-            builder: (context, state) => const ProfileScreen(),
-          ),
-        ],
-      ),
-    ],
-  );
 }

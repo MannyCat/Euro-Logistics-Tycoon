@@ -425,7 +425,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   String _txTypeLabel(String type) {
