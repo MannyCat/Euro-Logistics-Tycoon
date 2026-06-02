@@ -74,7 +74,7 @@ class NavigationShell extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2196F3).withOpacity(0.3),
+                    color: Color(0xFF2196F3).withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                   margin: const EdgeInsets.only(bottom: 16),

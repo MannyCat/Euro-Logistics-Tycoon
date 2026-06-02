@@ -195,7 +195,7 @@ class AppTheme {
           fontSize: 14,
         ),
       ),
-      tabBarTheme: const TabBarTheme(
+      tabBarTheme: const TabBarThemeData(
         labelColor: accentBlue,
         unselectedLabelColor: textGray,
         indicatorColor: accentBlue,

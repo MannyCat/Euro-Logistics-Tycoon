@@ -26,7 +26,7 @@ class _ShipMarketScreenState extends State<ShipMarketScreen> {
 
   Future<void> _loadData() async {
     final game = context.read<GameProvider>();
-    await Future.all([
+    await Future.wait([
       game.loadShipMarket(),
       game.loadMyShips(),
       game.loadMyListings(),

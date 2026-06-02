@@ -47,7 +47,7 @@ class _ProductionScreenState extends State<ProductionScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showBuildFactoryDialog(context, auth, game),
         backgroundColor: AppTheme.accentBlue,
-        child: const Icon(Icons.add_factory, color: Colors.white),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: game.isLoading
           ? const Center(

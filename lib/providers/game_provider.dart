@@ -443,7 +443,7 @@ class GameProvider extends ChangeNotifier {
   String get currentPortId => _currentPortId;
 
   // ---- Helper to get current user ID ----
-  String? get _userId => _supabase.auth.currentUserId;
+  String? get _userId => _supabase.auth.currentUser?.id;
 
   // ===================== LOAD METHODS =====================
 

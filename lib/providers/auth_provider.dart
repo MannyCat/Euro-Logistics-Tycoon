@@ -102,7 +102,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> loadProfile() async {
-    final userId = _supabase.auth.currentUserId;
+    final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
       _profile = null;
       notifyListeners();
@@ -238,7 +238,7 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
     try {
-      final userId = _supabase.auth.currentUserId;
+      final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return false;
 
       await _supabase

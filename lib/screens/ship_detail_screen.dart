@@ -62,7 +62,7 @@ class _ShipDetailScreenState extends State<ShipDetailScreen> {
     if (ship == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Корабль')),
-        body: const Center(
+        body: Center(
           child: Text('Корабль не найден', style: AppTheme.bodyText),
         ),
       );

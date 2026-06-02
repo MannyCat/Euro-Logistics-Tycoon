@@ -78,7 +78,7 @@ class GameConstants {
   static const double maxLoanInterest = 0.15; // 15% годовых
   static const int minLoanAmount = 50000;
   static const int maxLoanAmount = 5000000;
-  static const int loanTerms = [6, 12, 24, 36]; // месяцы
+  static const List<int> loanTerms = [6, 12, 24, 36]; // месяцы
   static const double taxRateBase = 0.05;
 
   // ---- Fuel ----

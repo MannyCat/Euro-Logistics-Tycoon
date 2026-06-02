@@ -43,7 +43,7 @@ class _PortDetailScreenState extends State<PortDetailScreen> {
     if (port == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Порт')),
-        body: const Center(
+        body: Center(
           child: Text('Порт не найден', style: AppTheme.bodyText),
         ),
       );

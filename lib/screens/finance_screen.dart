@@ -415,6 +415,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                                     ),
                                   ],
                                 ),
+                              ),
                                 MoneyDisplay(amount: tx.amount),
                               ],
                             ),
@@ -425,7 +426,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
           ],
         ),
       ),
-    ));
+    );
   }
 
   String _txTypeLabel(String type) {

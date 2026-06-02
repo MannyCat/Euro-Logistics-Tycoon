@@ -35,7 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.read<AuthProvider>();
     await auth.loadProfile();
     final game = context.read<GameProvider>();
-    await Future.all([
+    await Future.wait([
       game.loadMyShips(),
       game.loadMyVoyages(),
       game.loadTransactions(),
@@ -50,8 +50,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profile = auth.profile;
 
     if (profile == null) {
-      return const Scaffold(
-        appBar: AppBar(title: Text('Профиль')),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Профиль')),
         body: Center(
           child: CircularProgressIndicator(
             color: AppTheme.accentBlue,
