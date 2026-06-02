@@ -2,279 +2,259 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-enum AuthState { loading, authenticated, unauthenticated }
-
 class PlayerProfile {
   final String id;
-  final String username;
-  final int credits;
-  final int cpu;
-  final int bandwidth;
+  final String email;
+  final String companyName;
+  final int money;
+  final int reputation;
   final int level;
-  final int experience;
-  final String? clanId;
+  final int xp;
   final DateTime createdAt;
-  final DateTime updatedAt;
 
   const PlayerProfile({
     required this.id,
-    required this.username,
-    required this.credits,
-    required this.cpu,
-    required this.bandwidth,
+    required this.email,
+    required this.companyName,
+    required this.money,
+    required this.reputation,
     required this.level,
-    required this.experience,
-    this.clanId,
+    required this.xp,
     required this.createdAt,
-    required this.updatedAt,
   });
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
     return PlayerProfile(
-      id: json['id'] as String,
-      username: json['username'] as String? ?? '',
-      credits: (json['credits'] as num?)?.toInt() ?? 0,
-      cpu: (json['cpu'] as num?)?.toInt() ?? 0,
-      bandwidth: (json['bandwidth'] as num?)?.toInt() ?? 0,
+      id: json['id'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      companyName: json['company_name'] as String? ?? 'Моя компания',
+      money: (json['money'] as num?)?.toInt() ?? 0,
+      reputation: (json['reputation'] as num?)?.toInt() ?? 50,
       level: (json['level'] as num?)?.toInt() ?? 1,
-      experience: (json['experience'] as num?)?.toInt() ?? 0,
-      clanId: json['clan_id'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      xp: (json['xp'] as num?)?.toInt() ?? 0,
+      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'email': email,
+      'company_name': companyName,
+      'money': money,
+      'reputation': reputation,
+      'level': level,
+      'xp': xp,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
   PlayerProfile copyWith({
-    String? id,
-    String? username,
-    int? credits,
-    int? cpu,
-    int? bandwidth,
+    String? companyName,
+    int? money,
+    int? reputation,
     int? level,
-    int? experience,
-    String? clanId,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    int? xp,
   }) {
     return PlayerProfile(
-      id: id ?? this.id,
-      username: username ?? this.username,
-      credits: credits ?? this.credits,
-      cpu: cpu ?? this.cpu,
-      bandwidth: bandwidth ?? this.bandwidth,
+      id: id,
+      email: email,
+      companyName: companyName ?? this.companyName,
+      money: money ?? this.money,
+      reputation: reputation ?? this.reputation,
       level: level ?? this.level,
-      experience: experience ?? this.experience,
-      clanId: clanId ?? this.clanId,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      xp: xp ?? this.xp,
+      createdAt: createdAt,
     );
   }
 }
 
 class AuthProvider extends ChangeNotifier {
-  final SupabaseClient _supabase = Supabase.instance.client;
-  AuthState _authState = AuthState.loading;
-  User? _user;
+  final _supabase = Supabase.instance.client;
+  StreamSubscription<AuthState>? _authSubscription;
+
   PlayerProfile? _profile;
+  PlayerProfile? get profile => _profile;
+  bool get isAuthenticated => _profile != null;
+  bool get isLoading => _isLoading;
   String? _errorMessage;
-  StreamSubscription? _authSubscription;
+  String? get errorMessage => _errorMessage;
+
+  bool _isLoading = false;
 
   AuthProvider() {
-    _initAuth();
+    _listenToAuth();
   }
 
-  // --- Getters ---
+  void _listenToAuth() {
+    _authSubscription = _supabase.auth.onAuthStateChange.listen(
+      (AuthState state) async {
+        if (state.event == AuthChangeEvent.signedIn &&
+            state.session != null) {
+          await loadProfile();
+        } else if (state.event == AuthChangeEvent.signedOut) {
+          _profile = null;
+          notifyListeners();
+        }
+      },
+    );
+  }
 
-  AuthState get authState => _authState;
-  User? get user => _user;
-  PlayerProfile? get profile => _profile;
-  String? get errorMessage => _errorMessage;
-  String? get userId => _user?.id;
-  String get displayName => _profile?.username ?? _user?.email ?? 'Unknown';
-  bool get isAuthenticated => _authState == AuthState.authenticated;
-
-  // --- Initialization ---
-
-  void _initAuth() {
-    // Check existing session
-    final session = _supabase.auth.currentSession;
-    if (session != null) {
-      _user = session.user;
-      _loadProfile();
-    } else {
-      _authState = AuthState.unauthenticated;
+  Future<void> loadProfile() async {
+    final userId = _supabase.auth.currentUserId;
+    if (userId == null) {
+      _profile = null;
       notifyListeners();
+      return;
     }
-
-    // Listen for auth state changes
-    _authSubscription = _supabase.auth.onAuthStateChange.listen((state) {
-      _onAuthStateChange(state.event);
-    });
-  }
-
-  Future<void> _onAuthStateChange(AuthChangeEvent event) async {
-    switch (event) {
-      case AuthChangeEvent.signedIn:
-        _user = _supabase.auth.currentUser;
-        _authState = AuthState.authenticated;
-        await _loadProfile();
-        break;
-      case AuthChangeEvent.signedOut:
-        _user = null;
-        _profile = null;
-        _authState = AuthState.unauthenticated;
-        break;
-      case AuthChangeEvent.tokenRefreshed:
-        _user = _supabase.auth.currentUser;
-        break;
-      case AuthChangeEvent.userDeleted:
-        _user = null;
-        _profile = null;
-        _authState = AuthState.unauthenticated;
-        break;
-      default:
-        break;
-    }
-    notifyListeners();
-  }
-
-  // --- Profile ---
-
-  Future<void> _loadProfile() async {
-    if (_user == null) return;
-
     try {
+      _isLoading = true;
+      notifyListeners();
+
       final response = await _supabase
           .from('profiles')
           .select()
-          .eq('id', _user!.id)
-          .single();
+          .eq('id', userId)
+          .maybeSingle();
 
-      _profile = PlayerProfile.fromJson(response);
-      _errorMessage = null;
-    } catch (e) {
-      debugPrint('Error loading profile: $e');
-      _errorMessage = 'Failed to load profile';
-    }
-    notifyListeners();
-  }
-
-  Future<void> refreshProfile() async {
-    await _loadProfile();
-  }
-
-  // --- Authentication ---
-
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
-    _errorMessage = null;
-    _authState = AuthState.loading;
-    notifyListeners();
-
-    try {
-      await _supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
-      // _onAuthStateChange will handle the state update
-      return true;
-    } on AuthException catch (e) {
-      _errorMessage = _mapAuthError(e.message);
-      _authState = AuthState.unauthenticated;
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
-      _authState = AuthState.unauthenticated;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> register({
-    required String email,
-    required String password,
-    required String username,
-  }) async {
-    _errorMessage = null;
-    _authState = AuthState.loading;
-    notifyListeners();
-
-    try {
-      // Sign up the user
-      final response = await _supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: {'username': username},
-      );
-
-      // If email confirmation is not required, update profile directly
-      if (response.user != null && response.session != null) {
-        // Profile should be auto-created via trigger, but update username
-        await _supabase.from('profiles').update({
-          'username': username,
-        }).eq('id', response.user!.id);
-
-        // _onAuthStateChange will handle the state update
-        return true;
+      if (response != null) {
+        _profile = PlayerProfile.fromJson(response);
+      } else {
+        // Create default profile if none exists
+        final email = _supabase.auth.currentUser?.email ?? '';
+        final newProfile = {
+          'id': userId,
+          'email': email,
+          'company_name': 'Новая компания',
+          'money': 500000,
+          'reputation': 50,
+          'level': 1,
+          'xp': 0,
+        };
+        await _supabase.from('profiles').insert(newProfile);
+        _profile = PlayerProfile.fromJson(newProfile);
       }
 
-      // Email confirmation required
-      _authState = AuthState.unauthenticated;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Ошибка загрузки профиля: $e';
+      debugPrint(_errorMessage);
+    } finally {
+      _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> login(String email, String password) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password,
+      );
       return true;
     } on AuthException catch (e) {
-      _errorMessage = _mapAuthError(e.message);
-      _authState = AuthState.unauthenticated;
-      notifyListeners();
+      if (e.message.contains('Invalid login credentials')) {
+        _errorMessage = 'Неверный email или пароль';
+      } else if (e.message.contains('Email not confirmed')) {
+        _errorMessage = 'Email не подтверждён. Проверьте почту.';
+      } else {
+        _errorMessage = 'Ошибка входа: ${e.message}';
+      }
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
-      _authState = AuthState.unauthenticated;
+      _errorMessage = 'Ошибка подключения к серверу';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> register(
+      String email, String password, String companyName) async {
+    if (password.length < 6) {
+      _errorMessage = 'Пароль должен содержать минимум 6 символов';
       notifyListeners();
       return false;
+    }
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      final response = await _supabase.auth.signUp(
+        email: email.trim(),
+        password: password,
+        data: {'company_name': companyName.trim()},
+      );
+
+      if (response.user != null) {
+        final userId = response.user!.id;
+        final newProfile = {
+          'id': userId,
+          'email': email.trim(),
+          'company_name': companyName.trim(),
+          'money': 500000,
+          'reputation': 50,
+          'level': 1,
+          'xp': 0,
+        };
+        await _supabase.from('profiles').insert(newProfile);
+        _profile = PlayerProfile.fromJson(newProfile);
+        return true;
+      }
+      return false;
+    } on AuthException catch (e) {
+      if (e.message.contains('already registered')) {
+        _errorMessage = 'Пользователь с таким email уже существует';
+      } else {
+        _errorMessage = 'Ошибка регистрации: ${e.message}';
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = 'Ошибка подключения к серверу';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> logout() async {
-    try {
-      await _supabase.auth.signOut();
-      _profile = null;
-      _user = null;
-      _authState = AuthState.unauthenticated;
-    } catch (e) {
-      debugPrint('Error logging out: $e');
-    }
+    await _supabase.auth.signOut();
+    _profile = null;
     notifyListeners();
   }
 
-  Future<bool> resetPassword({required String email}) async {
-    _errorMessage = null;
-
-    try {
-      await _supabase.auth.resetPasswordForEmail(email);
-      return true;
-    } on AuthException catch (e) {
-      _errorMessage = _mapAuthError(e.message);
-      return false;
-    } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+  Future<bool> updateCompanyName(String newName) async {
+    if (newName.trim().isEmpty) {
+      _errorMessage = 'Название компании не может быть пустым';
+      notifyListeners();
       return false;
     }
-  }
+    try {
+      final userId = _supabase.auth.currentUserId;
+      if (userId == null) return false;
 
-  // --- Error Mapping ---
+      await _supabase
+          .from('profiles')
+          .update({'company_name': newName.trim()}).eq('id', userId);
 
-  String _mapAuthError(String message) {
-    final lower = message.toLowerCase();
-    if (lower.contains('invalid login')) return 'Invalid email or password';
-    if (lower.contains('email not confirmed')) return 'Please verify your email address';
-    if (lower.contains('user already registered')) return 'An account with this email already exists';
-    if (lower.contains('password')) return 'Password must be at least 6 characters';
-    if (lower.contains('network')) return 'Network error. Please check your connection';
-    return message;
+      if (_profile != null) {
+        _profile = _profile!.copyWith(companyName: newName.trim());
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Ошибка обновления названия';
+      notifyListeners();
+      return false;
+    }
   }
 
   void clearError() {
