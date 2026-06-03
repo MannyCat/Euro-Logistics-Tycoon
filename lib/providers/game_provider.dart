@@ -406,15 +406,7 @@ class DashboardData {
 // ===================== GAME PROVIDER =====================
 
 class GameProvider extends ChangeNotifier {
-  SupabaseClient? _supabase;
-
-  GameProvider() {
-    try {
-      _supabase = Supabase.instance.client;
-    } catch (_) {
-      _supabase = null;
-    }
-  }
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   // ---- State lists ----
   List<PortDefinition> _allPorts = [];
@@ -451,7 +443,7 @@ class GameProvider extends ChangeNotifier {
   String get currentPortId => _currentPortId;
 
   // ---- Helper to get current user ID ----
-  String? get _userId => _supabase?.auth.currentUser?.id;
+  String? get _userId => _supabase.auth.currentUser?.id;
 
   // ===================== LOAD METHODS =====================
 
@@ -466,7 +458,7 @@ class GameProvider extends ChangeNotifier {
     if (uid == null) return;
     try {
       final response =
-          await _supabase!.from('ships').select().eq('owner_id', uid);
+          await _supabase.from('ships').select().eq('owner_id', uid);
       _myShips = response.map<Ship>((e) => Ship.fromJson(e)).toList();
       notifyListeners();
     } catch (e) {
@@ -495,7 +487,7 @@ class GameProvider extends ChangeNotifier {
     if (uid == null) return;
     try {
       final response =
-          await _supabase!.from('voyages').select().eq('owner_id', uid);
+          await _supabase.from('voyages').select().eq('owner_id', uid);
       _myVoyages = response.map<Voyage>((e) => Voyage.fromJson(e)).toList();
       notifyListeners();
     } catch (e) {
@@ -524,7 +516,7 @@ class GameProvider extends ChangeNotifier {
     if (uid == null) return;
     try {
       final response =
-          await _supabase!.from('ship_market').select().eq('seller_id', uid);
+          await _supabase.from('ship_market').select().eq('seller_id', uid);
       _myListings =
           response.map<ShipMarketListing>((e) => ShipMarketListing.fromJson(e))
               .toList();
@@ -540,7 +532,7 @@ class GameProvider extends ChangeNotifier {
     if (uid == null) return;
     try {
       final response =
-          await _supabase!.from('employees').select().eq('owner_id', uid);
+          await _supabase.from('employees').select().eq('owner_id', uid);
       _employees =
           response.map<Employee>((e) => Employee.fromJson(e)).toList();
       notifyListeners();
@@ -587,7 +579,7 @@ class GameProvider extends ChangeNotifier {
     if (uid == null) return;
     try {
       final response =
-          await _supabase!.from('factories').select().eq('owner_id', uid);
+          await _supabase.from('factories').select().eq('owner_id', uid);
       _factories =
           response.map<Factory>((e) => Factory.fromJson(e)).toList();
       notifyListeners();
@@ -680,7 +672,7 @@ class GameProvider extends ChangeNotifier {
         'max_fuel': maxFuel,
         'current_port_id': 'rotterdam', // default starting port
       };
-      await _supabase!.from('ships').insert(newShip);
+      await _supabase.from('ships').insert(newShip);
 
       // Deduct money
       await _supabase
@@ -688,7 +680,7 @@ class GameProvider extends ChangeNotifier {
           .update({'money': currentMoney - shipType.basePrice}).eq('id', uid);
 
       // Record transaction
-      await _supabase!.from('transactions').insert({
+      await _supabase.from('transactions').insert({
         'owner_id': uid,
         'type': 'expense',
         'description': 'Покупка корабля: ${shipType.name}',
@@ -741,7 +733,7 @@ class GameProvider extends ChangeNotifier {
           (profileResponse?['company_name'] as String?) ?? 'Неизвестно';
 
       // Create market listing
-      await _supabase!.from('ship_market').insert({
+      await _supabase.from('ship_market').insert({
         'ship_id': shipId,
         'seller_id': uid,
         'seller_name': sellerName,
@@ -841,7 +833,7 @@ class GameProvider extends ChangeNotifier {
           .eq('id', listing.sellerId);
 
       // Transfer ship ownership
-      await _supabase!.from('ships').update({
+      await _supabase.from('ships').update({
         'owner_id': uid,
         'status': 'idle',
         'current_port_id': 'rotterdam',
@@ -854,7 +846,7 @@ class GameProvider extends ChangeNotifier {
           .update({'status': 'sold'}).eq('id', listingId);
 
       // Buyer transaction
-      await _supabase!.from('transactions').insert({
+      await _supabase.from('transactions').insert({
         'owner_id': uid,
         'type': 'expense',
         'description':
@@ -863,7 +855,7 @@ class GameProvider extends ChangeNotifier {
       });
 
       // Seller transaction
-      await _supabase!.from('transactions').insert({
+      await _supabase.from('transactions').insert({
         'owner_id': listing.sellerId,
         'type': 'income',
         'description': 'Продажа на рынке: ${listing.shipName}',
@@ -963,10 +955,10 @@ class GameProvider extends ChangeNotifier {
         'status': 'active',
         'fuel_cost': (fuelNeeded * GameConstants.fuelPricePerLiter).round(),
       };
-      await _supabase!.from('voyages').insert(voyage);
+      await _supabase.from('voyages').insert(voyage);
 
       // Update ship
-      await _supabase!.from('ships').update({
+      await _supabase.from('ships').update({
         'status': 'in_transit',
         'destination_port_id': destPortId,
         'fuel_level': ship.fuelLevel - fuelNeeded,
@@ -1054,7 +1046,7 @@ class GameProvider extends ChangeNotifier {
           .update({'money': currentMoney - cost}).eq('id', uid);
 
       // Record transaction
-      await _supabase!.from('transactions').insert({
+      await _supabase.from('transactions').insert({
         'owner_id': uid,
         'type': 'expense',
         'description': 'Заправка: ${fillAmount.toStringAsFixed(0)} л.',
@@ -1113,7 +1105,7 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
-      await _supabase!.from('employees').insert({
+      await _supabase.from('employees').insert({
         'owner_id': uid,
         'name': name.trim(),
         'role': role,
@@ -1127,7 +1119,7 @@ class GameProvider extends ChangeNotifier {
           .from('profiles')
           .update({'money': currentMoney - salary}).eq('id', uid);
 
-      await _supabase!.from('transactions').insert({
+      await _supabase.from('transactions').insert({
         'owner_id': uid,
         'type': 'expense',
         'description': 'Найм: $name ($role)',
@@ -1166,7 +1158,7 @@ class GameProvider extends ChangeNotifier {
       final totalRepay = (amount * (1 + interestRate * termMonths / 12))
           .ceil();
 
-      await _supabase!.from('loans').insert({
+      await _supabase.from('loans').insert({
         'owner_id': uid,
         'amount': amount,
         'remaining': totalRepay,
@@ -1187,7 +1179,7 @@ class GameProvider extends ChangeNotifier {
           .from('profiles')
           .update({'money': currentMoney + amount}).eq('id', uid);
 
-      await _supabase!.from('transactions').insert({
+      await _supabase.from('transactions').insert({
         'owner_id': uid,
         'type': 'loan',
         'description': 'Кредит: \$$amount на $termMonths мес.',
