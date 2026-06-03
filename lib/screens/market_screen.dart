@@ -226,7 +226,7 @@ class _ShipMarketScreenState extends State<ShipMarketScreen> {
                                     child: const Text('Купить'),
                                   )
                                 else
-                                  const Text(
+                                  Text(
                                     'Ваше объявление',
                                     style: AppTheme.bodyTextSmall,
                                   ),

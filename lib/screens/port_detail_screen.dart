@@ -202,7 +202,7 @@ class _PortDetailScreenState extends State<PortDetailScreen> {
                             topRight: Radius.circular(12),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Expanded(
                                 flex: 3,
@@ -358,7 +358,7 @@ class _PortDetailScreenState extends State<PortDetailScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Выберите корабль для заправки',
+              Text('Выберите корабль для заправки',
                   style: AppTheme.bodyText),
               const SizedBox(height: 12),
               ...shipsInPort.map((ship) {
