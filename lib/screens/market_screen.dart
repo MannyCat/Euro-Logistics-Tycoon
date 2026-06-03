@@ -352,7 +352,7 @@ class _ShipMarketScreenState extends State<ShipMarketScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Выберите корабль:',
+              Text('Выберите корабль:',
                   style: AppTheme.bodyText),
               const SizedBox(height: 12),
               ...idleShips.map((ship) {

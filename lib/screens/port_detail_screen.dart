@@ -399,7 +399,7 @@ class _PortDetailScreenState extends State<PortDetailScreen> {
                           ),
                           child: Text('\$$cost'),
                         )
-                      : const Text(
+                      : Text(
                           'Полон',
                           style: AppTheme.bodyTextSmall,
                         ),
