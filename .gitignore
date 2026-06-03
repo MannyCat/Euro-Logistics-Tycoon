@@ -8,10 +8,11 @@ pubspec.lock
 .idea/
 *.log
 
-# Windows
+# Windows generated
 windows/flutter/generated_plugin_registrant.cc
 windows/flutter/generated_plugin_registrant.h
 windows/flutter/generated_plugins.cmake
+windows/flutter/ephemeral/
 
 # Generated files
 *.g.dart
@@ -26,14 +27,69 @@ windows/flutter/generated_plugins.cmake
 Thumbs.db
 desktop.ini
 
-# Download
-/download/
+# Large / non-project files
+node_modules/
+*.tar.gz
+*.deb
+*.apk
+*.node
+control.tar.gz
+data.tar.gz
+debian-binary
+output/
+examples/
+prisma/
+db/
+fix/
+source_files/
 
-# Upload
+# Old root-level loose files
+auth_provider.dart
+game_shell.dart
+game_shell_dart_new.dart
+chat_screen.dart
+main_menu_screen.dart
+map_screen.dart
+menu_fixed.dart
+profile_screen.dart
+providers_tutorial_provider.dart
+tutorial_provider.dart
+tutorial_screen.dart
+lib_app.dart
+lib_main.dart
+lib_providers_auth_provider.dart
+lib_providers_game_provider.dart
+schema_current.sql
+Caddyfile
+bun.lock
+package.json
+next.config.ts
+tsconfig.json
+eslint.config.mjs
+postcss.config.mjs
+tailwind.config.ts
+components.json
+
+# Non-project JSON
+sm_gp.json
+sm_search.json
+sm_search2.json
+sm_search3.json
+sm_steam.json
+sm_tycoon.json
+sm_wiki.json
+shipping_manager.json
+
+# Upload / download / worklog
 /upload/
+/worklog.md
+
+# Scripts
+.zscripts/
+
+# flutter-plugins deps
+.flutter-plugins
+.flutter-plugins-dependencies
 
 # Skills
-/skills/
-
-# Worklog
-/worklog.md
+skills/
