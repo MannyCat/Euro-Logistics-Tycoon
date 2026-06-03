@@ -71,7 +71,7 @@ class PlayerProfile {
 }
 
 class AuthProvider extends ChangeNotifier {
-  final _supabase = Supabase.instance.client;
+  SupabaseClient? _supabase;
   StreamSubscription<AuthState>? _authSubscription;
 
   PlayerProfile? _profile;
@@ -84,11 +84,20 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
 
   AuthProvider() {
+    try {
+      _supabase = Supabase.instance.client;
+    } catch (_) {
+      _supabase = null;
+    }
     _listenToAuth();
   }
 
   void _listenToAuth() {
-    _authSubscription = _supabase.auth.onAuthStateChange.listen(
+    if (_supabase == null) {
+      debugPrint('AuthProvider: Supabase not available, auth state changes disabled');
+      return;
+    }
+    _authSubscription = _supabase!.auth.onAuthStateChange.listen(
       (AuthState state) async {
         if (state.event == AuthChangeEvent.signedIn &&
             state.session != null) {
@@ -102,7 +111,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> loadProfile() async {
-    final userId = _supabase.auth.currentUser?.id;
+    if (_supabase == null) {
+      _errorMessage = 'Сервер недоступен. Проверьте интернет-соединение.';
+      notifyListeners();
+      return;
+    }
+    final userId = _supabase!.auth.currentUser?.id;
     if (userId == null) {
       _profile = null;
       notifyListeners();
@@ -112,7 +126,7 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final response = await _supabase
+      final response = await _supabase!
           .from('profiles')
           .select()
           .eq('id', userId)
@@ -122,7 +136,7 @@ class AuthProvider extends ChangeNotifier {
         _profile = PlayerProfile.fromJson(response);
       } else {
         // Create default profile if none exists
-        final email = _supabase.auth.currentUser?.email ?? '';
+        final email = _supabase!.auth.currentUser?.email ?? '';
         final newProfile = {
           'id': userId,
           'email': email,
@@ -132,7 +146,7 @@ class AuthProvider extends ChangeNotifier {
           'level': 1,
           'xp': 0,
         };
-        await _supabase.from('profiles').insert(newProfile);
+        await _supabase!.from('profiles').insert(newProfile);
         _profile = PlayerProfile.fromJson(newProfile);
       }
 
@@ -147,12 +161,17 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> login(String email, String password) async {
+    if (_supabase == null) {
+      _errorMessage = 'Сервер недоступен. Проверьте интернет-соединение.';
+      notifyListeners();
+      return false;
+    }
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      await _supabase.auth.signInWithPassword(
+      await _supabase!.auth.signInWithPassword(
         email: email.trim(),
         password: password,
       );
@@ -177,6 +196,11 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> register(
       String email, String password, String companyName) async {
+    if (_supabase == null) {
+      _errorMessage = 'Сервер недоступен. Проверьте интернет-соединение.';
+      notifyListeners();
+      return false;
+    }
     if (password.length < 6) {
       _errorMessage = 'Пароль должен содержать минимум 6 символов';
       notifyListeners();
@@ -187,7 +211,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final response = await _supabase.auth.signUp(
+      final response = await _supabase!.auth.signUp(
         email: email.trim(),
         password: password,
         data: {'company_name': companyName.trim()},
@@ -204,7 +228,7 @@ class AuthProvider extends ChangeNotifier {
           'level': 1,
           'xp': 0,
         };
-        await _supabase.from('profiles').insert(newProfile);
+        await _supabase!.from('profiles').insert(newProfile);
         _profile = PlayerProfile.fromJson(newProfile);
         return true;
       }
@@ -226,7 +250,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _supabase.auth.signOut();
+    await _supabase?.auth.signOut();
     _profile = null;
     notifyListeners();
   }
@@ -237,11 +261,16 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+    if (_supabase == null) {
+      _errorMessage = 'Сервер недоступен';
+      notifyListeners();
+      return false;
+    }
     try {
-      final userId = _supabase.auth.currentUser?.id;
+      final userId = _supabase!.auth.currentUser?.id;
       if (userId == null) return false;
 
-      await _supabase
+      await _supabase!
           .from('profiles')
           .update({'company_name': newName.trim()}).eq('id', userId);
 

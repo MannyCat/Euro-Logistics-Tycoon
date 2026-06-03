@@ -406,7 +406,15 @@ class DashboardData {
 // ===================== GAME PROVIDER =====================
 
 class GameProvider extends ChangeNotifier {
-  final _supabase = Supabase.instance.client;
+  SupabaseClient? _supabase;
+
+  GameProvider() {
+    try {
+      _supabase = Supabase.instance.client;
+    } catch (_) {
+      _supabase = null;
+    }
+  }
 
   // ---- State lists ----
   List<PortDefinition> _allPorts = [];
@@ -443,7 +451,7 @@ class GameProvider extends ChangeNotifier {
   String get currentPortId => _currentPortId;
 
   // ---- Helper to get current user ID ----
-  String? get _userId => _supabase.auth.currentUser?.id;
+  String? get _userId => _supabase?.auth.currentUser?.id;
 
   // ===================== LOAD METHODS =====================
 

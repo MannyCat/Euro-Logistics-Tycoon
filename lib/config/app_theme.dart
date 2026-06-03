@@ -170,7 +170,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: inputBackground,
-        selectedColor: accentBlue.withOpacity(0.2),
+        selectedColor: accentBlue.withValues(alpha: 0.2),
         labelStyle: _sansMed.copyWith(color: textWhite, fontSize: 13),
         side: const BorderSide(color: dividerColor),
         shape: RoundedRectangleBorder(
