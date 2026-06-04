@@ -3,8 +3,24 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/game_constants.dart';
+import '../utils/db_id_mapper.dart';
 
 // ===================== MODELS =====================
+
+/// Convert a value that might be a DB integer ID into a GameConstants slug string.
+/// Handles: int → slug lookup, String (slug) → pass through, null → null.
+String? _intOrStringToSlug(dynamic value) {
+  if (value == null) return null;
+  if (value is String) return value;
+  if (value is int) {
+    // Try port mapping first, then good, then ship type
+    return DbIdMapper.portIntToSlug(value) ??
+        DbIdMapper.goodIntToSlug(value) ??
+        DbIdMapper.shipTypeIntToSlug(value) ??
+        value.toString();
+  }
+  return value.toString();
+}
 
 class Ship {
   final String id;
@@ -39,14 +55,14 @@ class Ship {
     return Ship(
       id: json['id'] as String? ?? '',
       ownerId: json['owner_id'] as String? ?? '',
-      shipTypeId: json['ship_type_id'] as String? ?? '',
+      shipTypeId: _intOrStringToSlug(json['ship_type_id']) ?? '',
       name: json['name'] as String? ?? 'Безымянный',
       status: json['status'] as String? ?? 'idle',
-      condition: (json['condition'] as num?)?.toInt() ?? 100,
+      condition: (json['condition_pct'] as num?)?.toInt() ?? 100,
       fuelLevel: (json['fuel_level'] as num?)?.toDouble() ?? 0.0,
       maxFuel: (json['max_fuel'] as num?)?.toDouble() ?? 0.0,
-      currentPortId: json['current_port_id'] as String?,
-      destinationPortId: json['destination_port_id'] as String?,
+      currentPortId: _intOrStringToSlug(json['current_port_id']),
+      destinationPortId: _intOrStringToSlug(json['destination_port_id']),
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
           DateTime.now(),
       lastVoyageAt: json['last_voyage_at'] != null
@@ -119,8 +135,8 @@ class PortPrice {
   factory PortPrice.fromJson(Map<String, dynamic> json) {
     return PortPrice(
       id: json['id'] as String? ?? '',
-      portId: json['port_id'] as String? ?? '',
-      goodId: json['good_id'] as String? ?? '',
+      portId: _intOrStringToSlug(json['port_id']) ?? '',
+      goodId: _intOrStringToSlug(json['good_id']) ?? '',
       buyPrice: (json['buy_price'] as num?)?.toInt() ?? 0,
       sellPrice: (json['sell_price'] as num?)?.toInt() ?? 0,
       available: (json['available'] as num?)?.toInt() ?? 0,
@@ -168,9 +184,9 @@ class Voyage {
       id: json['id'] as String? ?? '',
       shipId: json['ship_id'] as String? ?? '',
       ownerId: json['owner_id'] as String? ?? '',
-      originPortId: json['origin_port_id'] as String? ?? '',
-      destinationPortId: json['destination_port_id'] as String? ?? '',
-      goodId: json['good_id'] as String?,
+      originPortId: _intOrStringToSlug(json['origin_port_id']) ?? '',
+      destinationPortId: _intOrStringToSlug(json['destination_port_id']) ?? '',
+      goodId: _intOrStringToSlug(json['cargo_good_id']),
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
       distance: (json['distance'] as num?)?.toDouble() ?? 0.0,
       estimatedHours: (json['estimated_hours'] as num?)?.toDouble() ?? 0.0,
@@ -254,7 +270,7 @@ class ShipMarketListing {
       sellerId: json['seller_id'] as String? ?? '',
       sellerName: json['seller_name'] as String? ?? 'Неизвестно',
       shipName: json['ship_name'] as String? ?? 'Безымянный',
-      shipTypeId: json['ship_type_id'] as String? ?? '',
+      shipTypeId: _intOrStringToSlug(json['ship_type_id']) ?? '',
       condition: (json['condition'] as num?)?.toInt() ?? 100,
       price: (json['price'] as num?)?.toInt() ?? 0,
       listedAt: DateTime.tryParse(json['listed_at'] as String? ?? '') ??
@@ -292,7 +308,7 @@ class Employee {
       role: json['role'] as String? ?? '',
       skill: (json['skill'] as num?)?.toInt() ?? 1,
       salary: (json['salary'] as num?)?.toInt() ?? 0,
-      assignedPortId: json['assigned_port_id'] as String?,
+      assignedPortId: _intOrStringToSlug(json['assigned_port_id']),
       hiredAt: DateTime.tryParse(json['hired_at'] as String? ?? '') ??
           DateTime.now(),
     );
@@ -366,11 +382,11 @@ class Factory {
       id: json['id'] as String? ?? '',
       ownerId: json['owner_id'] as String? ?? '',
       type: json['type'] as String? ?? '',
-      portId: json['port_id'] as String?,
+      portId: _intOrStringToSlug(json['port_id']),
       level: (json['level'] as num?)?.toInt() ?? 1,
       status: json['status'] as String? ?? 'idle',
-      inputGoodId: json['input_good_id'] as String?,
-      outputGoodId: json['output_good_id'] as String?,
+      inputGoodId: _intOrStringToSlug(json['input_good_id']),
+      outputGoodId: _intOrStringToSlug(json['output_good_id']),
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
           DateTime.now(),
     );
@@ -450,6 +466,8 @@ class GameProvider extends ChangeNotifier {
   Future<void> loadPorts() async {
     // Ports are defined in GameConstants — use those
     _allPorts = GameConstants.ports;
+    // Initialize DB ID mappings
+    await DbIdMapper.init(_supabase);
     notifyListeners();
   }
 
@@ -468,11 +486,20 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> loadMarketPrices(String portId) async {
     _currentPortId = portId;
+    _currentPortPrices = [];
+
+    final dbPortId = DbIdMapper.portSlugToInt(portId);
+    if (dbPortId == null) {
+      debugPrint('loadMarketPrices: no DB mapping for port slug "$portId"');
+      notifyListeners();
+      return;
+    }
+
     try {
       final response = await _supabase
           .from('port_market')
           .select()
-          .eq('port_id', portId);
+          .eq('port_id', dbPortId);
       _currentPortPrices =
           response.map<PortPrice>((e) => PortPrice.fromJson(e)).toList();
     } catch (e) {
@@ -661,16 +688,28 @@ class GameProvider extends ChangeNotifier {
 
       final maxFuel = shipType.dwt * GameConstants.fuelTankMultiplier;
 
+      // Convert slugs to DB integer IDs
+      final dbShipTypeId = DbIdMapper.shipTypeSlugToInt(shipTypeId);
+      final dbPortId = DbIdMapper.portSlugToInt('rotterdam');
+
+      if (dbShipTypeId == null || dbPortId == null) {
+        _errorMessage = 'Ошибка маппинга типов в БД';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       // Insert ship
       final newShip = {
         'owner_id': uid,
-        'ship_type_id': shipTypeId,
+        'ship_type_id': dbShipTypeId,
         'name': shipName.trim(),
         'status': 'idle',
-        'condition': 100,
+        'condition_pct': 100,
         'fuel_level': maxFuel * 0.5,
         'max_fuel': maxFuel,
-        'current_port_id': 'rotterdam', // default starting port
+        'current_port_id': dbPortId,
+        'purchase_price': shipType.basePrice,
       };
       await _supabase.from('ships').insert(newShip);
 
@@ -833,10 +872,11 @@ class GameProvider extends ChangeNotifier {
           .eq('id', listing.sellerId);
 
       // Transfer ship ownership
+      final dbPortId = DbIdMapper.portSlugToInt('rotterdam');
       await _supabase.from('ships').update({
         'owner_id': uid,
         'status': 'idle',
-        'current_port_id': 'rotterdam',
+        'current_port_id': dbPortId,
         'destination_port_id': null,
       }).eq('id', listing.shipId);
 
@@ -940,27 +980,41 @@ class GameProvider extends ChangeNotifier {
       final eta = startedAt.add(Duration(
           milliseconds: (estimatedHours * 3600000).round()));
 
+      // Convert slugs to DB integer IDs
+      final dbOriginId = DbIdMapper.portSlugToInt(ship.currentPortId);
+      final dbDestId = DbIdMapper.portSlugToInt(destPortId);
+      final dbGoodId = DbIdMapper.goodSlugToInt(goodId);
+
+      if (dbOriginId == null || dbDestId == null || dbGoodId == null) {
+        _errorMessage = 'Ошибка маппинга ID в БД (порт или груз)';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       // Create voyage
       final voyage = {
         'ship_id': shipId,
         'owner_id': uid,
-        'origin_port_id': ship.currentPortId,
-        'destination_port_id': destPortId,
-        'good_id': goodId,
-        'quantity': quantity,
+        'origin_port_id': dbOriginId,
+        'destination_port_id': dbDestId,
+        'cargo_good_id': dbGoodId,
+        'cargo_quantity': quantity,
         'distance': distance,
         'estimated_hours': estimatedHours,
         'started_at': startedAt.toIso8601String(),
         'eta': eta.toIso8601String(),
         'status': 'active',
-        'fuel_cost': (fuelNeeded * GameConstants.fuelPricePerLiter).round(),
+        'fuel_consumed': fuelNeeded,
+        'revenue': 0,
+        'cost': (fuelNeeded * GameConstants.fuelPricePerLiter).round(),
       };
       await _supabase.from('voyages').insert(voyage);
 
       // Update ship
       await _supabase.from('ships').update({
         'status': 'in_transit',
-        'destination_port_id': destPortId,
+        'destination_port_id': dbDestId,
         'fuel_level': ship.fuelLevel - fuelNeeded,
         'last_voyage_at': startedAt.toIso8601String(),
         'current_port_id': null,
@@ -973,7 +1027,7 @@ class GameProvider extends ChangeNotifier {
               .round();
       await _supabase
           .from('ships')
-          .update({'condition': newCondition}).eq('id', shipId);
+          .update({'condition_pct': newCondition}).eq('id', shipId);
 
       await loadMyShips();
       await loadMyVoyages();
