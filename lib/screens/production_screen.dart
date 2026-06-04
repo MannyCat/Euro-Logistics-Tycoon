@@ -82,31 +82,18 @@ class _ProductionScreenState extends State<ProductionScreen> {
                     final port = factory.portId != null
                         ? GameConstants.findPort(factory.portId!)
                         : null;
-                    final inputGood = factory.inputGoodId != null
-                        ? GameConstants.findGood(factory.inputGoodId!)
-                        : null;
                     final outputGood = factory.outputGoodId != null
                         ? GameConstants.findGood(factory.outputGoodId!)
                         : null;
 
                     Color statusColor;
                     String statusLabel;
-                    switch (factory.status) {
-                      case 'active':
-                        statusColor = AppTheme.profitGreen;
-                        statusLabel = 'Работает';
-                        break;
-                      case 'building':
-                        statusColor = AppTheme.warningAmber;
-                        statusLabel = 'Строится';
-                        break;
-                      case 'idle':
-                        statusColor = AppTheme.textGray;
-                        statusLabel = 'Простой';
-                        break;
-                      default:
-                        statusColor = AppTheme.textGray;
-                        statusLabel = factory.status;
+                    if (factory.isRunning) {
+                      statusColor = AppTheme.profitGreen;
+                      statusLabel = 'Работает';
+                    } else {
+                      statusColor = AppTheme.textGray;
+                      statusLabel = 'Простой';
                     }
 
                     return Card(
@@ -196,43 +183,19 @@ class _ProductionScreenState extends State<ProductionScreen> {
                                 ),
                               ],
                             ),
-                            if (inputGood != null || outputGood != null) ...[
+                            if (outputGood != null) ...[
                               const Divider(
                                   color: Color(0xFF1E3A5F)),
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  if (inputGood != null) ...[
-                                    Icon(Icons.arrow_downward,
-                                        color: AppTheme.lossRed,
-                                        size: 14),
-                                    const SizedBox(width: 4),
-                                    Text(inputGood.name,
-                                        style: AppTheme
-                                            .bodyTextSmall),
-                                  ],
-                                  if (inputGood != null &&
-                                      outputGood != null) ...[
-                                    Padding(
-                                      padding: const EdgeInsets
-                                          .symmetric(
-                                              horizontal: 8),
-                                      child: Icon(Icons
-                                          .arrow_forward,
-                                          color: AppTheme
-                                              .textGray,
-                                          size: 14),
-                                    ),
-                                  ],
-                                  if (outputGood != null) ...[
-                                    Icon(Icons.arrow_upward,
-                                        color: AppTheme.profitGreen,
-                                        size: 14),
-                                    const SizedBox(width: 4),
-                                    Text(outputGood.name,
-                                        style: AppTheme
-                                            .bodyTextSmall),
-                                  ],
+                                  Icon(Icons.arrow_upward,
+                                      color: AppTheme.profitGreen,
+                                      size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(outputGood.name,
+                                      style: AppTheme
+                                          .bodyTextSmall),
                                 ],
                               ),
                             ],

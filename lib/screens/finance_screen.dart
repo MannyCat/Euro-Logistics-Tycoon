@@ -431,14 +431,40 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
   String _txTypeLabel(String type) {
     switch (type) {
-      case 'income':
-        return 'Доход';
-      case 'expense':
-        return 'Расход';
-      case 'loan':
+      case 'cargo_sale':
+        return 'Продажа груза';
+      case 'cargo_buy':
+        return 'Покупка груза';
+      case 'fuel':
+        return 'Топливо';
+      case 'loan_payment':
+        return 'Погашение кредита';
+      case 'salary':
+        return 'Зарплата';
+      case 'ship_purchase':
+        return 'Покупка корабля';
+      case 'ship_sale':
+        return 'Продажа корабля';
+      case 'factory_build':
+        return 'Строительство фабрики';
+      case 'repair':
+        return 'Ремонт';
+      case 'tax':
+        return 'Налог';
+      case 'credit':
         return 'Кредит';
-      case 'loan_repay':
-        return 'Погашение';
+      case 'factory_output_sale':
+        return 'Продажа продукции';
+      case 'factory_input_buy':
+        return 'Закупка сырья';
+      case 'ship_market_sale':
+        return 'Продажа на рынке';
+      case 'ship_market_purchase':
+        return 'Покупка на рынке';
+      case 'employee_hire':
+        return 'Найм сотрудника';
+      case 'loan_disbursement':
+        return 'Выдача кредита';
       default:
         return type;
     }

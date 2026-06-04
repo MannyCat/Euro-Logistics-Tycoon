@@ -97,7 +97,7 @@ class MapMainScreenState extends State<MapMainScreen> with TickerProviderStateMi
 
     if (ship.status == 'in_transit') {
       final voyage = game.myVoyages
-          .where((v) => v.shipId == shipId && v.status == 'active')
+          .where((v) => v.shipId == shipId && v.isActive)
           .firstOrNull;
       if (voyage != null) {
         final originPort = GameConstants.findPort(voyage.originPortId);
@@ -183,7 +183,7 @@ class MapMainScreenState extends State<MapMainScreen> with TickerProviderStateMi
             onToggle: () => setState(() => _sidebarExpanded = !_sidebarExpanded),
             profile: profile,
             shipCount: game.myShips.length,
-            voyageCount: game.myVoyages.where((v) => v.status == 'active').length,
+            voyageCount: game.myVoyages.where((v) => v.isActive).length,
           ),
 
           // === MAIN AREA ===
@@ -211,6 +211,7 @@ class MapMainScreenState extends State<MapMainScreen> with TickerProviderStateMi
                       urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                       userAgentPackageName: 'com.mannycat.shippingmanager',
                       subdomains: const ['a', 'b', 'c', 'd'],
+                      retinaMode: RetinaMode.isHighDensity,
                     ),
 
                     // Voyage routes
@@ -504,8 +505,13 @@ class _SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentLocation = GoRouterState.of(context).matchedLocation;
-    final active = currentLocation == route ||
+    String currentLocation = '/';
+    try {
+      currentLocation = GoRouterState.of(context).matchedLocation;
+    } catch (_) {
+      // Fallback if not inside a GoRouter
+    }
+    final active = isCurrent || currentLocation == route ||
         (route != '/' && currentLocation.startsWith(route));
 
     return Padding(
@@ -826,7 +832,7 @@ class _VoyageRoutesLayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final polylines = <Polyline>[];
     for (final voyage in gameProvider.myVoyages) {
-      if (voyage.status != 'active') continue;
+      if (!voyage.isActive) continue;
       final origin = GameConstants.findPort(voyage.originPortId);
       final dest = GameConstants.findPort(voyage.destinationPortId);
       if (origin == null || dest == null) continue;
@@ -1009,7 +1015,7 @@ class _ShipInfoPanel extends StatelessWidget {
 
     final shipType = GameConstants.findShipType(ship.shipTypeId);
     final activeVoyage = gameProvider.myVoyages
-        .where((v) => v.shipId == shipId && v.status == 'active')
+        .where((v) => v.shipId == shipId && v.isActive)
         .firstOrNull;
 
     final statusColor = switch (ship.status) {
@@ -1161,7 +1167,7 @@ class _BottomStatsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final idle = gameProvider.myShips.where((s) => s.status == 'idle').length;
     final transit = gameProvider.myShips.where((s) => s.status == 'in_transit').length;
-    final activeV = gameProvider.myVoyages.where((v) => v.status == 'active').length;
+    final activeV = gameProvider.myVoyages.where((v) => v.isActive).length;
 
     return Container(
       height: 36,

@@ -139,7 +139,6 @@ class AuthProvider extends ChangeNotifier {
         final email = _supabase!.auth.currentUser?.email ?? '';
         final newProfile = {
           'id': userId,
-          'email': email,
           'company_name': 'Новая компания',
           'money': 500000,
           'reputation': 50,
@@ -147,6 +146,9 @@ class AuthProvider extends ChangeNotifier {
           'xp': 0,
         };
         await _supabase!.from('profiles').insert(newProfile);
+        if (email.isNotEmpty) {
+          await _supabase!.from('profiles').update({'email': email}).eq('id', userId);
+        }
         _profile = PlayerProfile.fromJson(newProfile);
       }
 
@@ -221,7 +223,6 @@ class AuthProvider extends ChangeNotifier {
         final userId = response.user!.id;
         final newProfile = {
           'id': userId,
-          'email': email.trim(),
           'company_name': companyName.trim(),
           'money': 500000,
           'reputation': 50,
@@ -229,6 +230,10 @@ class AuthProvider extends ChangeNotifier {
           'xp': 0,
         };
         await _supabase!.from('profiles').insert(newProfile);
+        final trimmedEmail = email.trim();
+        if (trimmedEmail.isNotEmpty) {
+          await _supabase!.from('profiles').update({'email': trimmedEmail}).eq('id', userId);
+        }
         _profile = PlayerProfile.fromJson(newProfile);
         return true;
       }

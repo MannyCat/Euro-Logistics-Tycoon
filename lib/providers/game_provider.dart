@@ -1,19 +1,16 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/game_constants.dart';
 import '../utils/db_id_mapper.dart';
 
-// ===================== MODELS =====================
+// ===================== HELPERS =====================
 
 /// Convert a value that might be a DB integer ID into a GameConstants slug string.
-/// Handles: int → slug lookup, String (slug) → pass through, null → null.
 String? _intOrStringToSlug(dynamic value) {
   if (value == null) return null;
   if (value is String) return value;
   if (value is int) {
-    // Try port mapping first, then good, then ship type
     return DbIdMapper.portIntToSlug(value) ??
         DbIdMapper.goodIntToSlug(value) ??
         DbIdMapper.shipTypeIntToSlug(value) ??
@@ -22,12 +19,19 @@ String? _intOrStringToSlug(dynamic value) {
   return value.toString();
 }
 
+/// Check if a voyage is currently "active" (in transit or loading).
+bool _isVoyageActive(String status) {
+  return status == 'in_transit' || status == 'loading';
+}
+
+// ===================== MODELS =====================
+
 class Ship {
   final String id;
   final String ownerId;
   final String shipTypeId;
   final String name;
-  final String status; // idle, in_transit, in_dock, maintenance
+  final String status;
   final int condition;
   final double fuelLevel;
   final double maxFuel;
@@ -63,7 +67,7 @@ class Ship {
       maxFuel: (json['max_fuel'] as num?)?.toDouble() ?? 0.0,
       currentPortId: _intOrStringToSlug(json['current_port_id']),
       destinationPortId: _intOrStringToSlug(json['destination_port_id']),
-      createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
+      createdAt: DateTime.tryParse(json['purchased_at'] as String? ?? '') ??
           DateTime.now(),
       lastVoyageAt: json['last_voyage_at'] != null
           ? DateTime.tryParse(json['last_voyage_at'] as String)
@@ -77,12 +81,12 @@ class Ship {
         'ship_type_id': shipTypeId,
         'name': name,
         'status': status,
-        'condition': condition,
+        'condition_pct': condition,
         'fuel_level': fuelLevel,
         'max_fuel': maxFuel,
         'current_port_id': currentPortId,
         'destination_port_id': destinationPortId,
-        'created_at': createdAt.toIso8601String(),
+        'purchased_at': createdAt.toIso8601String(),
         'last_voyage_at': lastVoyageAt?.toIso8601String(),
       };
 
@@ -114,7 +118,6 @@ class Ship {
 }
 
 class PortPrice {
-  final String id;
   final String portId;
   final String goodId;
   final int buyPrice;
@@ -123,7 +126,6 @@ class PortPrice {
   final DateTime updatedAt;
 
   const PortPrice({
-    required this.id,
     required this.portId,
     required this.goodId,
     required this.buyPrice,
@@ -134,13 +136,12 @@ class PortPrice {
 
   factory PortPrice.fromJson(Map<String, dynamic> json) {
     return PortPrice(
-      id: json['id'] as String? ?? '',
       portId: _intOrStringToSlug(json['port_id']) ?? '',
       goodId: _intOrStringToSlug(json['good_id']) ?? '',
       buyPrice: (json['buy_price'] as num?)?.toInt() ?? 0,
       sellPrice: (json['sell_price'] as num?)?.toInt() ?? 0,
-      available: (json['available'] as num?)?.toInt() ?? 0,
-      updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
+      available: (json['available_quantity'] as num?)?.toInt() ?? 0,
+      updatedAt: DateTime.tryParse(json['last_updated'] as String? ?? '') ??
           DateTime.now(),
     );
   }
@@ -149,7 +150,6 @@ class PortPrice {
 class Voyage {
   final String id;
   final String shipId;
-  final String ownerId;
   final String originPortId;
   final String destinationPortId;
   final String? goodId;
@@ -158,14 +158,13 @@ class Voyage {
   final double estimatedHours;
   final DateTime startedAt;
   final DateTime? eta;
-  final String status; // active, completed, cancelled
+  final String status;
   final int? revenue;
   final int? fuelCost;
 
   const Voyage({
     required this.id,
     required this.shipId,
-    required this.ownerId,
     required this.originPortId,
     required this.destinationPortId,
     this.goodId,
@@ -183,12 +182,11 @@ class Voyage {
     return Voyage(
       id: json['id'] as String? ?? '',
       shipId: json['ship_id'] as String? ?? '',
-      ownerId: '', // voyages table has no owner_id
       originPortId: _intOrStringToSlug(json['origin_port_id']) ?? '',
       destinationPortId: _intOrStringToSlug(json['destination_port_id']) ?? '',
       goodId: _intOrStringToSlug(json['cargo_good_id']),
       quantity: (json['cargo_quantity'] as num?)?.toInt() ?? 0,
-      distance: (json['distance'] as num?)?.toDouble() ?? 0.0,
+      distance: (json['distance_nm'] as num?)?.toDouble() ?? 0.0,
       estimatedHours: (json['estimated_hours'] as num?)?.toDouble() ?? 0.0,
       startedAt: DateTime.tryParse(
               json['departure_time'] as String? ?? '') ??
@@ -196,11 +194,13 @@ class Voyage {
       eta: json['estimated_arrival'] != null
           ? DateTime.tryParse(json['estimated_arrival'] as String)
           : null,
-      status: json['status'] as String? ?? 'active',
+      status: json['status'] as String? ?? '',
       revenue: (json['revenue'] as num?)?.toInt(),
       fuelCost: (json['fuel_consumed'] as num?)?.toInt(),
     );
   }
+
+  bool get isActive => _isVoyageActive(status);
 
   double get progress {
     if (eta == null) return 0;
@@ -214,7 +214,7 @@ class Voyage {
 class Transaction {
   final String id;
   final String ownerId;
-  final String type; // income, expense, loan, loan_repay
+  final String type;
   final String description;
   final int amount;
   final DateTime createdAt;
@@ -264,12 +264,13 @@ class ShipMarketListing {
     required this.listedAt,
   });
 
-  factory ShipMarketListing.fromJson(Map<String, dynamic> json, {Map<String, dynamic>? shipData}) {
+  factory ShipMarketListing.fromJson(Map<String, dynamic> json,
+      {Map<String, dynamic>? shipData}) {
     return ShipMarketListing(
       id: json['id'] as String? ?? '',
       shipId: json['ship_id'] as String? ?? '',
       sellerId: json['seller_id'] as String? ?? '',
-      sellerName: shipData != null ? '' : 'Неизвестно', // populated separately
+      sellerName: 'Продавец',
       shipName: shipData?['name'] as String? ?? 'Безымянный',
       shipTypeId: _intOrStringToSlug(shipData?['ship_type_id']) ?? '',
       condition: (shipData?['condition_pct'] as num?)?.toInt() ?? 100,
@@ -284,7 +285,7 @@ class Employee {
   final String id;
   final String ownerId;
   final String name;
-  final String role; // captain, engineer, sailor, broker
+  final String role;
   final int skill;
   final int salary;
   final String? assignedPortId;
@@ -323,9 +324,9 @@ class Loan {
   final int remaining;
   final double interestRate;
   final int termMonths;
-  final int monthsRemaining;
+  final int monthsPaid;
   final DateTime takenAt;
-  final String status; // active, paid, defaulted
+  final String status;
 
   const Loan({
     required this.id,
@@ -334,10 +335,12 @@ class Loan {
     required this.remaining,
     required this.interestRate,
     required this.termMonths,
-    required this.monthsRemaining,
+    required this.monthsPaid,
     required this.takenAt,
     required this.status,
   });
+
+  int get monthsRemaining => (termMonths - monthsPaid).clamp(0, termMonths);
 
   factory Loan.fromJson(Map<String, dynamic> json) {
     return Loan(
@@ -347,7 +350,7 @@ class Loan {
       remaining: (json['remaining_balance'] as num?)?.toInt() ?? 0,
       interestRate: (json['interest_rate'] as num?)?.toDouble() ?? 0.0,
       termMonths: (json['total_months'] as num?)?.toInt() ?? 0,
-      monthsRemaining: (json['months_remaining'] as num?)?.toInt() ?? 0,
+      monthsPaid: (json['months_paid'] as num?)?.toInt() ?? 0,
       takenAt: DateTime.tryParse(json['taken_at'] as String? ?? '') ??
           DateTime.now(),
       status: json['status'] as String? ?? 'active',
@@ -361,8 +364,7 @@ class Factory {
   final String type;
   final String? portId;
   final int level;
-  final String status; // active, building, idle
-  final String? inputGoodId;
+  final bool isRunning;
   final String? outputGoodId;
   final DateTime createdAt;
 
@@ -372,8 +374,7 @@ class Factory {
     required this.type,
     this.portId,
     required this.level,
-    required this.status,
-    this.inputGoodId,
+    required this.isRunning,
     this.outputGoodId,
     required this.createdAt,
   });
@@ -382,11 +383,10 @@ class Factory {
     return Factory(
       id: json['id'] as String? ?? '',
       ownerId: json['owner_id'] as String? ?? '',
-      type: json['type'] as String? ?? '',
+      type: json['factory_type'] as String? ?? '',
       portId: _intOrStringToSlug(json['port_id']),
       level: (json['level'] as num?)?.toInt() ?? 1,
-      status: json['status'] as String? ?? 'idle',
-      inputGoodId: _intOrStringToSlug(json['input_good_id']),
+      isRunning: json['is_running'] as bool? ?? false,
       outputGoodId: _intOrStringToSlug(json['output_good_id']),
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ??
           DateTime.now(),
@@ -462,12 +462,17 @@ class GameProvider extends ChangeNotifier {
   // ---- Helper to get current user ID ----
   String? get _userId => _supabase.auth.currentUser?.id;
 
+  // ---- Helper: get ships in a port by slug ----
+  List<Ship> getShipsInPort(String portSlug) {
+    return _myShips
+        .where((s) => s.currentPortId == portSlug && s.status == 'idle')
+        .toList();
+  }
+
   // ===================== LOAD METHODS =====================
 
   Future<void> loadPorts() async {
-    // Ports are defined in GameConstants — use those
     _allPorts = GameConstants.ports;
-    // Initialize DB ID mappings
     await DbIdMapper.init(_supabase);
     notifyListeners();
   }
@@ -491,7 +496,6 @@ class GameProvider extends ChangeNotifier {
 
     final dbPortId = DbIdMapper.portSlugToInt(portId);
     if (dbPortId == null) {
-      debugPrint('loadMarketPrices: no DB mapping for port slug "$portId"');
       notifyListeners();
       return;
     }
@@ -514,12 +518,12 @@ class GameProvider extends ChangeNotifier {
     final uid = _userId;
     if (uid == null) return;
     try {
-      // voyages table has no owner_id — find user's ship IDs first
       final shipsResp = await _supabase
           .from('ships')
           .select('id')
           .eq('owner_id', uid);
-      final shipIds = shipsResp.map<String>((e) => e['id'] as String).toList();
+      final shipIds =
+          shipsResp.map<String>((e) => e['id'] as String).toList();
 
       if (shipIds.isEmpty) {
         _myVoyages = [];
@@ -547,7 +551,6 @@ class GameProvider extends ChangeNotifier {
           .select()
           .eq('status', 'listed');
 
-      // Fetch ship data for each listing
       final List<ShipMarketListing> result = [];
       for (final listing in listings) {
         final shipId = listing['ship_id'] as String? ?? '';
@@ -561,7 +564,8 @@ class GameProvider extends ChangeNotifier {
                 .maybeSingle();
           } catch (_) {}
         }
-        result.add(ShipMarketListing.fromJson(listing, shipData: shipData));
+        result.add(
+            ShipMarketListing.fromJson(listing, shipData: shipData));
       }
       _shipMarketListings = result;
     } catch (e) {
@@ -577,9 +581,9 @@ class GameProvider extends ChangeNotifier {
     try {
       final response =
           await _supabase.from('ship_market').select().eq('seller_id', uid);
-      _myListings =
-          response.map<ShipMarketListing>((e) => ShipMarketListing.fromJson(e))
-              .toList();
+      _myListings = response
+          .map<ShipMarketListing>((e) => ShipMarketListing.fromJson(e))
+          .toList();
     } catch (e) {
       _myListings = [];
       debugPrint('loadMyListings error: $e');
@@ -664,7 +668,8 @@ class GameProvider extends ChangeNotifier {
       final idle = _myShips.where((s) => s.status == 'idle').length;
       final transit = _myShips.where((s) => s.status == 'in_transit').length;
       final docked = _myShips.where((s) => s.status == 'in_dock').length;
-      final activeV = _myVoyages.where((v) => v.status == 'active').length;
+      final activeV =
+          _myVoyages.where((v) => v.isActive).length;
       final completedV =
           _myVoyages.where((v) => v.status == 'completed').length;
 
@@ -705,13 +710,13 @@ class GameProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Check money
       final profileResponse = await _supabase
           .from('profiles')
           .select('money')
           .eq('id', uid)
           .maybeSingle();
-      final currentMoney = (profileResponse?['money'] as num?)?.toInt() ?? 0;
+      final currentMoney =
+          (profileResponse?['money'] as num?)?.toInt() ?? 0;
       if (currentMoney < shipType.basePrice) {
         _errorMessage = 'Недостаточно средств для покупки';
         _isLoading = false;
@@ -720,8 +725,6 @@ class GameProvider extends ChangeNotifier {
       }
 
       final maxFuel = shipType.dwt * GameConstants.fuelTankMultiplier;
-
-      // Convert slugs to DB integer IDs
       final dbShipTypeId = DbIdMapper.shipTypeSlugToInt(shipTypeId);
       final dbPortId = DbIdMapper.portSlugToInt('rotterdam');
 
@@ -732,7 +735,6 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
-      // Insert ship
       final newShip = {
         'owner_id': uid,
         'ship_type_id': dbShipTypeId,
@@ -746,15 +748,13 @@ class GameProvider extends ChangeNotifier {
       };
       await _supabase.from('ships').insert(newShip);
 
-      // Deduct money
       await _supabase
           .from('profiles')
           .update({'money': currentMoney - shipType.basePrice}).eq('id', uid);
 
-      // Record transaction
       await _supabase.from('transactions').insert({
         'player_id': uid,
-        'type': 'expense',
+        'type': 'ship_purchase',
         'description': 'Покупка корабля: ${shipType.name}',
         'amount': -shipType.basePrice,
       });
@@ -779,7 +779,6 @@ class GameProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Get ship info
       final shipResponse = await _supabase
           .from('ships')
           .select()
@@ -793,18 +792,6 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
-      final ship = Ship.fromJson(shipResponse);
-
-      // Get seller company name
-      final profileResponse = await _supabase
-          .from('profiles')
-          .select('company_name')
-          .eq('id', uid)
-          .maybeSingle();
-      final sellerName =
-          (profileResponse?['company_name'] as String?) ?? 'Неизвестно';
-
-      // Create market listing
       await _supabase.from('ship_market').insert({
         'ship_id': shipId,
         'seller_id': uid,
@@ -812,10 +799,8 @@ class GameProvider extends ChangeNotifier {
         'status': 'listed',
       });
 
-      // Update ship status to on_market
-      await _supabase
-          .from('ships')
-          .update({'status': 'on_market'}).eq('id', shipId);
+      // Don't change ship status — ship_status_enum doesn't have 'on_market'
+      // The ship_market listing itself tracks the sale status.
 
       await loadMyShips();
       await loadMyListings();
@@ -838,7 +823,6 @@ class GameProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Get listing
       final listingResponse = await _supabase
           .from('ship_market')
           .select()
@@ -860,7 +844,6 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
-      // Check buyer money
       final buyerProfileResponse = await _supabase
           .from('profiles')
           .select('money')
@@ -874,13 +857,12 @@ class GameProvider extends ChangeNotifier {
 
       if (buyerMoney < totalCost) {
         _errorMessage =
-            'Недостаточно средств. Нужно: \$${totalCost.toStringAsFixed(0)} (включая комиссию)';
+            'Недостаточно средств. Нужно: \$${totalCost.toStringAsFixed(0)}';
         _isLoading = false;
         notifyListeners();
         return false;
       }
 
-      // Get seller profile
       final sellerProfileResponse = await _supabase
           .from('profiles')
           .select('money')
@@ -889,44 +871,35 @@ class GameProvider extends ChangeNotifier {
       final sellerMoney =
           (sellerProfileResponse?['money'] as num?)?.toInt() ?? 0;
 
-      // Update buyer money
       await _supabase
           .from('profiles')
           .update({'money': buyerMoney - totalCost}).eq('id', uid);
-
-      // Update seller money
       await _supabase
           .from('profiles')
           .update({'money': sellerMoney + listing.price})
           .eq('id', listing.sellerId);
 
-      // Transfer ship ownership
-      final dbPortId = DbIdMapper.portSlugToInt('rotterdam');
+      // Transfer ship ownership — use owner_id (correct DB column)
       await _supabase.from('ships').update({
-        'player_id': uid,
+        'owner_id': uid,
         'status': 'idle',
-        'current_port_id': dbPortId,
-        'destination_port_id': null,
+        'current_port_id': null,
       }).eq('id', listing.shipId);
 
-      // Mark listing as sold
       await _supabase
           .from('ship_market')
           .update({'status': 'sold'}).eq('id', listingId);
 
-      // Buyer transaction
       await _supabase.from('transactions').insert({
         'player_id': uid,
-        'type': 'expense',
-        'description':
-            'Покупка с рынка: ${listing.shipName} (комиссия: \$$fee)',
+        'type': 'ship_market_purchase',
+        'description': 'Покупка с рынка: ${listing.shipName}',
         'amount': -totalCost,
       });
 
-      // Seller transaction
       await _supabase.from('transactions').insert({
         'player_id': listing.sellerId,
-        'type': 'income',
+        'type': 'ship_market_sale',
         'description': 'Продажа на рынке: ${listing.shipName}',
         'amount': listing.price,
       });
@@ -953,7 +926,6 @@ class GameProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Get ship
       final shipResponse = await _supabase
           .from('ships')
           .select()
@@ -983,7 +955,6 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
-      // Calculate distance (haversine simplified)
       final distance = _calculateDistance(
         originPort.latitude,
         originPort.longitude,
@@ -995,7 +966,6 @@ class GameProvider extends ChangeNotifier {
       final speed = shipType?.speed ?? 12.0;
       final estimatedHours = distance / speed;
 
-      // Calculate fuel needed
       final fuelNeeded = distance * (shipType?.fuelPerNm ?? 20.0);
       if (ship.fuelLevel < fuelNeeded) {
         _errorMessage =
@@ -1006,22 +976,31 @@ class GameProvider extends ChangeNotifier {
       }
 
       final startedAt = DateTime.now();
-      final eta = startedAt.add(Duration(
-          milliseconds: (estimatedHours * 3600000).round()));
+      final eta = startedAt.add(
+          Duration(milliseconds: (estimatedHours * 3600000).round()));
 
-      // Convert slugs to DB integer IDs
       final dbOriginId = DbIdMapper.portSlugToInt(ship.currentPortId);
       final dbDestId = DbIdMapper.portSlugToInt(destPortId);
-      final dbGoodId = DbIdMapper.goodSlugToInt(goodId);
 
-      if (dbOriginId == null || dbDestId == null || dbGoodId == null) {
-        _errorMessage = 'Ошибка маппинга ID в БД (порт или груз)';
+      if (dbOriginId == null || dbDestId == null) {
+        _errorMessage = 'Ошибка маппинга портов в БД';
         _isLoading = false;
         notifyListeners();
         return false;
       }
 
-      // Create voyage
+      // If cargo is selected, convert good slug
+      int? dbGoodId;
+      if (goodId != null) {
+        dbGoodId = DbIdMapper.goodSlugToInt(goodId);
+        if (dbGoodId == null) {
+          _errorMessage = 'Груз не найден в БД';
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
+      }
+
       final voyage = {
         'ship_id': shipId,
         'origin_port_id': dbOriginId,
@@ -1031,13 +1010,14 @@ class GameProvider extends ChangeNotifier {
         'status': 'in_transit',
         'departure_time': startedAt.toIso8601String(),
         'estimated_arrival': eta.toIso8601String(),
+        'distance_nm': distance,
+        'estimated_hours': estimatedHours,
         'fuel_consumed': fuelNeeded,
         'revenue': 0,
         'cost': (fuelNeeded * GameConstants.fuelPricePerLiter).round(),
       };
       await _supabase.from('voyages').insert(voyage);
 
-      // Update ship
       await _supabase.from('ships').update({
         'status': 'in_transit',
         'destination_port_id': dbDestId,
@@ -1046,7 +1026,6 @@ class GameProvider extends ChangeNotifier {
         'current_port_id': null,
       }).eq('id', shipId);
 
-      // Deduct condition
       final newCondition =
           (ship.condition - GameConstants.conditionLossPerVoyage)
               .clamp(0, 100)
@@ -1076,7 +1055,6 @@ class GameProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Get ship
       final shipResponse = await _supabase
           .from('ships')
           .select()
@@ -1101,13 +1079,13 @@ class GameProvider extends ChangeNotifier {
 
       final cost = (fillAmount * GameConstants.fuelPricePerLiter).round();
 
-      // Check money
       final profileResponse = await _supabase
           .from('profiles')
           .select('money')
           .eq('id', uid)
           .maybeSingle();
-      final currentMoney = (profileResponse?['money'] as num?)?.toInt() ?? 0;
+      final currentMoney =
+          (profileResponse?['money'] as num?)?.toInt() ?? 0;
       if (currentMoney < cost) {
         _errorMessage = 'Недостаточно средств для заправки';
         _isLoading = false;
@@ -1115,20 +1093,17 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
-      // Update ship fuel
       await _supabase
           .from('ships')
           .update({'fuel_level': ship.fuelLevel + fillAmount}).eq('id', shipId);
 
-      // Deduct money
       await _supabase
           .from('profiles')
           .update({'money': currentMoney - cost}).eq('id', uid);
 
-      // Record transaction
       await _supabase.from('transactions').insert({
         'player_id': uid,
-        'type': 'expense',
+        'type': 'fuel',
         'description': 'Заправка: ${fillAmount.toStringAsFixed(0)} л.',
         'amount': -cost,
       });
@@ -1144,9 +1119,79 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> repairShip(String shipId) async {
+    final uid = _userId;
+    if (uid == null) return false;
+
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      final shipResponse = await _supabase
+          .from('ships')
+          .select()
+          .eq('id', shipId)
+          .eq('owner_id', uid)
+          .maybeSingle();
+      if (shipResponse == null) {
+        _errorMessage = 'Корабль не найден';
+        return false;
+      }
+      final ship = Ship.fromJson(shipResponse);
+
+      final repairPoints = 100 - ship.condition;
+      if (repairPoints <= 0) {
+        _errorMessage = 'Корабль не нуждается в ремонте';
+        return false;
+      }
+
+      final cost = (repairPoints * GameConstants.repairCostPerPoint).round();
+
+      final profileResponse = await _supabase
+          .from('profiles')
+          .select('money')
+          .eq('id', uid)
+          .maybeSingle();
+      final currentMoney =
+          (profileResponse?['money'] as num?)?.toInt() ?? 0;
+      if (currentMoney < cost) {
+        _errorMessage = 'Недостаточно средств. Стоимость: \$$cost';
+        return false;
+      }
+
+      await _supabase
+          .from('ships')
+          .update({'condition_pct': 100}).eq('id', shipId);
+
+      await _supabase
+          .from('profiles')
+          .update({'money': currentMoney - cost}).eq('id', uid);
+
+      await _supabase.from('transactions').insert({
+        'player_id': uid,
+        'type': 'repair',
+        'description': 'Ремонт корабля: ${ship.name}',
+        'amount': -cost,
+      });
+
+      await loadMyShips();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Ошибка ремонта: $e';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> hireEmployee(String role, String name, String? portId) async {
     final uid = _userId;
     if (uid == null) return false;
+
+    // Map old role names to DB enum values
+    final dbRole = _mapEmployeeRole(role);
 
     try {
       _isLoading = true;
@@ -1171,13 +1216,13 @@ class GameProvider extends ChangeNotifier {
           salary = 3000;
       }
 
-      // Check money (1 month salary for hiring)
       final profileResponse = await _supabase
           .from('profiles')
           .select('money')
           .eq('id', uid)
           .maybeSingle();
-      final currentMoney = (profileResponse?['money'] as num?)?.toInt() ?? 0;
+      final currentMoney =
+          (profileResponse?['money'] as num?)?.toInt() ?? 0;
       if (currentMoney < salary) {
         _errorMessage = 'Недостаточно средств для найма';
         _isLoading = false;
@@ -1186,22 +1231,21 @@ class GameProvider extends ChangeNotifier {
       }
 
       await _supabase.from('employees').insert({
-        'player_id': uid,
+        'owner_id': uid,
         'name': name.trim(),
-        'role': role,
+        'role': dbRole,
         'skill_level': 1,
         'salary_daily': salary,
         'port_id': DbIdMapper.portSlugToInt(portId),
       });
 
-      // Deduct money
       await _supabase
           .from('profiles')
           .update({'money': currentMoney - salary}).eq('id', uid);
 
       await _supabase.from('transactions').insert({
         'player_id': uid,
-        'type': 'expense',
+        'type': 'employee_hire',
         'description': 'Найм: $name ($role)',
         'amount': -salary,
       });
@@ -1214,6 +1258,21 @@ class GameProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  String _mapEmployeeRole(String role) {
+    switch (role) {
+      case 'captain':
+        return 'crew_manager';
+      case 'engineer':
+        return 'crew_manager';
+      case 'sailor':
+        return 'crew_manager';
+      case 'broker':
+        return 'agent';
+      default:
+        return 'agent';
     }
   }
 
@@ -1235,35 +1294,35 @@ class GameProvider extends ChangeNotifier {
       notifyListeners();
 
       final interestRate = GameConstants.maxLoanInterest;
-      final totalRepay = (amount * (1 + interestRate * termMonths / 12))
-          .ceil();
+      final totalRepay =
+          (amount * (1 + interestRate * termMonths / 12)).ceil();
+      final monthlyPayment = (totalRepay / termMonths).ceil();
 
       await _supabase.from('loans').insert({
         'borrower_id': uid,
         'amount': amount,
         'remaining_balance': totalRepay,
         'interest_rate': interestRate,
-        'monthly_payment': (totalRepay / termMonths).ceil(),
+        'monthly_payment': monthlyPayment,
         'total_months': termMonths,
         'months_paid': 0,
-        'remaining_balance': totalRepay,
         'status': 'active',
       });
 
-      // Add money
       final profileResponse = await _supabase
           .from('profiles')
           .select('money')
           .eq('id', uid)
           .maybeSingle();
-      final currentMoney = (profileResponse?['money'] as num?)?.toInt() ?? 0;
+      final currentMoney =
+          (profileResponse?['money'] as num?)?.toInt() ?? 0;
       await _supabase
           .from('profiles')
           .update({'money': currentMoney + amount}).eq('id', uid);
 
       await _supabase.from('transactions').insert({
         'player_id': uid,
-        'type': 'loan',
+        'type': 'credit',
         'description': 'Кредит: \$$amount на $termMonths мес.',
         'amount': amount,
       });
@@ -1280,32 +1339,19 @@ class GameProvider extends ChangeNotifier {
   }
 
   // ---- Distance calculation (haversine) ----
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
     const R = 6371.0; // km
     final dLat = _degToRad(lat2 - lat1);
     final dLon = _degToRad(lon2 - lon1);
-    final a = _sin(dLat / 2) * _sin(dLat / 2) +
-        _cos(_degToRad(lat1)) *
-            _cos(_degToRad(lat2)) *
-            _sin(dLon / 2) *
-            _sin(dLon / 2);
-    final c = 2 * _atan2(_sqrt(a), _sqrt(1 - a));
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degToRad(lat1)) *
+            math.cos(_degToRad(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return R * c;
   }
 
-  double _degToRad(double deg) => deg * math.pi / 180.0;
-  double _sin(double x) => math.sin(x);
-  double _cos(double x) => math.cos(x);
-  double _sqrt(double x) => math.sqrt(x);
-  double _atan2(double y, double x) => math.atan2(y, x);
-
-  void clearError() {
-    _errorMessage = null;
-    notifyListeners();
-  }
-
-  // ---- Get ships in a specific port ----
-  List<Ship> getShipsInPort(String portId) {
-    return _myShips.where((s) => s.currentPortId == portId && s.status == 'idle').toList();
-  }
+  double _degToRad(double deg) => deg * math.pi / 180;
 }

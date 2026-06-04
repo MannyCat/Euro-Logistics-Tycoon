@@ -60,7 +60,7 @@ class _FleetScreenState extends State<FleetScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              children: ['Все', 'idle', 'in_transit', 'in_dock', 'maintenance']
+              children: ['Все', 'idle', 'in_transit', 'in_dock']
                   .map((status) {
                 final label = _statusName(status);
                 final isSelected = _statusFilter == status;
@@ -251,8 +251,6 @@ class _FleetScreenState extends State<FleetScreen> {
         return 'В рейсе';
       case 'in_dock':
         return 'В доке';
-      case 'maintenance':
-        return 'Ремонт';
       case 'on_market':
         return 'Продажа';
       default:
@@ -268,8 +266,6 @@ class _FleetScreenState extends State<FleetScreen> {
         return AppTheme.accentBlue;
       case 'in_dock':
         return AppTheme.warningAmber;
-      case 'maintenance':
-        return AppTheme.lossRed;
       default:
         return AppTheme.textGray;
     }

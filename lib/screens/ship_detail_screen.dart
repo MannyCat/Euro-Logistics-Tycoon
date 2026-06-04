@@ -47,7 +47,7 @@ class _ShipDetailScreenState extends State<ShipDetailScreen> {
     final game = context.read<GameProvider>();
     try {
       return game.myVoyages.firstWhere(
-        (v) => v.shipId == widget.shipId && v.status == 'active',
+        (v) => v.shipId == widget.shipId && v.isActive,
       );
     } catch (_) {
       return null;
@@ -515,13 +515,21 @@ class _ShipDetailScreenState extends State<ShipDetailScreen> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(ctx);
-                // Repair logic would deduct money and update condition
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Ремонт начат. Стоимость: \$$cost'),
-                    backgroundColor: AppTheme.accentBlue,
-                  ),
-                );
+                final game = context.read<GameProvider>();
+                await game.repairShip(ship.id);
+                if (context.mounted) {
+                  final msg = game.errorMessage ??
+                      'Корабль отремонтирован!';
+                  final color = game.errorMessage != null
+                      ? AppTheme.lossRed
+                      : AppTheme.profitGreen;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(msg),
+                      backgroundColor: color,
+                    ),
+                  );
+                }
               },
               child: const Text('Ремонтировать'),
             ),

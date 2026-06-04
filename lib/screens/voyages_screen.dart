@@ -35,7 +35,7 @@ class _VoyagesScreenState extends State<VoyagesScreen> {
     final game = context.watch<GameProvider>();
     final voyages = game.myVoyages;
     final activeVoyages =
-        voyages.where((v) => v.status == 'active').toList();
+        voyages.where((v) => v.isActive).toList();
     final completedVoyages =
         voyages.where((v) => v.status == 'completed').toList();
 
