@@ -24,6 +24,20 @@ bool _isVoyageActive(String status) {
   return status == 'in_transit' || status == 'loading';
 }
 
+/// Haversine distance between two lat/lng points in kilometers.
+double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  const R = 6371.0;
+  final dLat = _toRadians(lat2 - lat1);
+  final dLon = _toRadians(lon2 - lon1);
+  final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+      math.cos(_toRadians(lat1)) * math.cos(_toRadians(lat2)) *
+          math.sin(dLon / 2) * math.sin(dLon / 2);
+  final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  return R * c;
+}
+
+double _toRadians(double deg) => deg * math.pi / 180.0;
+
 // ===================== MODELS =====================
 
 class Ship {
@@ -1036,8 +1050,7 @@ class GameProvider extends ChangeNotifier {
       } else {
         // Default: use first good from DB
         dbGoodId = DbIdMapper.goodSlugToInt(
-          GameConstants.goods.firstOrNull?.id ?? '');
-        dbGoodId ??= 1; // fallback to ID 1
+          GameConstants.goods.firstOrNull?.id ?? '') ?? 1;
       }
 
       // Note: voyages table does NOT have distance_nm or estimated_hours columns
@@ -1377,20 +1390,4 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  // ---- Distance calculation (haversine) ----
-  double _calculateDistance(
-      double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371.0; // km
-    final dLat = _degToRad(lat2 - lat1);
-    final dLon = _degToRad(lon2 - lon1);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_degToRad(lat1)) *
-            math.cos(_degToRad(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return R * c;
-  }
-
-  double _degToRad(double deg) => deg * math.pi / 180;
 }
