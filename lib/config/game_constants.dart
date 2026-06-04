@@ -9,6 +9,7 @@ class ShipTypeDefinition {
   final int basePrice;
   final int maxAge;
   final int crewSize;
+  final String imageAsset;
 
   const ShipTypeDefinition({
     required this.id,
@@ -21,6 +22,7 @@ class ShipTypeDefinition {
     required this.basePrice,
     required this.maxAge,
     required this.crewSize,
+    required this.imageAsset,
   });
 }
 
@@ -122,7 +124,7 @@ class GameConstants {
   static const List<ShipTypeDefinition> shipTypes = [
     ShipTypeDefinition(
       id: 'sloop',
-      name: 'Шлюп',
+      name: 'Ребекка (Шлюп)',
       type: 'Малый',
       dwt: 500,
       teu: 20,
@@ -131,10 +133,11 @@ class GameConstants {
       basePrice: 150000,
       maxAge: 20,
       crewSize: 5,
+      imageAsset: 'assets/ships/sloop.png',
     ),
     ShipTypeDefinition(
       id: 'barge',
-      name: 'Баржа',
+      name: 'Волга-Баржа',
       type: 'Малый',
       dwt: 1500,
       teu: 60,
@@ -143,10 +146,11 @@ class GameConstants {
       basePrice: 250000,
       maxAge: 25,
       crewSize: 8,
+      imageAsset: 'assets/ships/barge.png',
     ),
     ShipTypeDefinition(
       id: 'coaster',
-      name: 'Костер',
+      name: 'Костер «Меридиан»',
       type: 'Средний',
       dwt: 3000,
       teu: 150,
@@ -155,10 +159,11 @@ class GameConstants {
       basePrice: 450000,
       maxAge: 25,
       crewSize: 12,
+      imageAsset: 'assets/ships/coaster.png',
     ),
     ShipTypeDefinition(
       id: 'handysize',
-      name: 'Хэндисайз',
+      name: 'Хэндисайз «Аврора»',
       type: 'Средний',
       dwt: 10000,
       teu: 500,
@@ -167,10 +172,11 @@ class GameConstants {
       basePrice: 900000,
       maxAge: 25,
       crewSize: 18,
+      imageAsset: 'assets/ships/handysize.png',
     ),
     ShipTypeDefinition(
       id: 'handymax',
-      name: 'Хэндимакс',
+      name: 'Хэндимакс «Торнадо»',
       type: 'Средний',
       dwt: 35000,
       teu: 1500,
@@ -179,10 +185,11 @@ class GameConstants {
       basePrice: 1800000,
       maxAge: 28,
       crewSize: 22,
+      imageAsset: 'assets/ships/handymax.png',
     ),
     ShipTypeDefinition(
       id: 'supramax',
-      name: 'Супрамакс',
+      name: 'Супрамакс «Левиафан»',
       type: 'Большой',
       dwt: 55000,
       teu: 2500,
@@ -191,10 +198,11 @@ class GameConstants {
       basePrice: 2800000,
       maxAge: 28,
       crewSize: 25,
+      imageAsset: 'assets/ships/supramax.png',
     ),
     ShipTypeDefinition(
       id: 'panamax',
-      name: 'Панамакс',
+      name: 'Панамакс «Атлантида»',
       type: 'Большой',
       dwt: 80000,
       teu: 4000,
@@ -203,10 +211,11 @@ class GameConstants {
       basePrice: 3800000,
       maxAge: 30,
       crewSize: 28,
+      imageAsset: 'assets/ships/panamax.png',
     ),
     ShipTypeDefinition(
       id: 'vlcc',
-      name: 'ВЛКК',
+      name: 'ВЛКК «Олимп»',
       type: 'Сверхбольшой',
       dwt: 300000,
       teu: 0,
@@ -215,6 +224,7 @@ class GameConstants {
       basePrice: 8000000,
       maxAge: 30,
       crewSize: 35,
+      imageAsset: 'assets/ships/vlcc.png',
     ),
   ];
 

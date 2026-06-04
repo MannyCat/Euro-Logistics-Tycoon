@@ -24,10 +24,9 @@ class PlayerProfile {
   });
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
-    // profiles table does NOT have an email column — it lives in auth.users
     return PlayerProfile(
       id: json['id'] as String? ?? '',
-      email: '', // Must be injected separately from Supabase.auth.currentUser?.email
+      email: '',
       companyName: json['company_name'] as String? ?? 'Моя компания',
       money: (json['money'] as num?)?.toInt() ?? 0,
       reputation: (json['reputation'] as num?)?.toInt() ?? 50,
@@ -38,7 +37,6 @@ class PlayerProfile {
     );
   }
 
-  // WARNING: toJson is for in-memory use only; 'email' is NOT a profiles table column.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -77,12 +75,14 @@ class AuthProvider extends ChangeNotifier {
 
   PlayerProfile? _profile;
   PlayerProfile? get profile => _profile;
-  bool get isAuthenticated => _profile != null;
+  
+  /// Authenticated if there's a valid Supabase session OR a loaded profile
+  bool get isAuthenticated => _profile != null || _supabase?.auth.currentUser != null;
+  
+  bool _isLoading = false;
   bool get isLoading => _isLoading;
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
-
-  bool _isLoading = false;
 
   AuthProvider() {
     try {
@@ -91,6 +91,20 @@ class AuthProvider extends ChangeNotifier {
       _supabase = null;
     }
     _listenToAuth();
+    // Restore session on startup — if user was logged in, load profile
+    _restoreSession();
+  }
+
+  void _restoreSession() async {
+    if (_supabase == null) return;
+    try {
+      final session = _supabase!.auth.currentSession;
+      if (session != null && _profile == null) {
+        await loadProfile();
+      }
+    } catch (e) {
+      debugPrint('AuthProvider: session restore failed: $e');
+    }
   }
 
   void _listenToAuth() {
@@ -134,12 +148,10 @@ class AuthProvider extends ChangeNotifier {
           .maybeSingle();
 
       if (response != null) {
-        // Inject email from auth.users (profiles table has no email column)
         final email = _supabase!.auth.currentUser?.email ?? '';
         response['email'] = email;
         _profile = PlayerProfile.fromJson(response);
       } else {
-        // Create default profile if none exists
         final email = _supabase!.auth.currentUser?.email ?? '';
         final newProfile = {
           'id': userId,
@@ -150,7 +162,6 @@ class AuthProvider extends ChangeNotifier {
           'xp': 0,
         };
         await _supabase!.from('profiles').insert(newProfile);
-        // email lives in auth.users, NOT in profiles table — do NOT update it here
         newProfile['email'] = email;
         _profile = PlayerProfile.fromJson(newProfile);
       }
@@ -180,6 +191,8 @@ class AuthProvider extends ChangeNotifier {
         email: email.trim(),
         password: password,
       );
+      // Wait for profile to load so isAuthenticated is true when we navigate
+      await loadProfile();
       return true;
     } on AuthException catch (e) {
       if (e.message.contains('Invalid login credentials')) {
@@ -233,7 +246,6 @@ class AuthProvider extends ChangeNotifier {
           'xp': 0,
         };
         await _supabase!.from('profiles').insert(newProfile);
-        // email lives in auth.users, NOT in profiles table — do NOT update it here
         newProfile['email'] = email.trim();
         _profile = PlayerProfile.fromJson(newProfile);
         return true;

@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'providers/auth_provider.dart';
 import 'providers/game_provider.dart';
+import 'providers/theme_provider.dart';
 import 'config/app_theme.dart';
+import 'config/pirate_theme.dart';
 import 'screens/map_main_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
@@ -20,7 +22,7 @@ import 'screens/settings_screen.dart';
 import 'screens/profile_screen.dart';
 
 late final GoRouter _router = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/',
   redirect: (context, state) {
     final auth = context.read<AuthProvider>();
     final isAuthRoute = state.matchedLocation == '/login' ||
@@ -107,14 +109,22 @@ class ShippingManagerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => GameProvider()),
       ],
-      child: MaterialApp.router(
-        title: 'Shipping Manager',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
-        routerConfig: _router,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          AppTheme.setPirateMode(themeProvider.isPirate);
+          return MaterialApp.router(
+            title: 'Shipping Manager',
+            debugShowCheckedModeBanner: false,
+            theme: themeProvider.isPirate
+                ? PirateTheme.darkTheme
+                : AppTheme.darkTheme,
+            routerConfig: _router,
+          );
+        },
       ),
     );
   }

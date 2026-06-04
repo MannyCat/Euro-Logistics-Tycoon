@@ -1,55 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class AppTheme {
-  // Pirate theme color constants
-  static const Color pirateScaffoldBackground = Color(0xFF1A0F0A);
-  static const Color pirateCardBackground = Color(0xFF2D1B12);
-  static const Color pirateAccentPrimary = Color(0xFFD4A843);
-  static const Color pirateTextWhite = Color(0xFFF5E6D3);
-  static const Color pirateTextGray = Color(0xFF9E8B78);
-  static const Color pirateTextGrayLight = Color(0xFFC4A882);
-  static const Color pirateDividerColor = Color(0xFF4A2E1C);
-  static const Color pirateInputBackground = Color(0xFF1E120A);
-  static const Color pirateSurfaceDark = Color(0xFF120A06);
-
-  // Classic theme color constants (original)
-  static const Color scaffoldBackground = Color(0xFF0B1426);
-  static const Color cardBackground = Color(0xFF14213D);
-  static const Color accentBlue = Color(0xFF2196F3);
-  static const Color profitGreen = Color(0xFF4CAF50);
-  static const Color lossRed = Color(0xFFF44336);
-  static const Color textWhite = Color(0xFFFFFFFF);
-  static const Color textGray = Color(0xFF9E9E9E);
-  static const Color textGrayLight = Color(0xFFBDBDBD);
-  static const Color dividerColor = Color(0xFF1E3A5F);
-  static const Color inputBackground = Color(0xFF0D1B30);
+class PirateTheme {
+  // Warm brown/gold/dark red pirate colors
+  static const Color scaffoldBackground = Color(0xFF1A0F0A);
+  static const Color cardBackground = Color(0xFF2D1B12);
+  static const Color accentPrimary = Color(0xFFD4A843); // gold
+  static const Color profitGreen = Color(0xFF5B8C3E);
+  static const Color lossRed = Color(0xFFC0392B);
+  static const Color textWhite = Color(0xFFF5E6D3); // parchment white
+  static const Color textGray = Color(0xFF9E8B78);
+  static const Color textGrayLight = Color(0xFFC4A882);
+  static const Color dividerColor = Color(0xFF4A2E1C);
+  static const Color inputBackground = Color(0xFF1E120A);
   static const Color warningAmber = Color(0xFFFFC107);
-  static const Color surfaceDark = Color(0xFF091020);
+  static const Color surfaceDark = Color(0xFF120A06);
 
-  // Pirate mode flag — set by ThemeProvider
-  static bool _isPirate = false;
-
-  static void setPirateMode(bool enabled) {
-    _isPirate = enabled;
-  }
-
-  static bool get isPirate => _isPirate;
-
-  // Context-aware color getters (used by new code or where dynamic theming is needed)
-  static Color get accent => _isPirate ? pirateAccentPrimary : accentBlue;
-  static Color get scaffold => _isPirate ? pirateScaffoldBackground : scaffoldBackground;
-  static Color get card => _isPirate ? pirateCardBackground : cardBackground;
-  static Color get surface => _isPirate ? pirateSurfaceDark : surfaceDark;
-  static Color get text => _isPirate ? pirateTextWhite : textWhite;
-  static Color get divider => _isPirate ? pirateDividerColor : dividerColor;
-  static Color get input => _isPirate ? pirateInputBackground : inputBackground;
-
-  static final _monoFont = GoogleFonts.robotoMono();
-  static final _sansFont = GoogleFonts.inter();
-  static final _sansBold = GoogleFonts.inter(fontWeight: FontWeight.w700);
-  static final _sansSemi = GoogleFonts.inter(fontWeight: FontWeight.w600);
-  static final _sansMed = GoogleFonts.inter(fontWeight: FontWeight.w500);
+  static final _monoFont = GoogleFonts.crimsonText();
+  static final _sansFont = GoogleFonts.crimsonPro();
+  static final _sansBold = GoogleFonts.crimsonPro(fontWeight: FontWeight.w700);
+  static final _sansSemi = GoogleFonts.crimsonPro(fontWeight: FontWeight.w600);
+  static final _sansMed = GoogleFonts.crimsonPro(fontWeight: FontWeight.w500);
 
   static TextStyle get monoNumber => _monoFont.copyWith(
         color: textWhite,
@@ -101,7 +72,7 @@ class AppTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: scaffoldBackground,
       colorScheme: const ColorScheme.dark(
-        primary: accentBlue,
+        primary: accentPrimary,
         secondary: profitGreen,
         error: lossRed,
         surface: cardBackground,
@@ -142,7 +113,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: accentBlue, width: 2),
+          borderSide: const BorderSide(color: accentPrimary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -153,8 +124,8 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: accentBlue,
-          foregroundColor: textWhite,
+          backgroundColor: accentPrimary,
+          foregroundColor: const Color(0xFF1A0F0A),
           minimumSize: const Size(double.infinity, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -164,14 +135,14 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: accentBlue,
+          foregroundColor: accentPrimary,
           textStyle: _sansMed.copyWith(fontSize: 14),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: accentBlue,
-          side: const BorderSide(color: accentBlue),
+          foregroundColor: accentPrimary,
+          side: const BorderSide(color: accentPrimary),
           minimumSize: const Size(double.infinity, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -181,7 +152,7 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surfaceDark,
-        selectedItemColor: accentBlue,
+        selectedItemColor: accentPrimary,
         unselectedItemColor: textGray,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
@@ -200,7 +171,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: inputBackground,
-        selectedColor: accentBlue.withValues(alpha: 0.2),
+        selectedColor: accentPrimary.withValues(alpha: 0.2),
         labelStyle: _sansMed.copyWith(color: textWhite, fontSize: 13),
         side: const BorderSide(color: dividerColor),
         shape: RoundedRectangleBorder(
@@ -208,8 +179,8 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: accentBlue,
-        foregroundColor: textWhite,
+        backgroundColor: accentPrimary,
+        foregroundColor: Color(0xFF1A0F0A),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: cardBackground,
@@ -226,9 +197,9 @@ class AppTheme {
         ),
       ),
       tabBarTheme: const TabBarThemeData(
-        labelColor: accentBlue,
+        labelColor: accentPrimary,
         unselectedLabelColor: textGray,
-        indicatorColor: accentBlue,
+        indicatorColor: accentPrimary,
         dividerColor: Colors.transparent,
       ),
     );

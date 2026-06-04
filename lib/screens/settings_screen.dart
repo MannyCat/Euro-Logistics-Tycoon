@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../config/app_theme.dart';
+import '../config/pirate_theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -16,20 +18,36 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          // Theme
+          // Theme switch
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: SwitchListTile(
-                title: const Text('Тёмная тема'),
-                subtitle: const Text('Включена (по умолчанию)'),
-                value: true,
-                onChanged: null, // Dark only for now
-                activeColor: AppTheme.accentBlue,
-                secondary: const Icon(Icons.dark_mode_outlined),
-                contentPadding: EdgeInsets.zero,
-              ),
+            child: Consumer<ThemeProvider>(
+              builder: (context, themeProvider, _) {
+                return SwitchListTile(
+                  title: const Text('Пиратская тема'),
+                  subtitle: Text(themeProvider.isPirate
+                      ? 'Штурвалы, золото, пергамент'
+                      : 'Современный тёмный стиль'),
+                  value: themeProvider.isPirate,
+                  onChanged: (v) {
+                    themeProvider.setTheme(
+                      v ? AppThemeMode.pirate : AppThemeMode.classic,
+                    );
+                  },
+                  activeColor: themeProvider.isPirate
+                      ? PirateTheme.accentPrimary
+                      : AppTheme.accentBlue,
+                  secondary: Icon(
+                    themeProvider.isPirate
+                        ? Icons.sailing
+                        : Icons.dark_mode_outlined,
+                    color: themeProvider.isPirate
+                        ? PirateTheme.accentPrimary
+                        : AppTheme.accentBlue,
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                );
+              },
             ),
           ),
 

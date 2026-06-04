@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final isPirate = context.watch<ThemeProvider>().isPirate;
 
     return Scaffold(
       body: SafeArea(
@@ -55,23 +57,41 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: 40),
                   // Logo area
-                  Icon(
-                    Icons.directions_boat,
-                    size: 64,
-                    color: AppTheme.accentBlue,
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.accent.withValues(alpha: 0.12),
+                      border: Border.all(
+                        color: AppTheme.accent.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        isPirate ? Icons.sailing : Icons.directions_boat,
+                        size: 48,
+                        color: AppTheme.accent,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Text(
                     'SHIPPING\nMANAGER',
                     textAlign: TextAlign.center,
-                    style: AppTheme.labelLarge.copyWith(
+                    style: TextStyle(
                       fontSize: 28,
+                      fontWeight: FontWeight.bold,
                       letterSpacing: 4,
+                      color: AppTheme.accent,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
-                    'Морские перевозки — ваша стратегия',
+                    isPirate
+                        ? 'Покорите моря, собирайте золото'
+                        : 'Морские перевозки — ваша стратегия',
                     textAlign: TextAlign.center,
                     style: AppTheme.bodyTextSmall,
                   ),
@@ -83,9 +103,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
                     textCapitalization: TextCapitalization.none,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      prefixIcon: Icon(
+                        isPirate ? Icons.email_outlined : Icons.email_outlined,
+                        color: AppTheme.accent,
+                      ),
                       hintText: 'company@example.com',
                     ),
                     validator: (value) {
@@ -106,7 +129,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Пароль',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: Icon(
+                        isPirate ? Icons.lock_outline : Icons.lock_outline,
+                        color: AppTheme.accent,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -134,22 +160,32 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (auth.errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        auth.errorMessage!,
-                        style: AppTheme.bodyTextSmall.copyWith(
-                          color: AppTheme.lossRed,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lossRed.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.lossRed.withValues(alpha: 0.3),
+                          ),
                         ),
-                        textAlign: TextAlign.center,
+                        child: Text(
+                          auth.errorMessage!,
+                          style: AppTheme.bodyTextSmall.copyWith(
+                            color: AppTheme.lossRed,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
 
                   const SizedBox(height: 24),
 
                   // Login button
-                  ElevatedButton(
-                    onPressed:
-                        auth.isLoading ? null : _handleLogin,
-                    child: auth.isLoading
+                  ElevatedButton.icon(
+                    onPressed: auth.isLoading ? null : _handleLogin,
+                    icon: auth.isLoading
                         ? const SizedBox(
                             height: 20,
                             width: 20,
@@ -158,15 +194,27 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Войти в систему'),
+                        : Icon(isPirate ? Icons.sailing : Icons.login,
+                            color: isPirate
+                                ? const Color(0xFF1A0F0A)
+                                : Colors.white),
+                    label: Text(
+                      auth.isLoading
+                          ? 'Вход...'
+                          : (isPirate ? 'Отдать швартовы' : 'Войти в систему'),
+                    ),
                   ),
 
                   const SizedBox(height: 16),
 
                   // Register link
-                  TextButton(
+                  TextButton.icon(
                     onPressed: () => context.go('/register'),
-                    child: const Text('Создать новую компанию'),
+                    icon: Icon(
+                      isPirate ? Icons.anchor : Icons.add_business_outlined,
+                      size: 18,
+                    ),
+                    label: const Text('Создать новую компанию'),
                   ),
                 ],
               ),

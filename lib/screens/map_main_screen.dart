@@ -174,7 +174,7 @@ class MapMainScreenState extends State<MapMainScreen> with TickerProviderStateMi
     final profile = auth.profile;
 
     return Scaffold(
-      backgroundColor: AppTheme.scaffoldBackground,
+      backgroundColor: AppTheme.scaffold,
       body: Row(
         children: [
           // === SIDEBAR ===
@@ -188,23 +188,31 @@ class MapMainScreenState extends State<MapMainScreen> with TickerProviderStateMi
 
           // === MAIN AREA ===
           Expanded(
-            child: Stack(
-              children: [
-                // MAP
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: const LatLng(20, 30),
-                    initialZoom: 2.5,
-                    minZoom: 2,
-                    maxZoom: 18,
-                    onTap: (_, __) {
-                      setState(() {
-                        _selectedPortId = null;
-                        _selectedShipId = null;
-                      });
-                    },
-                  ),
+            child: Container(
+              color: const Color(0xFF0A1628), // ocean background for poles
+              child: Stack(
+                children: [
+                  // MAP
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: const LatLng(20, 30),
+                      initialZoom: 2.5,
+                      minZoom: 2,
+                      maxZoom: 18,
+                      cameraConstraint: CameraFit.contain(
+                        bounds: LatLngBounds(
+                          LatLng(-85, -180),
+                          LatLng(85, 180),
+                        ),
+                      ),
+                      onTap: (_, __) {
+                        setState(() {
+                          _selectedPortId = null;
+                          _selectedShipId = null;
+                        });
+                      },
+                    ),
                   children: [
                     // Dark map tiles
                     TileLayer(
@@ -312,6 +320,7 @@ class MapMainScreenState extends State<MapMainScreen> with TickerProviderStateMi
                   child: _BottomStatsBar(gameProvider: game),
                 ),
               ],
+              ),
             ),
           ),
         ],
@@ -343,9 +352,9 @@ class _Sidebar extends StatelessWidget {
     return Container(
       width: expanded ? 220 : 60,
       decoration: BoxDecoration(
-        color: AppTheme.surfaceDark,
+        color: AppTheme.surface,
         border: Border(
-          right: BorderSide(color: AppTheme.dividerColor, width: 1),
+          right: BorderSide(color: AppTheme.divider, width: 1),
         ),
       ),
       child: Column(
@@ -357,7 +366,7 @@ class _Sidebar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.directions_boat, color: AppTheme.accentBlue, size: 28),
+                Icon(Icons.sailing, color: AppTheme.accent, size: 28),
                 if (expanded) ...[
                   const SizedBox(width: 10),
                   Flexible(
@@ -374,7 +383,7 @@ class _Sidebar extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1, color: AppTheme.dividerColor),
+          const Divider(height: 1, color: AppTheme.divider),
 
           // Nav items
           Expanded(
@@ -383,8 +392,8 @@ class _Sidebar extends StatelessWidget {
               child: Column(
                 children: [
                   _SidebarItem(
-                    icon: Icons.map_outlined,
-                    iconFilled: Icons.map,
+                    icon: Icons.explore_outlined,
+                    iconFilled: Icons.explore,
                     label: 'Карта',
                     route: '/',
                     expanded: expanded,
@@ -393,6 +402,8 @@ class _Sidebar extends StatelessWidget {
                   _SidebarItem(
                     icon: Icons.anchor_outlined,
                     iconFilled: Icons.anchor,
+                    pirateIcon: Icons.portable_wifi_off_outlined,
+                    pirateIconFilled: Icons.portable_wifi_off,
                     label: 'Порты',
                     route: '/ports',
                     expanded: expanded,
@@ -400,6 +411,8 @@ class _Sidebar extends StatelessWidget {
                   _SidebarItem(
                     icon: Icons.directions_boat_outlined,
                     iconFilled: Icons.directions_boat,
+                    pirateIcon: Icons.sailing,
+                    pirateIconFilled: Icons.sailing,
                     label: 'Флот',
                     route: '/fleet',
                     expanded: expanded,
@@ -418,6 +431,8 @@ class _Sidebar extends StatelessWidget {
                   _SidebarItem(
                     icon: Icons.store_outlined,
                     iconFilled: Icons.store,
+                    pirateIcon: Icons.shop_outlined,
+                    pirateIconFilled: Icons.shop,
                     label: 'Рынок',
                     route: '/market',
                     expanded: expanded,
@@ -425,6 +440,8 @@ class _Sidebar extends StatelessWidget {
                   _SidebarItem(
                     icon: Icons.account_balance_outlined,
                     iconFilled: Icons.account_balance,
+                    pirateIcon: Icons.paid_outlined,
+                    pirateIconFilled: Icons.paid,
                     label: 'Финансы',
                     route: '/finance',
                     expanded: expanded,
@@ -455,6 +472,8 @@ class _Sidebar extends StatelessWidget {
                   _SidebarItem(
                     icon: Icons.settings_outlined,
                     iconFilled: Icons.settings,
+                    pirateIcon: Icons.tune_outlined,
+                    pirateIconFilled: Icons.tune,
                     label: 'Настройки',
                     route: '/settings',
                     expanded: expanded,
@@ -463,7 +482,7 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           ),
-          const Divider(height: 1, color: AppTheme.dividerColor),
+          const Divider(height: 1, color: AppTheme.divider),
 
           // Collapse button
           Padding(
@@ -492,6 +511,8 @@ class _SidebarItem extends StatelessWidget {
   final bool expanded;
   final bool isCurrent;
   final String? badge;
+  final IconData? pirateIcon;
+  final IconData? pirateIconFilled;
 
   const _SidebarItem({
     required this.icon,
@@ -501,6 +522,8 @@ class _SidebarItem extends StatelessWidget {
     required this.expanded,
     this.isCurrent = false,
     this.badge,
+    this.pirateIcon,
+    this.pirateIconFilled,
   });
 
   @override
@@ -523,15 +546,17 @@ class _SidebarItem extends StatelessWidget {
           height: 42,
           padding: EdgeInsets.symmetric(horizontal: expanded ? 12 : 0),
           decoration: BoxDecoration(
-            color: active ? AppTheme.accentBlue.withValues(alpha: 0.12) : Colors.transparent,
+            color: active ? AppTheme.accent.withValues(alpha: 0.12) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             mainAxisAlignment: expanded ? MainAxisAlignment.start : MainAxisAlignment.center,
             children: [
               Icon(
-                active ? iconFilled : icon,
-                color: active ? AppTheme.accentBlue : AppTheme.textGray,
+                active
+                    ? (AppTheme.isPirate && pirateIconFilled != null ? pirateIconFilled! : iconFilled)
+                    : (AppTheme.isPirate && pirateIcon != null ? pirateIcon! : icon),
+                color: active ? AppTheme.accent : AppTheme.textGray,
                 size: 20,
               ),
               if (expanded) ...[
@@ -540,7 +565,7 @@ class _SidebarItem extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: active ? AppTheme.textWhite : AppTheme.textGray,
+                      color: active ? AppTheme.text : AppTheme.textGray,
                       fontSize: 13,
                       fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                     ),
@@ -551,7 +576,7 @@ class _SidebarItem extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
-                      color: AppTheme.accentBlue,
+                      color: AppTheme.accent,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -576,7 +601,7 @@ class _SidebarDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: expanded ? 16 : 12, vertical: 4),
-      child: const Divider(height: 1, color: AppTheme.dividerColor),
+      child: const Divider(height: 1, color: AppTheme.divider),
     );
   }
 }
@@ -598,8 +623,8 @@ class _TopBar extends StatelessWidget {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: AppTheme.surfaceDark.withValues(alpha: 0.9),
-        border: Border(bottom: BorderSide(color: AppTheme.dividerColor, width: 1)),
+        color: AppTheme.surface.withValues(alpha: 0.9),
+        border: Border(bottom: BorderSide(color: AppTheme.divider, width: 1)),
       ),
       child: Row(
         children: [
@@ -671,11 +696,11 @@ class _MapControlButton extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: active
-            ? AppTheme.accentBlue.withValues(alpha: 0.3)
-            : AppTheme.surfaceDark.withValues(alpha: 0.9),
+            ? AppTheme.accent.withValues(alpha: 0.3)
+            : AppTheme.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: active ? AppTheme.accentBlue : AppTheme.dividerColor,
+          color: active ? AppTheme.accent : AppTheme.divider,
           width: 1,
         ),
       ),
@@ -688,7 +713,7 @@ class _MapControlButton extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             child: Icon(
               icon,
-              color: active ? AppTheme.accentBlue : AppTheme.textGrayLight,
+              color: active ? AppTheme.accent : AppTheme.textGrayLight,
               size: 20,
             ),
           ),
@@ -723,15 +748,15 @@ class _PortMarkersLayer extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected
-                    ? AppTheme.accentBlue
-                    : AppTheme.accentBlue.withValues(alpha: 0.7),
+                    ? AppTheme.accent
+                    : AppTheme.accent.withValues(alpha: 0.7),
                 border: Border.all(
-                  color: isSelected ? Colors.white : AppTheme.accentBlue.withValues(alpha: 0.4),
+                  color: isSelected ? Colors.white : AppTheme.accent.withValues(alpha: 0.4),
                   width: isSelected ? 2 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.accentBlue.withValues(alpha: 0.5),
+                    color: AppTheme.accent.withValues(alpha: 0.5),
                     blurRadius: isSelected ? 10 : 4,
                     spreadRadius: isSelected ? 2 : 0,
                   ),
@@ -843,10 +868,10 @@ class _VoyageRoutesLayer extends StatelessWidget {
             LatLng(origin.latitude, origin.longitude),
             LatLng(dest.latitude, dest.longitude),
           ],
-          color: AppTheme.accentBlue.withValues(alpha: 0.4),
+          color: AppTheme.accent.withValues(alpha: 0.4),
           strokeWidth: 2,
           borderStrokeWidth: 4,
-          borderColor: AppTheme.accentBlue.withValues(alpha: 0.15),
+          borderColor: AppTheme.accent.withValues(alpha: 0.15),
         ),
       );
     }
@@ -882,9 +907,9 @@ class _PortInfoPanel extends StatelessWidget {
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground.withValues(alpha: 0.95),
+        color: AppTheme.card.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.dividerColor),
+        border: Border.all(color: AppTheme.divider),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -906,10 +931,10 @@ class _PortInfoPanel extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppTheme.accentBlue.withValues(alpha: 0.15),
+                    color: AppTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.anchor, color: AppTheme.accentBlue, size: 18),
+                  child: const Icon(Icons.anchor, color: AppTheme.accent, size: 18),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1035,9 +1060,9 @@ class _ShipInfoPanel extends StatelessWidget {
     return Container(
       width: 280,
       decoration: BoxDecoration(
-        color: AppTheme.cardBackground.withValues(alpha: 0.95),
+        color: AppTheme.card.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.dividerColor),
+        border: Border.all(color: AppTheme.divider),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -1113,7 +1138,7 @@ class _ShipInfoPanel extends StatelessWidget {
           if (activeVoyage != null) ...[
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Divider(height: 1, color: AppTheme.dividerColor),
+              child: Divider(height: 1, color: AppTheme.divider),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -1127,8 +1152,8 @@ class _ShipInfoPanel extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: activeVoyage.progress.clamp(0.0, 1.0),
                       minHeight: 6,
-                      backgroundColor: AppTheme.inputBackground,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accentBlue),
+                      backgroundColor: AppTheme.input,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accent),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1172,19 +1197,19 @@ class _BottomStatsBar extends StatelessWidget {
     return Container(
       height: 36,
       decoration: BoxDecoration(
-        color: AppTheme.surfaceDark.withValues(alpha: 0.9),
-        border: Border(top: BorderSide(color: AppTheme.dividerColor, width: 1)),
+        color: AppTheme.surface.withValues(alpha: 0.9),
+        border: Border(top: BorderSide(color: AppTheme.divider, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _StatChip(icon: Icons.directions_boat, label: 'Всего: ${gameProvider.myShips.length}', color: AppTheme.accentBlue),
+          _StatChip(icon: Icons.directions_boat, label: 'Всего: ${gameProvider.myShips.length}', color: AppTheme.accent),
           const SizedBox(width: 20),
           _StatChip(icon: Icons.check_circle, label: 'Свободны: $idle', color: AppTheme.profitGreen),
           const SizedBox(width: 20),
           _StatChip(icon: Icons.sailing, label: 'В пути: $transit', color: AppTheme.warningAmber),
           const SizedBox(width: 20),
-          _StatChip(icon: Icons.route, label: 'Рейсы: $activeV', color: AppTheme.accentBlue),
+          _StatChip(icon: Icons.route, label: 'Рейсы: $activeV', color: AppTheme.accent),
         ],
       ),
     );
