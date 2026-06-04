@@ -183,21 +183,22 @@ class Voyage {
     return Voyage(
       id: json['id'] as String? ?? '',
       shipId: json['ship_id'] as String? ?? '',
-      ownerId: json['owner_id'] as String? ?? '',
+      ownerId: '', // voyages table has no owner_id
       originPortId: _intOrStringToSlug(json['origin_port_id']) ?? '',
       destinationPortId: _intOrStringToSlug(json['destination_port_id']) ?? '',
       goodId: _intOrStringToSlug(json['cargo_good_id']),
-      quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+      quantity: (json['cargo_quantity'] as num?)?.toInt() ?? 0,
       distance: (json['distance'] as num?)?.toDouble() ?? 0.0,
       estimatedHours: (json['estimated_hours'] as num?)?.toDouble() ?? 0.0,
-      startedAt: DateTime.tryParse(json['started_at'] as String? ?? '') ??
+      startedAt: DateTime.tryParse(
+              json['departure_time'] as String? ?? '') ??
           DateTime.now(),
-      eta: json['eta'] != null
-          ? DateTime.tryParse(json['eta'] as String)
+      eta: json['estimated_arrival'] != null
+          ? DateTime.tryParse(json['estimated_arrival'] as String)
           : null,
       status: json['status'] as String? ?? 'active',
       revenue: (json['revenue'] as num?)?.toInt(),
-      fuelCost: (json['fuel_cost'] as num?)?.toInt(),
+      fuelCost: (json['fuel_consumed'] as num?)?.toInt(),
     );
   }
 
@@ -230,7 +231,7 @@ class Transaction {
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
       id: json['id'] as String? ?? '',
-      ownerId: json['owner_id'] as String? ?? '',
+      ownerId: json['player_id'] as String? ?? '',
       type: json['type'] as String? ?? '',
       description: json['description'] as String? ?? '',
       amount: (json['amount'] as num?)?.toInt() ?? 0,
@@ -263,16 +264,16 @@ class ShipMarketListing {
     required this.listedAt,
   });
 
-  factory ShipMarketListing.fromJson(Map<String, dynamic> json) {
+  factory ShipMarketListing.fromJson(Map<String, dynamic> json, {Map<String, dynamic>? shipData}) {
     return ShipMarketListing(
       id: json['id'] as String? ?? '',
       shipId: json['ship_id'] as String? ?? '',
       sellerId: json['seller_id'] as String? ?? '',
-      sellerName: json['seller_name'] as String? ?? 'Неизвестно',
-      shipName: json['ship_name'] as String? ?? 'Безымянный',
-      shipTypeId: _intOrStringToSlug(json['ship_type_id']) ?? '',
-      condition: (json['condition'] as num?)?.toInt() ?? 100,
-      price: (json['price'] as num?)?.toInt() ?? 0,
+      sellerName: shipData != null ? '' : 'Неизвестно', // populated separately
+      shipName: shipData?['name'] as String? ?? 'Безымянный',
+      shipTypeId: _intOrStringToSlug(shipData?['ship_type_id']) ?? '',
+      condition: (shipData?['condition_pct'] as num?)?.toInt() ?? 100,
+      price: (json['asking_price'] as num?)?.toInt() ?? 0,
       listedAt: DateTime.tryParse(json['listed_at'] as String? ?? '') ??
           DateTime.now(),
     );
@@ -306,9 +307,9 @@ class Employee {
       ownerId: json['owner_id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       role: json['role'] as String? ?? '',
-      skill: (json['skill'] as num?)?.toInt() ?? 1,
-      salary: (json['salary'] as num?)?.toInt() ?? 0,
-      assignedPortId: _intOrStringToSlug(json['assigned_port_id']),
+      skill: (json['skill_level'] as num?)?.toInt() ?? 1,
+      salary: (json['salary_daily'] as num?)?.toInt() ?? 0,
+      assignedPortId: _intOrStringToSlug(json['port_id']),
       hiredAt: DateTime.tryParse(json['hired_at'] as String? ?? '') ??
           DateTime.now(),
     );
@@ -341,11 +342,11 @@ class Loan {
   factory Loan.fromJson(Map<String, dynamic> json) {
     return Loan(
       id: json['id'] as String? ?? '',
-      ownerId: json['owner_id'] as String? ?? '',
+      ownerId: json['borrower_id'] as String? ?? '',
       amount: (json['amount'] as num?)?.toInt() ?? 0,
-      remaining: (json['remaining'] as num?)?.toInt() ?? 0,
+      remaining: (json['remaining_balance'] as num?)?.toInt() ?? 0,
       interestRate: (json['interest_rate'] as num?)?.toDouble() ?? 0.0,
-      termMonths: (json['term_months'] as num?)?.toInt() ?? 0,
+      termMonths: (json['total_months'] as num?)?.toInt() ?? 0,
       monthsRemaining: (json['months_remaining'] as num?)?.toInt() ?? 0,
       takenAt: DateTime.tryParse(json['taken_at'] as String? ?? '') ??
           DateTime.now(),
@@ -513,24 +514,56 @@ class GameProvider extends ChangeNotifier {
     final uid = _userId;
     if (uid == null) return;
     try {
-      final response =
-          await _supabase.from('voyages').select().eq('owner_id', uid);
-      _myVoyages = response.map<Voyage>((e) => Voyage.fromJson(e)).toList();
+      // voyages table has no owner_id — find user's ship IDs first
+      final shipsResp = await _supabase
+          .from('ships')
+          .select('id')
+          .eq('owner_id', uid);
+      final shipIds = shipsResp.map<String>((e) => e['id'] as String).toList();
+
+      if (shipIds.isEmpty) {
+        _myVoyages = [];
+        notifyListeners();
+        return;
+      }
+
+      final response = await _supabase
+          .from('voyages')
+          .select()
+          .inFilter('ship_id', shipIds);
+      _myVoyages =
+          response.map<Voyage>((e) => Voyage.fromJson(e)).toList();
       notifyListeners();
     } catch (e) {
+      _myVoyages = [];
       debugPrint('loadMyVoyages error: $e');
     }
   }
 
   Future<void> loadShipMarket() async {
     try {
-      final response = await _supabase
+      final listings = await _supabase
           .from('ship_market')
           .select()
-          .eq('status', 'active');
-      _shipMarketListings =
-          response.map<ShipMarketListing>((e) => ShipMarketListing.fromJson(e))
-              .toList();
+          .eq('status', 'listed');
+
+      // Fetch ship data for each listing
+      final List<ShipMarketListing> result = [];
+      for (final listing in listings) {
+        final shipId = listing['ship_id'] as String? ?? '';
+        Map<String, dynamic>? shipData;
+        if (shipId.isNotEmpty) {
+          try {
+            shipData = await _supabase
+                .from('ships')
+                .select('name, ship_type_id, condition_pct')
+                .eq('id', shipId)
+                .maybeSingle();
+          } catch (_) {}
+        }
+        result.add(ShipMarketListing.fromJson(listing, shipData: shipData));
+      }
+      _shipMarketListings = result;
     } catch (e) {
       _shipMarketListings = [];
       debugPrint('loadShipMarket error: $e');
@@ -575,7 +608,7 @@ class GameProvider extends ChangeNotifier {
       final response = await _supabase
           .from('loans')
           .select()
-          .eq('owner_id', uid)
+          .eq('borrower_id', uid)
           .eq('status', 'active');
       _loans = response.map<Loan>((e) => Loan.fromJson(e)).toList();
       notifyListeners();
@@ -591,7 +624,7 @@ class GameProvider extends ChangeNotifier {
       final response = await _supabase
           .from('transactions')
           .select()
-          .eq('owner_id', uid)
+          .eq('player_id', uid)
           .order('created_at', ascending: false);
       _transactions =
           response.map<Transaction>((e) => Transaction.fromJson(e)).toList();
@@ -720,7 +753,7 @@ class GameProvider extends ChangeNotifier {
 
       // Record transaction
       await _supabase.from('transactions').insert({
-        'owner_id': uid,
+        'player_id': uid,
         'type': 'expense',
         'description': 'Покупка корабля: ${shipType.name}',
         'amount': -shipType.basePrice,
@@ -775,12 +808,8 @@ class GameProvider extends ChangeNotifier {
       await _supabase.from('ship_market').insert({
         'ship_id': shipId,
         'seller_id': uid,
-        'seller_name': sellerName,
-        'ship_name': ship.name,
-        'ship_type_id': ship.shipTypeId,
-        'condition': ship.condition,
-        'price': price,
-        'status': 'active',
+        'asking_price': price,
+        'status': 'listed',
       });
 
       // Update ship status to on_market
@@ -814,7 +843,7 @@ class GameProvider extends ChangeNotifier {
           .from('ship_market')
           .select()
           .eq('id', listingId)
-          .eq('status', 'active')
+          .eq('status', 'listed')
           .maybeSingle();
       if (listingResponse == null) {
         _errorMessage = 'Листинг не найден или уже продан';
@@ -874,7 +903,7 @@ class GameProvider extends ChangeNotifier {
       // Transfer ship ownership
       final dbPortId = DbIdMapper.portSlugToInt('rotterdam');
       await _supabase.from('ships').update({
-        'owner_id': uid,
+        'player_id': uid,
         'status': 'idle',
         'current_port_id': dbPortId,
         'destination_port_id': null,
@@ -887,7 +916,7 @@ class GameProvider extends ChangeNotifier {
 
       // Buyer transaction
       await _supabase.from('transactions').insert({
-        'owner_id': uid,
+        'player_id': uid,
         'type': 'expense',
         'description':
             'Покупка с рынка: ${listing.shipName} (комиссия: \$$fee)',
@@ -896,7 +925,7 @@ class GameProvider extends ChangeNotifier {
 
       // Seller transaction
       await _supabase.from('transactions').insert({
-        'owner_id': listing.sellerId,
+        'player_id': listing.sellerId,
         'type': 'income',
         'description': 'Продажа на рынке: ${listing.shipName}',
         'amount': listing.price,
@@ -995,16 +1024,13 @@ class GameProvider extends ChangeNotifier {
       // Create voyage
       final voyage = {
         'ship_id': shipId,
-        'owner_id': uid,
         'origin_port_id': dbOriginId,
         'destination_port_id': dbDestId,
         'cargo_good_id': dbGoodId,
         'cargo_quantity': quantity,
-        'distance': distance,
-        'estimated_hours': estimatedHours,
-        'started_at': startedAt.toIso8601String(),
-        'eta': eta.toIso8601String(),
-        'status': 'active',
+        'status': 'in_transit',
+        'departure_time': startedAt.toIso8601String(),
+        'estimated_arrival': eta.toIso8601String(),
         'fuel_consumed': fuelNeeded,
         'revenue': 0,
         'cost': (fuelNeeded * GameConstants.fuelPricePerLiter).round(),
@@ -1101,7 +1127,7 @@ class GameProvider extends ChangeNotifier {
 
       // Record transaction
       await _supabase.from('transactions').insert({
-        'owner_id': uid,
+        'player_id': uid,
         'type': 'expense',
         'description': 'Заправка: ${fillAmount.toStringAsFixed(0)} л.',
         'amount': -cost,
@@ -1160,12 +1186,12 @@ class GameProvider extends ChangeNotifier {
       }
 
       await _supabase.from('employees').insert({
-        'owner_id': uid,
+        'player_id': uid,
         'name': name.trim(),
         'role': role,
-        'skill': 1,
-        'salary': salary,
-        'assigned_port_id': portId,
+        'skill_level': 1,
+        'salary_daily': salary,
+        'port_id': DbIdMapper.portSlugToInt(portId),
       });
 
       // Deduct money
@@ -1174,7 +1200,7 @@ class GameProvider extends ChangeNotifier {
           .update({'money': currentMoney - salary}).eq('id', uid);
 
       await _supabase.from('transactions').insert({
-        'owner_id': uid,
+        'player_id': uid,
         'type': 'expense',
         'description': 'Найм: $name ($role)',
         'amount': -salary,
@@ -1213,12 +1239,14 @@ class GameProvider extends ChangeNotifier {
           .ceil();
 
       await _supabase.from('loans').insert({
-        'owner_id': uid,
+        'borrower_id': uid,
         'amount': amount,
-        'remaining': totalRepay,
+        'remaining_balance': totalRepay,
         'interest_rate': interestRate,
-        'term_months': termMonths,
-        'months_remaining': termMonths,
+        'monthly_payment': (totalRepay / termMonths).ceil(),
+        'total_months': termMonths,
+        'months_paid': 0,
+        'remaining_balance': totalRepay,
         'status': 'active',
       });
 
@@ -1234,7 +1262,7 @@ class GameProvider extends ChangeNotifier {
           .update({'money': currentMoney + amount}).eq('id', uid);
 
       await _supabase.from('transactions').insert({
-        'owner_id': uid,
+        'player_id': uid,
         'type': 'loan',
         'description': 'Кредит: \$$amount на $termMonths мес.',
         'amount': amount,
