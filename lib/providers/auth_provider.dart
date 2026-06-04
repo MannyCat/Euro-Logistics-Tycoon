@@ -24,9 +24,10 @@ class PlayerProfile {
   });
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) {
+    // profiles table does NOT have an email column — it lives in auth.users
     return PlayerProfile(
       id: json['id'] as String? ?? '',
-      email: json['email'] as String? ?? '',
+      email: '', // Must be injected separately from Supabase.auth.currentUser?.email
       companyName: json['company_name'] as String? ?? 'Моя компания',
       money: (json['money'] as num?)?.toInt() ?? 0,
       reputation: (json['reputation'] as num?)?.toInt() ?? 50,
@@ -37,10 +38,10 @@ class PlayerProfile {
     );
   }
 
+  // WARNING: toJson is for in-memory use only; 'email' is NOT a profiles table column.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'email': email,
       'company_name': companyName,
       'money': money,
       'reputation': reputation,
@@ -133,6 +134,9 @@ class AuthProvider extends ChangeNotifier {
           .maybeSingle();
 
       if (response != null) {
+        // Inject email from auth.users (profiles table has no email column)
+        final email = _supabase!.auth.currentUser?.email ?? '';
+        response['email'] = email;
         _profile = PlayerProfile.fromJson(response);
       } else {
         // Create default profile if none exists
@@ -146,9 +150,8 @@ class AuthProvider extends ChangeNotifier {
           'xp': 0,
         };
         await _supabase!.from('profiles').insert(newProfile);
-        if (email.isNotEmpty) {
-          await _supabase!.from('profiles').update({'email': email}).eq('id', userId);
-        }
+        // email lives in auth.users, NOT in profiles table — do NOT update it here
+        newProfile['email'] = email;
         _profile = PlayerProfile.fromJson(newProfile);
       }
 
@@ -230,10 +233,8 @@ class AuthProvider extends ChangeNotifier {
           'xp': 0,
         };
         await _supabase!.from('profiles').insert(newProfile);
-        final trimmedEmail = email.trim();
-        if (trimmedEmail.isNotEmpty) {
-          await _supabase!.from('profiles').update({'email': trimmedEmail}).eq('id', userId);
-        }
+        // email lives in auth.users, NOT in profiles table — do NOT update it here
+        newProfile['email'] = email.trim();
         _profile = PlayerProfile.fromJson(newProfile);
         return true;
       }

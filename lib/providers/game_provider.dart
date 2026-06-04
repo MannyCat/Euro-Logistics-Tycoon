@@ -80,6 +80,8 @@ class Ship {
     );
   }
 
+  // WARNING: toJson is for in-memory serialization only, NOT for DB writes.
+  // DB writes use explicit maps with correct column names and int IDs.
   Map<String, dynamic> toJson() => {
         'id': id,
         'owner_id': ownerId,
@@ -88,11 +90,8 @@ class Ship {
         'status': status,
         'condition_pct': condition,
         'fuel_level': fuelLevel,
-        'max_fuel': maxFuel,
         'current_port_id': currentPortId,
-        'destination_port_id': destinationPortId,
         'purchased_at': createdAt.toIso8601String(),
-        'last_voyage_at': lastVoyageAt?.toIso8601String(),
       };
 
   Ship copyWith({
@@ -184,21 +183,48 @@ class Voyage {
   });
 
   factory Voyage.fromJson(Map<String, dynamic> json) {
+    final startedAt = DateTime.tryParse(
+            json['departure_time'] as String? ?? '') ??
+        DateTime.now();
+    final eta = json['estimated_arrival'] != null
+        ? DateTime.tryParse(json['estimated_arrival'] as String)
+        : null;
+
+    // voyages table does NOT have distance_nm or estimated_hours columns
+    // Compute distance from port coordinates using haversine
+    final originSlug = _intOrStringToSlug(json['origin_port_id']) ?? '';
+    final destSlug = _intOrStringToSlug(json['destination_port_id']) ?? '';
+    final originPort = GameConstants.findPort(originSlug);
+    final destPort = GameConstants.findPort(destSlug);
+    double distance = 0.0;
+    if (originPort != null && destPort != null) {
+      distance = _calculateDistance(
+        originPort.latitude,
+        originPort.longitude,
+        destPort.latitude,
+        destPort.longitude,
+      );
+      // Convert km to nautical miles (1 NM = 1.852 km)
+      distance = distance / 1.852;
+    }
+
+    // Compute estimated hours from departure_time and estimated_arrival
+    double estimatedHours = 0.0;
+    if (eta != null) {
+      estimatedHours = eta.difference(startedAt).inSeconds / 3600.0;
+    }
+
     return Voyage(
       id: json['id'] as String? ?? '',
       shipId: json['ship_id'] as String? ?? '',
-      originPortId: _intOrStringToSlug(json['origin_port_id']) ?? '',
-      destinationPortId: _intOrStringToSlug(json['destination_port_id']) ?? '',
+      originPortId: originSlug,
+      destinationPortId: destSlug,
       goodId: _intOrStringToSlug(json['cargo_good_id']),
       quantity: (json['cargo_quantity'] as num?)?.toInt() ?? 0,
-      distance: (json['distance_nm'] as num?)?.toDouble() ?? 0.0,
-      estimatedHours: (json['estimated_hours'] as num?)?.toDouble() ?? 0.0,
-      startedAt: DateTime.tryParse(
-              json['departure_time'] as String? ?? '') ??
-          DateTime.now(),
-      eta: json['estimated_arrival'] != null
-          ? DateTime.tryParse(json['estimated_arrival'] as String)
-          : null,
+      distance: distance,
+      estimatedHours: estimatedHours,
+      startedAt: startedAt,
+      eta: eta,
       status: json['status'] as String? ?? '',
       revenue: (json['revenue'] as num?)?.toInt(),
       fuelCost: (json['fuel_consumed'] as num?)?.toInt(),
@@ -960,18 +986,20 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
-      final distance = _calculateDistance(
+      // _calculateDistance returns km; convert to nautical miles for game logic
+      final distanceKm = _calculateDistance(
         originPort.latitude,
         originPort.longitude,
         destPort.latitude,
         destPort.longitude,
       );
+      final distanceNm = distanceKm / 1.852;
 
       final shipType = GameConstants.findShipType(ship.shipTypeId);
       final speed = shipType?.speed ?? 12.0;
-      final estimatedHours = distance / speed;
+      final estimatedHours = distanceNm / speed;
 
-      final fuelNeeded = distance * (shipType?.fuelPerNm ?? 20.0);
+      final fuelNeeded = distanceNm * (shipType?.fuelPerNm ?? 20.0);
       if (ship.fuelLevel < fuelNeeded) {
         _errorMessage =
             'Недостаточно топлива. Нужно: ${fuelNeeded.toStringAsFixed(0)} л.';
