@@ -200,12 +200,9 @@ class MapMainScreenState extends State<MapMainScreen> with TickerProviderStateMi
                       initialZoom: 2.5,
                       minZoom: 2,
                       maxZoom: 18,
-                      cameraConstraint: CameraFit.contain(
-                        bounds: LatLngBounds(
-                          LatLng(-85, -180),
-                          LatLng(85, 180),
-                        ),
-                      ),
+                      // flutter_map 7.x does not have CameraFit.contain;
+                      // minZoom: 2 already prevents zooming out beyond world view.
+                      // cameraConstraint removed for compatibility.
                       onTap: (_, __) {
                         setState(() {
                           _selectedPortId = null;
@@ -383,7 +380,7 @@ class _Sidebar extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1, color: AppTheme.divider),
+          Divider(height: 1, color: AppTheme.divider),
 
           // Nav items
           Expanded(
@@ -482,7 +479,7 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           ),
-          const Divider(height: 1, color: AppTheme.divider),
+          Divider(height: 1, color: AppTheme.divider),
 
           // Collapse button
           Padding(
@@ -601,7 +598,7 @@ class _SidebarDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: expanded ? 16 : 12, vertical: 4),
-      child: const Divider(height: 1, color: AppTheme.divider),
+      child: Divider(height: 1, color: AppTheme.divider),
     );
   }
 }
@@ -934,7 +931,7 @@ class _PortInfoPanel extends StatelessWidget {
                     color: AppTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.anchor, color: AppTheme.accent, size: 18),
+                  child: Icon(Icons.anchor, color: AppTheme.accent, size: 18),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1136,8 +1133,8 @@ class _ShipInfoPanel extends StatelessWidget {
 
           // Voyage info
           if (activeVoyage != null) ...[
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Divider(height: 1, color: AppTheme.divider),
             ),
             Padding(
@@ -1153,7 +1150,7 @@ class _ShipInfoPanel extends StatelessWidget {
                       value: activeVoyage.progress.clamp(0.0, 1.0),
                       minHeight: 6,
                       backgroundColor: AppTheme.input,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accent),
+                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accent),
                     ),
                   ),
                   const SizedBox(height: 4),
