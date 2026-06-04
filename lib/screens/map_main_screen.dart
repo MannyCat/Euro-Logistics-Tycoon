@@ -211,7 +211,7 @@ class MapMainScreenState extends State<MapMainScreen> with TickerProviderStateMi
                       urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                       userAgentPackageName: 'com.mannycat.shippingmanager',
                       subdomains: const ['a', 'b', 'c', 'd'],
-                      retinaMode: RetinaMode.isHighDensity,
+                      retinaMode: true,
                     ),
 
                     // Voyage routes

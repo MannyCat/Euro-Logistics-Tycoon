@@ -56,22 +56,27 @@ class Ship {
   });
 
   factory Ship.fromJson(Map<String, dynamic> json) {
+    // max_fuel column does not exist in DB — compute from ship type
+    final slug = _intOrStringToSlug(json['ship_type_id']);
+    final st = slug != null ? GameConstants.findShipType(slug) : null;
+    final computedMaxFuel = st != null
+        ? st.dwt * GameConstants.fuelTankMultiplier
+        : 0.0;
+
     return Ship(
       id: json['id'] as String? ?? '',
       ownerId: json['owner_id'] as String? ?? '',
-      shipTypeId: _intOrStringToSlug(json['ship_type_id']) ?? '',
+      shipTypeId: slug ?? '',
       name: json['name'] as String? ?? 'Безымянный',
       status: json['status'] as String? ?? 'idle',
       condition: (json['condition_pct'] as num?)?.toInt() ?? 100,
       fuelLevel: (json['fuel_level'] as num?)?.toDouble() ?? 0.0,
-      maxFuel: (json['max_fuel'] as num?)?.toDouble() ?? 0.0,
+      maxFuel: computedMaxFuel,
       currentPortId: _intOrStringToSlug(json['current_port_id']),
-      destinationPortId: _intOrStringToSlug(json['destination_port_id']),
+      destinationPortId: null, // ships table has no destination_port_id column
       createdAt: DateTime.tryParse(json['purchased_at'] as String? ?? '') ??
           DateTime.now(),
-      lastVoyageAt: json['last_voyage_at'] != null
-          ? DateTime.tryParse(json['last_voyage_at'] as String)
-          : null,
+      lastVoyageAt: null, // ships table has no last_voyage_at column
     );
   }
 
@@ -735,6 +740,7 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
+      // Note: ships table does NOT have max_fuel, destination_port_id, or last_voyage_at columns
       final newShip = {
         'owner_id': uid,
         'ship_type_id': dbShipTypeId,
@@ -742,7 +748,6 @@ class GameProvider extends ChangeNotifier {
         'status': 'idle',
         'condition_pct': 100,
         'fuel_level': maxFuel * 0.5,
-        'max_fuel': maxFuel,
         'current_port_id': dbPortId,
         'purchase_price': shipType.basePrice,
       };
@@ -989,18 +994,25 @@ class GameProvider extends ChangeNotifier {
         return false;
       }
 
-      // If cargo is selected, convert good slug
-      int? dbGoodId;
+      // cargo_good_id is NOT NULL in DB — if no good selected, find first available
+      int dbGoodId;
       if (goodId != null) {
-        dbGoodId = DbIdMapper.goodSlugToInt(goodId);
-        if (dbGoodId == null) {
+        final mapped = DbIdMapper.goodSlugToInt(goodId);
+        if (mapped == null) {
           _errorMessage = 'Груз не найден в БД';
           _isLoading = false;
           notifyListeners();
           return false;
         }
+        dbGoodId = mapped;
+      } else {
+        // Default: use first good from DB
+        dbGoodId = DbIdMapper.goodSlugToInt(
+          GameConstants.goods.firstOrNull?.id ?? '');
+        dbGoodId ??= 1; // fallback to ID 1
       }
 
+      // Note: voyages table does NOT have distance_nm or estimated_hours columns
       final voyage = {
         'ship_id': shipId,
         'origin_port_id': dbOriginId,
@@ -1010,19 +1022,16 @@ class GameProvider extends ChangeNotifier {
         'status': 'in_transit',
         'departure_time': startedAt.toIso8601String(),
         'estimated_arrival': eta.toIso8601String(),
-        'distance_nm': distance,
-        'estimated_hours': estimatedHours,
         'fuel_consumed': fuelNeeded,
         'revenue': 0,
         'cost': (fuelNeeded * GameConstants.fuelPricePerLiter).round(),
       };
       await _supabase.from('voyages').insert(voyage);
 
+      // Note: ships table does NOT have destination_port_id or last_voyage_at columns
       await _supabase.from('ships').update({
         'status': 'in_transit',
-        'destination_port_id': dbDestId,
         'fuel_level': ship.fuelLevel - fuelNeeded,
-        'last_voyage_at': startedAt.toIso8601String(),
         'current_port_id': null,
       }).eq('id', shipId);
 
@@ -1069,7 +1078,9 @@ class GameProvider extends ChangeNotifier {
       }
       final ship = Ship.fromJson(shipResponse);
 
-      final fillAmount = liters.clamp(0, ship.maxFuel - ship.fuelLevel);
+      // maxFuel is computed from ship type in fromJson, so it should be correct
+      final maxFuel = ship.maxFuel;
+      final fillAmount = liters.clamp(0, maxFuel - ship.fuelLevel);
       if (fillAmount <= 0) {
         _errorMessage = 'Бак уже полон';
         _isLoading = false;
