@@ -192,7 +192,9 @@ class MapScreenState extends State<MapScreen> {
                       initialZoom: 4,
                       minZoom: 3,
                       maxZoom: 18,
-                      interactionFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                      interactionOptions: InteractionOptions(
+                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                      ),
                       onTap: (_, __) => setState(() => _selectedCityId = null),
                     ),
                     children: [
