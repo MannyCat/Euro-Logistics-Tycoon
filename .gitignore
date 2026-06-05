@@ -93,3 +93,4 @@ shipping_manager.json
 
 # Skills
 skills/
+.env
