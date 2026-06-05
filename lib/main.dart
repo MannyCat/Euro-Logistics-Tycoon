@@ -21,9 +21,6 @@ void main() {
         url: SupabaseConfig.url,
         anonKey: SupabaseConfig.anonKey,
         debug: kDebugMode,
-        authOptions: const FlutterAuthClientDefaults(
-          localStorage: null, // Use default
-        ),
       );
       debugPrint('Supabase initialized successfully');
     } catch (e) {
