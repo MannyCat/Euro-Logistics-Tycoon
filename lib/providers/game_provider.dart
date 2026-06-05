@@ -8,6 +8,7 @@ import '../models/company.dart';
 import '../models/truck.dart';
 import '../models/driver.dart';
 import '../models/contract.dart';
+import '../models/warehouse.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371.0;
@@ -31,6 +32,7 @@ class GameProvider extends ChangeNotifier {
   List<Driver> _myDrivers = [];
   List<Contract> _availableContracts = [];
   List<Contract> _myContracts = [];
+  List<Warehouse> _myWarehouses = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
@@ -49,6 +51,7 @@ class GameProvider extends ChangeNotifier {
   List<Driver> get availableDrivers => _myDrivers.where((d) => d.isAvailable).toList();
   List<Contract> get availableContracts => _availableContracts.where((c) => c.isAvailable && !c.isExpired).toList();
   List<Contract> get myContracts => _myContracts;
+  List<Warehouse> get myWarehouses => _myWarehouses;
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get error => _error;
@@ -159,6 +162,15 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadMyWarehouses(String companyId) async {
+    try {
+      final resp = await _supabase.from('warehouses').select().eq('company_id', companyId);
+      _myWarehouses = resp.map<Warehouse>((e) => Warehouse.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint('Load warehouses error: $e');
+    }
+  }
+
   Future<void> loadAll(String companyId) async {
     _isLoading = true;
     _error = null;
@@ -171,6 +183,7 @@ class GameProvider extends ChangeNotifier {
         loadMyDrivers(companyId),
         loadContracts(),
         loadMyContracts(companyId),
+        loadMyWarehouses(companyId),
       ]);
       // Try to complete expired contracts server-side
       await _supabase.rpc('complete_expired_contracts');

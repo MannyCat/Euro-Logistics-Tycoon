@@ -49,6 +49,8 @@ class Sidebar extends StatelessWidget {
                 _navItem(Icons.description_outlined, 'Контракты', '/contracts', currentRoute, context),
                 _navItem(Icons.local_shipping_outlined, 'Автопарк', '/fleet', currentRoute, context),
                 _navItem(Icons.people_outlined, 'Водители', '/drivers', currentRoute, context),
+                _navItem(Icons.warehouse_outlined, 'Филиалы', '/warehouses', currentRoute, context),
+                _navItem(Icons.receipt_long_outlined, 'Финансы', '/transactions', currentRoute, context),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
                 _navItem(Icons.settings_outlined, 'Настройки', '/settings', currentRoute, context),
               ],
