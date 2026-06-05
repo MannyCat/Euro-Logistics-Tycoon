@@ -359,6 +359,7 @@ RETURNS boolean AS $$
 DECLARE
   v_contract RECORD;
   v_truck RECORD;
+  v_truck_id UUID;
   v_truck_type JSONB;
   v_speed INTEGER;
   v_dist DOUBLE PRECISION;
