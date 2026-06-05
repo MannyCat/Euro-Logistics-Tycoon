@@ -8,15 +8,31 @@ import 'app.dart';
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    FlutterError.onError = (details) { debugPrint('Flutter: ${details.exception}'); };
 
+    // Global error handlers
+    FlutterError.onError = (details) {
+      debugPrint('Flutter Error: ${details.exception}');
+      debugPrint('Stack: ${details.stack}');
+    };
+
+    // Initialize Supabase
     try {
-      await Supabase.initialize(url: SupabaseConfig.url, anonKey: SupabaseConfig.anonKey, debug: kDebugMode);
-      debugPrint('Supabase initialized');
+      await Supabase.initialize(
+        url: SupabaseConfig.url,
+        anonKey: SupabaseConfig.anonKey,
+        debug: kDebugMode,
+        authOptions: const FlutterAuthClientDefaults(
+          localStorage: null, // Use default
+        ),
+      );
+      debugPrint('Supabase initialized successfully');
     } catch (e) {
-      debugPrint('Supabase init failed: $e');
+      debugPrint('Supabase initialization failed: $e');
     }
 
     runApp(const ELTApp());
-  }, (error, stack) { debugPrint('Uncaught: $error'); });
+  }, (error, stack) {
+    debugPrint('Uncaught error: $error');
+    debugPrint('Stack: $stack');
+  });
 }

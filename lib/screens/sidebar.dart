@@ -14,75 +14,121 @@ class Sidebar extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final game = context.watch<GameProvider>();
     final company = game.company;
+    final currentRoute = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
 
     return Container(
-      width: 220,
+      width: 230,
       decoration: BoxDecoration(color: AppTheme.surface, border: Border(right: BorderSide(color: AppTheme.divider))),
       child: Column(
         children: [
-          // Logo
+          // Logo area
           Container(
-            height: 48,
+            height: 50,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
             child: Row(children: [
-              const Icon(Icons.local_shipping, color: AppTheme.accent, size: 22),
-              const SizedBox(width: 8),
-              Flexible(child: Text('ELT', style: AppTheme.h2.copyWith(fontSize: 16, letterSpacing: 2))),
+              Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.local_shipping, color: AppTheme.accent, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text('ELT', style: AppTheme.h2.copyWith(fontSize: 15, letterSpacing: 2)),
+              ]),
             ]),
           ),
           const Divider(height: 1, color: AppTheme.divider),
 
-          // Nav
-          Expanded(child: ListView(padding: const EdgeInsets.symmetric(vertical: 4), children: [
-            _navItem(Icons.map, 'Карта', '/', true, context),
-            _navItem(Icons.inventory_2, 'Контракты', '/contracts', false, context),
-            _navItem(Icons.local_shipping, 'Автопарк', '/fleet', false, context),
-            _navItem(Icons.people, 'Водители', '/drivers', false, context),
-            const Divider(height: 1, color: AppTheme.divider),
-            _navItem(Icons.settings, 'Настройки', '/settings', false, context),
-          ])),
+          // Navigation
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              children: [
+                _navItem(Icons.map_outlined, 'Карта', '/', currentRoute, context),
+                _navItem(Icons.description_outlined, 'Контракты', '/contracts', currentRoute, context),
+                _navItem(Icons.local_shipping_outlined, 'Автопарк', '/fleet', currentRoute, context),
+                _navItem(Icons.people_outlined, 'Водители', '/drivers', currentRoute, context),
+                const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
+                _navItem(Icons.settings_outlined, 'Настройки', '/settings', currentRoute, context),
+              ],
+            ),
+          ),
 
-          // Company stats
+          // Company info footer
           if (company != null) Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(border: Border(top: BorderSide(color: AppTheme.divider))),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(company.name, style: AppTheme.labelSm, overflow: TextOverflow.ellipsis),
+              Row(children: [
+                Expanded(
+                  child: Text(company.name, style: AppTheme.labelSm, overflow: TextOverflow.ellipsis, maxLines: 1),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: AppTheme.textMuted, size: 16),
+                  tooltip: 'Обновить',
+                  onPressed: onRefresh,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                ),
+              ]),
               const SizedBox(height: 4),
-              Text('Реп: ${company.reputation} | XP: ${company.xp}', style: AppTheme.bodySm),
+              Row(children: [
+                Text('Реп: ${company.reputation}', style: AppTheme.bodySm),
+                const SizedBox(width: 12),
+                Text('XP: ${company.xp}', style: AppTheme.bodySm),
+                const Spacer(),
+                Text('Lv.${company.level}', style: AppTheme.monoSm.copyWith(color: AppTheme.accent)),
+              ]),
             ]),
           ),
 
-          // Logout
-          IconButton(
-            icon: const Icon(Icons.logout, color: AppTheme.red, size: 18),
-            onPressed: () async { await auth.logout(); if (context.mounted) context.go('/login'); },
-            tooltip: 'Выйти',
+          // Logout button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: AppTheme.divider))),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async { await auth.logout(); if (context.mounted) context.go('/login'); },
+                icon: const Icon(Icons.logout, color: AppTheme.red, size: 16),
+                label: const Text('Выйти', style: TextStyle(color: AppTheme.red)),
+                style: OutlinedButton.styleFrom(side: BorderSide(color: AppTheme.red.withOpacity(0.3))),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _navItem(IconData icon, String label, String route, bool isCurrent, BuildContext context) {
+  Widget _navItem(IconData icon, String label, String route, String currentRoute, BuildContext context) {
+    final isActive = currentRoute == route;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(6),
-        onTap: () => context.go(route),
-        child: Container(
-          height: 38,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: isCurrent ? AppTheme.accent.withOpacity(0.12) : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => context.go(route),
+          child: Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: isActive ? AppTheme.accent.withOpacity(0.12) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: isActive ? Border.all(color: AppTheme.accent.withOpacity(0.2)) : null,
+            ),
+            child: Row(children: [
+              Icon(icon, color: isActive ? AppTheme.accent : AppTheme.textMuted, size: 18),
+              const SizedBox(width: 12),
+              Text(label, style: TextStyle(
+                color: isActive ? AppTheme.text : AppTheme.textMuted,
+                fontSize: 13,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              )),
+            ]),
           ),
-          child: Row(children: [
-            Icon(icon, color: isCurrent ? AppTheme.accent : AppTheme.textMuted, size: 18),
-            const SizedBox(width: 10),
-            Text(label, style: TextStyle(color: isCurrent ? AppTheme.text : AppTheme.textMuted, fontSize: 13, fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400)),
-          ]),
         ),
       ),
     );
