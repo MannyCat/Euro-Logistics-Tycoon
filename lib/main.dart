@@ -1,27 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'config/supabase_config.dart';
+import 'app.dart';
 
 void main() {
-  runApp(const ShippingManagerApp());
-}
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    FlutterError.onError = (details) { debugPrint('Flutter: ${details.exception}'); };
 
-class ShippingManagerApp extends StatelessWidget {
-  const ShippingManagerApp({super.key});
+    try {
+      await Supabase.initialize(url: SupabaseConfig.url, anonKey: SupabaseConfig.anonKey, debug: kDebugMode);
+      debugPrint('Supabase initialized');
+    } catch (e) {
+      debugPrint('Supabase init failed: $e');
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Shipping Manager',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF2196F3),
-        brightness: Brightness.dark,
-      ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('Shipping Manager — Starting Fresh'),
-        ),
-      ),
-    );
-  }
+    runApp(const ELTApp());
+  }, (error, stack) { debugPrint('Uncaught: $error'); });
 }
