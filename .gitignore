@@ -43,23 +43,7 @@ db/
 fix/
 source_files/
 
-# Old root-level loose files
-auth_provider.dart
-game_shell.dart
-game_shell_dart_new.dart
-chat_screen.dart
-main_menu_screen.dart
-map_screen.dart
-menu_fixed.dart
-profile_screen.dart
-providers_tutorial_provider.dart
-tutorial_provider.dart
-tutorial_screen.dart
-lib_app.dart
-lib_main.dart
-lib_providers_auth_provider.dart
-lib_providers_game_provider.dart
-schema_current.sql
+# Old root-level loose files (removed — needed files restored in lib/)
 Caddyfile
 bun.lock
 package.json
