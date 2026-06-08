@@ -25,6 +25,9 @@ class GameProvider extends ChangeNotifier {
   StreamSubscription<List<Map<String, dynamic>>>? _contractSub;
   StreamSubscription<List<Map<String, dynamic>>>? _truckSub;
 
+  // Current company ID (cached for realtime filters)
+  String? _currentCompanyId;
+
   // State
   List<City> _cities = [];
   Company? _company;
@@ -68,7 +71,11 @@ class GameProvider extends ChangeNotifier {
           .from('contracts')
           .stream(primaryKey: ['id'])
           .listen((List<Map<String, dynamic>> data) {
-            _availableContracts = data.map<Contract>((e) => Contract.fromJson(e)).toList();
+            // Filter to only available & non-expired contracts
+            _availableContracts = data
+                .map<Contract>((e) => Contract.fromJson(e))
+                .where((c) => c.isAvailable && !c.isExpired)
+                .toList();
             notifyListeners();
           });
 
@@ -76,10 +83,13 @@ class GameProvider extends ChangeNotifier {
           .from('trucks')
           .stream(primaryKey: ['id'])
           .listen((List<Map<String, dynamic>> data) {
-            // Only update trucks we own
-            final companyIds = _myTrucks.map((t) => t.companyId).toSet();
-            final relevantTrucks = data.where((e) => companyIds.contains(e['company_id']));
-            _myTrucks = relevantTrucks.map<Truck>((e) => Truck.fromJson(e)).toList();
+            // Use cached companyId instead of deriving from truck list
+            // to avoid race condition when _myTrucks is empty on startup
+            if (_currentCompanyId == null) return;
+            _myTrucks = data
+                .where((e) => e['company_id'] == _currentCompanyId)
+                .map<Truck>((e) => Truck.fromJson(e))
+                .toList();
             notifyListeners();
           });
 
@@ -172,6 +182,7 @@ class GameProvider extends ChangeNotifier {
   }
 
   Future<void> loadAll(String companyId) async {
+    _currentCompanyId = companyId;  // Cache for realtime
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -203,6 +214,7 @@ class GameProvider extends ChangeNotifier {
   }
 
   Future<void> refreshAll(String companyId) async {
+    _currentCompanyId = companyId;  // Update cached companyId
     try {
       await Future.wait([
         loadMyTrucks(companyId),
@@ -312,7 +324,7 @@ class GameProvider extends ChangeNotifier {
     finally { _isLoading = false; notifyListeners(); }
   }
 
-  /// Accept contract. If truckId is null, auto-assign nearest idle truck.
+  /// Accept contract. Always lets SQL find nearest idle truck via find_nearest_idle_truck().
   /// Returns (success, assignedTruckName) tuple.
   Future<({bool success, String truckName})> acceptContract({
     required String contractId,
@@ -322,25 +334,19 @@ class GameProvider extends ChangeNotifier {
     try {
       _isLoading = true; _error = null; notifyListeners();
 
-      // If no truck specified, find nearest idle truck
-      if (truckId == null) {
-        final contract = _availableContracts.where((c) => c.id == contractId).firstOrNull;
-        if (contract != null) {
-          final nearest = findNearestIdleTruck(contract.originCityId);
-          truckId = nearest?.id;
-        }
-      }
-      if (truckId == null) {
-        _error = 'Нет свободных грузовиков в подходящем городе';
+      // Quick client-side check: do we have ANY idle truck?
+      if (idleTrucks.isEmpty) {
+        _error = 'Нет свободных грузовиков';
         return (success: false, truckName: '');
       }
 
-      final truckName = _myTrucks.where((t) => t.id == truckId).firstOrNull?.name ?? '';
-
-      // Call stored procedure
+      // Always pass null for p_truck_id — let SQL find nearest truck.
+      // The SQL function has IF p_truck_id IS NULL THEN find_nearest... branch.
+      // Passing a resolved truckId was causing the ELSE branch to be missing in SQL,
+      // leaving v_truck_id as NULL and the function failing.
       final resp = await _supabase.rpc('accept_contract', params: {
         'p_contract_id': contractId,
-        'p_truck_id': truckId,
+        'p_truck_id': null,
         'p_company_id': companyId,
       });
 
@@ -351,9 +357,12 @@ class GameProvider extends ChangeNotifier {
           loadMyContracts(companyId),
           loadCompany(companyId),
         ]);
+        // Find the truck that just got assigned (status = loading)
+        final assignedTruck = _myTrucks.where((t) => t.contractId == contractId).firstOrNull;
+        final truckName = assignedTruck?.name ?? 'Грузовик';
         return (success: true, truckName: truckName);
       } else {
-        _error = 'Не удалось принять контракт (возможно, уже занят)';
+        _error = 'Не удалось принять контракт (возможно, уже занят или нет грузовика в городе отправления)';
         return (success: false, truckName: '');
       }
     } catch (e) {
@@ -450,6 +459,7 @@ class GameProvider extends ChangeNotifier {
         'company_id': companyId, 'type': 'warehouse', 'description': 'Склад: ${city.name}', 'amount': -city.warehouseCost,
       });
       await loadCompany(companyId);
+      await loadMyWarehouses(companyId);  // Sync warehouses with map
       return true;
     } catch (e) { _error = 'Ошибка покупки склада: $e'; return false; }
     finally { _isLoading = false; notifyListeners(); }

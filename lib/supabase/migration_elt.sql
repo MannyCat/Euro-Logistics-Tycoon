@@ -374,6 +374,8 @@ BEGIN
   IF p_truck_id IS NULL THEN
     v_truck_id := find_nearest_idle_truck(p_company_id, v_contract.origin_city_id);
     IF v_truck_id IS NULL THEN RETURN false; END IF;
+  ELSE
+    v_truck_id := p_truck_id;
   END IF;
 
   -- Get truck

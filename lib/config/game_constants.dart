@@ -32,9 +32,11 @@ class GameConstants {
   }
 
   static String formatMoney(int amount) {
-    if (amount >= 1000000) return '\u20AC${(amount / 1000000).toStringAsFixed(1)}M';
-    if (amount >= 1000) return '\u20AC${(amount / 1000).toStringAsFixed(0)}K';
-    return '\u20AC$amount';
+    final sign = amount < 0 ? '-' : '';
+    final abs = amount.abs();
+    if (abs >= 1000000) return '$sign\u20AC${(abs / 1000000).toStringAsFixed(1)}M';
+    if (abs >= 1000) return '$sign\u20AC${(abs / 1000).toStringAsFixed(0)}K';
+    return '$sign\u20AC$abs';
   }
 }
 
