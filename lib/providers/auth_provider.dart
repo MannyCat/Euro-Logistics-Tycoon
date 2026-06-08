@@ -102,7 +102,13 @@ class AuthProvider extends ChangeNotifier {
         password: password,
         data: {'company_name': companyName.trim()},
       );
-      // Company is auto-created by trigger
+      // Wait for session then create company + starter truck from Flutter
+      await Future.delayed(const Duration(seconds: 1));
+      final session = _supabase.auth.currentSession;
+      if (session != null) {
+        _userId = session.user.id;
+        await _createCompanyAndTruck(companyName.trim());
+      }
       return true;
     } on AuthException catch (e) {
       if (e.message.contains('already')) {
@@ -124,6 +130,43 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await _supabase.auth.signOut();
+  }
+
+  Future<void> _createCompanyAndTruck(String companyName) async {
+    if (_userId == null) return;
+    try {
+      // Check if company already exists
+      final existing = await _supabase.from('companies').select('id').eq('owner_id', _userId!).maybeSingle();
+      if (existing != null) {
+        _companyId = existing['id'] as String?;
+        return;
+      }
+      // Create company
+      await _supabase.from('companies').insert({
+        'owner_id': _userId,
+        'name': companyName,
+        'money': 1000000,
+      });
+      final comp = await _supabase.from('companies').select('id').eq('owner_id', _userId!).maybeSingle();
+      _companyId = comp?['id'] as String?;
+      if (_companyId != null) {
+        // Create starter truck in London
+        await _supabase.from('trucks').insert({
+          'company_id': _companyId,
+          'truck_type': 'light',
+          'name': 'Starter Truck',
+          'status': 'idle',
+          'condition_pct': 100,
+          'fuel_level': 100.0,
+          'max_fuel': 120.0,
+          'current_city_id': 1,
+          'purchase_price': 0,
+        });
+      }
+    } catch (e) {
+      debugPrint('Create company error: $e');
+    }
+    notifyListeners();
   }
 
   void clearError() { _error = null; notifyListeners(); }
