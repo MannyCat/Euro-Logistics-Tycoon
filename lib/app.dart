@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -15,16 +16,61 @@ import 'screens/warehouses_screen.dart';
 import 'screens/transactions_screen.dart';
 import 'screens/settings_screen.dart';
 
-late final GoRouter _router = GoRouter(
-  initialLocation: '/splash', // Start at splash — auto-login or redirect
-  redirect: (context, state) {
-    final authProvider = context.read<AuthProvider>();
+/// A simple Listenable that GoRouter can listen to for auth state changes.
+class _AuthNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
 
+class ELTApp extends StatefulWidget {
+  const ELTApp({super.key});
+
+  @override
+  State<ELTApp> createState() => _ELTAppState();
+}
+
+class _ELTAppState extends State<ELTApp> {
+  final AuthProvider _authProvider = AuthProvider();
+  final GameProvider _gameProvider = GameProvider();
+  final _authNotifier = _AuthNotifier();
+  bool _startedGameInit = false;
+  GoRouter? _router;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Create router with refreshListenable tied to auth state
+    _router = GoRouter(
+      initialLocation: '/splash',
+      refreshListenable: _authNotifier,
+      redirect: _redirect,
+      routes: [
+        GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
+        GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+        GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+        GoRoute(path: '/', builder: (_, __) => const MapScreen()),
+        GoRoute(path: '/contracts', builder: (_, __) => const ContractsScreen()),
+        GoRoute(path: '/fleet', builder: (_, __) => const FleetScreen()),
+        GoRoute(path: '/drivers', builder: (_, __) => const DriversScreen()),
+        GoRoute(path: '/warehouses', builder: (_, __) => const WarehousesScreen()),
+        GoRoute(
+            path: '/transactions',
+            builder: (_, __) => const TransactionsScreen()),
+        GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      ],
+    );
+
+    // Listen to auth changes — notify router + start game
+    _authProvider.addListener(_onAuthChanged);
+  }
+
+  /// Router redirect logic — called on every navigation and auth state change.
+  String? _redirect(BuildContext context, GoRouterState state) {
     final isAuthRoute = state.matchedLocation == '/login' ||
         state.matchedLocation == '/register';
     final isSplash = state.matchedLocation == '/splash';
-    final isLoading = authProvider.isLoading;
-    final isAuthenticated = authProvider.isAuthenticated;
+    final isLoading = _authProvider.isLoading;
+    final isAuthenticated = _authProvider.isAuthenticated;
 
     // Stay on splash while session is being restored
     if (isSplash && isLoading) return null;
@@ -41,50 +87,13 @@ late final GoRouter _router = GoRouter(
     if (isAuthenticated && isAuthRoute) return '/';
 
     return null;
-  },
-  routes: [
-    GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
-    GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-    GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-    GoRoute(path: '/', builder: (_, __) => const MapScreen()),
-    GoRoute(path: '/contracts', builder: (_, __) => const ContractsScreen()),
-    GoRoute(path: '/fleet', builder: (_, __) => const FleetScreen()),
-    GoRoute(path: '/drivers', builder: (_, __) => const DriversScreen()),
-    GoRoute(path: '/warehouses', builder: (_, __) => const WarehousesScreen()),
-    GoRoute(
-        path: '/transactions',
-        builder: (_, __) => const TransactionsScreen()),
-    GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
-  ],
-);
-
-class ELTApp extends StatefulWidget {
-  const ELTApp({super.key});
-
-  @override
-  State<ELTApp> createState() => _ELTAppState();
-}
-
-class _ELTAppState extends State<ELTApp> {
-  final AuthProvider _authProvider = AuthProvider();
-  final GameProvider _gameProvider = GameProvider();
-  bool _startedGameInit = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _authProvider.addListener(_onAuthChanged);
-  }
-
-  @override
-  void dispose() {
-    _authProvider.removeListener(_onAuthChanged);
-    _authProvider.dispose();
-    _gameProvider.dispose();
-    super.dispose();
   }
 
   void _onAuthChanged() {
+    // Notify GoRouter to re-evaluate redirects
+    _authNotifier.notify();
+
+    // Start/stop game data loading
     if (_authProvider.isAuthenticated && !_startedGameInit) {
       _startedGameInit = true;
       _gameProvider.startRealtime();
@@ -94,6 +103,15 @@ class _ELTAppState extends State<ELTApp> {
       _startedGameInit = false;
       _gameProvider.stopRealtime();
     }
+  }
+
+  @override
+  void dispose() {
+    _authProvider.removeListener(_onAuthChanged);
+    _authProvider.dispose();
+    _gameProvider.dispose();
+    _authNotifier.dispose();
+    super.dispose();
   }
 
   @override
