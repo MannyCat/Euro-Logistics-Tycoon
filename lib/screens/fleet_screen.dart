@@ -336,7 +336,7 @@ class _TruckCardState extends State<_TruckCard> {
         content: Text('Вы получите ${GameConstants.formatMoney(sellPrice)} (60% от стоимости)', style: const TextStyle(color: Color(0xFF888888))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Продать', style: TextStyle(color: Color(0xFFEF5350))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Продать', style: TextStyle(color: Color(0xFFEF5350)))),
         ],
       ),
     );

@@ -258,7 +258,7 @@ class MapScreenState extends State<MapScreen> {
       focusNode: _mapFocus,
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
-        if (LogicalKeyboardKey.isControlLeft(event.logicalKey) || LogicalKeyboardKey.isControlRight(event.logicalKey)) return KeyEventResult.ignored;
+        if (HardwareKeyboard.instance.isControlPressed) return KeyEventResult.ignored;
         switch (event.logicalKey) {
           case LogicalKeyboardKey.keyC:
             _openModal(const ContractsScreen());
@@ -275,7 +275,7 @@ class MapScreenState extends State<MapScreen> {
           case LogicalKeyboardKey.keyT:
             _openModal(const TransactionsScreen());
             return KeyEventResult.handled;
-          case LogicalKeyboardKey.keyEscape:
+          case LogicalKeyboardKey.escape:
             Navigator.of(context).popUntil((route) => route is PopupRoute && Navigator.of(context).canPop() ? false : true);
             return KeyEventResult.handled;
           case LogicalKeyboardKey.keyR:
