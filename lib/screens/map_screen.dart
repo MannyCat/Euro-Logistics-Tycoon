@@ -304,8 +304,6 @@ class MapScreenState extends State<MapScreen> {
                               'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                           userAgentPackageName: 'com.elt.logistics',
                           retinaMode: true,
-                          // Dark background while tiles load
-                          backgroundColor: const Color(0xFF1A1A1A),
                         ),
                         PolylineLayer(polylines: _buildRoadNetwork(game)),
                         PolylineLayer(polylines: _buildTruckRoutes(game)),
