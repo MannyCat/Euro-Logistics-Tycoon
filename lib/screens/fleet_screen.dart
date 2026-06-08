@@ -132,6 +132,7 @@ class _TruckCard extends StatefulWidget {
 class _TruckCardState extends State<_TruckCard> {
   bool _isRefueling = false;
   bool _isRepairing = false;
+  bool _isSelling = false;
 
   Truck get truck => widget.truck;
   GameProvider get game => widget.game;
@@ -292,6 +293,17 @@ class _TruckCardState extends State<_TruckCard> {
                     onPressed: _isRepairing || truck.condition >= 100 ? null : () => _repair(),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _ActionButton(
+                    icon: Icons.sell,
+                    label: 'Продать',
+                    isLoading: _isSelling,
+                    enabled: true,
+                    color: const Color(0xFFEF5350),
+                    onPressed: _isSelling ? null : () => _sell(context),
+                  ),
+                ),
               ],
             ),
           ],
@@ -310,6 +322,35 @@ class _TruckCardState extends State<_TruckCard> {
     setState(() => _isRepairing = true);
     await game.repairTruck(truck.id, companyId);
     if (mounted) setState(() => _isRepairing = false);
+  }
+
+  Future<void> _sell(BuildContext context) async {
+    final typeInfo = GameConstants.findTruckType(truck.truckType);
+    final sellPrice = typeInfo != null ? (typeInfo.price * 0.6).round() : 0;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
+        title: Text('Продать ${truck.name}?', style: const TextStyle(color: Color(0xFFD0D0D0))),
+        content: Text('Вы получите ${GameConstants.formatMoney(sellPrice)} (60% от стоимости)', style: const TextStyle(color: Color(0xFF888888))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Продать', style: TextStyle(color: Color(0xFFEF5350))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    setState(() => _isSelling = true);
+    final ok = await game.sellTruck(truck.id, companyId, sellPrice);
+    if (mounted) setState(() => _isSelling = false);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? '${truck.name} продан!' : game.error ?? 'Ошибка'),
+        backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 
   Widget _stat(String label, String value, Color color) => Row(

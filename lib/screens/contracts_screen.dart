@@ -147,37 +147,105 @@ class _AvailableTab extends StatelessWidget {
   }
 }
 
-class _MyContractsTab extends StatelessWidget {
+class _MyContractsTab extends StatefulWidget {
   final GameProvider game;
   const _MyContractsTab({required this.game});
 
   @override
-  Widget build(BuildContext context) {
-    final contracts = game.myContracts;
+  State<_MyContractsTab> createState() => _MyContractsTabState();
+}
 
-    if (contracts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.assignment_outlined, size: 48, color: Color(0xFF666666)),
-            const SizedBox(height: 12),
-            Text('Нет активных контрактов', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
-            const SizedBox(height: 4),
-            const Text('Примите контракт из списка доступных', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
-          ],
-        ),
-      );
+class _MyContractsTabState extends State<_MyContractsTab> {
+  int _filter = 0; // 0=active, 1=completed, 2=expired, 3=all
+
+  @override
+  Widget build(BuildContext context) {
+    final game = widget.game;
+    final List<Contract> filtered;
+    switch (_filter) {
+      case 0:
+        filtered = game.myContracts.where((c) => c.status == 'accepted').toList();
+        break;
+      case 1:
+        filtered = game.myContracts.where((c) => c.status == 'completed').toList();
+        break;
+      case 2:
+        filtered = game.myContracts.where((c) => c.status == 'expired').toList();
+        break;
+      default:
+        filtered = game.myContracts;
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: contracts.length,
-      itemBuilder: (context, i) => _ContractCard(
-        contract: contracts[i],
-        game: game,
-        companyId: '',
-        isOwn: true,
+    return Column(
+      children: [
+        // Sub-filter chips
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          color: const Color(0xFF1A1A1A),
+          child: Row(
+            children: [
+              _chip('Активные (${game.myContracts.where((c) => c.status == 'accepted').length})', 0, const Color(0xFFF5C542)),
+              const SizedBox(width: 4),
+              _chip('Завершённые (${game.myContracts.where((c) => c.status == 'completed').length})', 1, const Color(0xFF66BB6A)),
+              const SizedBox(width: 4),
+              _chip('Все (${game.myContracts.length})', 3, const Color(0xFF888888)),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Color(0xFF3A3A3A)),
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.assignment_outlined, size: 48, color: Color(0xFF666666)),
+                      const SizedBox(height: 12),
+                      Text(_filter == 0 ? 'Нет активных контрактов' : _filter == 1 ? 'Нет завершённых контрактов' : 'Нет контрактов', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
+                      const SizedBox(height: 4),
+                      Text(_filter == 0 ? 'Примите контракт из списка доступных' : 'Совершайте рейсы, чтобы видеть историю', style: const TextStyle(color: Color(0xFF666666), fontSize: 12)),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, i) => _ContractCard(
+                    contract: filtered[i],
+                    game: game,
+                    companyId: '',
+                    isOwn: true,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _chip(String label, int index, Color color) {
+    final active = _filter == index;
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => setState(() => _filter = index),
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            height: 28,
+            margin: const EdgeInsets.symmetric(vertical: 2),
+            decoration: BoxDecoration(
+              color: active ? color.withOpacity(0.15) : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              border: active ? Border.all(color: color.withOpacity(0.4)) : null,
+            ),
+            alignment: Alignment.center,
+            child: Text(label, textAlign: TextAlign.center, style: TextStyle(
+              color: active ? color : const Color(0xFF666666),
+              fontSize: 10,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+            )),
+          ),
+        ),
       ),
     );
   }

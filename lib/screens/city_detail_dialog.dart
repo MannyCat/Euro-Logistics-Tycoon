@@ -75,6 +75,35 @@ class CityDetailDialog extends StatelessWidget {
                 _miniStat(Icons.description, '${contracts.length}', 'Контрактов'),
               ]),
             ]),
+            // Buy warehouse button
+            if (!hasWarehouse) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final game = context.read<GameProvider>();
+                    final ok = await game.claimWarehouse(companyId, city.id);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(ok ? 'Склад в ${city.name} куплен!' : game.error ?? 'Ошибка'),
+                        backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      if (ok) Navigator.pop(context);
+                    }
+                  },
+                  icon: const Icon(Icons.warehouse, size: 16),
+                  label: Text('Купить склад — ${GameConstants.formatMoney(city.warehouseCost)}'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF42A5F5),
+                    side: const BorderSide(color: Color(0xFF42A5F5)),
+                    minimumSize: const Size(double.infinity, 36),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
           ),
           const Divider(height: 1, color: Color(0xFF3A3A3A)),
 

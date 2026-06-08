@@ -420,6 +420,25 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> sellTruck(String truckId, String companyId, int sellPrice) async {
+    try {
+      final truck = _myTrucks.where((t) => t.id == truckId).firstOrNull;
+      if (truck == null || !truck.isIdle) { _error = 'Можно продать только свободный грузовик'; return false; }
+
+      final comp = await _supabase.from('companies').select('money').eq('id', companyId).maybeSingle();
+      final money = (comp?['money'] as num?)?.toInt() ?? 0;
+
+      await _supabase.from('trucks').delete().eq('id', truckId);
+      await _supabase.from('companies').update({'money': money + sellPrice}).eq('id', companyId);
+      await _supabase.from('transactions').insert({
+        'company_id': companyId, 'type': 'truck_sale', 'description': 'Продажа: ${truck.name}', 'amount': sellPrice,
+      });
+      await loadMyTrucks(companyId);
+      await loadCompany(companyId);
+      return true;
+    } catch (e) { _error = 'Ошибка продажи: $e'; return false; }
+  }
+
   Future<void> generateNewContracts() async {
     try {
       await _supabase.rpc('generate_contracts');

@@ -42,6 +42,7 @@ class MapScreenState extends State<MapScreen> {
   Timer? _truckAnimTimer;
   int? _selectedCityId;
   bool _isDesktop = true;
+  final FocusNode _mapFocus = FocusNode();
 
   @override
   void initState() {
@@ -55,12 +56,14 @@ class MapScreenState extends State<MapScreen> {
     _truckAnimTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+    _mapFocus.requestFocus();
   }
   @override
   void dispose() {
     _refreshTimer?.cancel();
     _contractGenTimer?.cancel();
     _truckAnimTimer?.cancel();
+    _mapFocus.dispose();
     super.dispose();
   }
 
@@ -251,9 +254,40 @@ class MapScreenState extends State<MapScreen> {
     }
 
     // ===== MAIN SCREEN =====
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light, // dark status bar
-      child: Scaffold(
+    return Focus(
+      focusNode: _mapFocus,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (LogicalKeyboardKey.isControlLeft(event.logicalKey) || LogicalKeyboardKey.isControlRight(event.logicalKey)) return KeyEventResult.ignored;
+        switch (event.logicalKey) {
+          case LogicalKeyboardKey.keyC:
+            _openModal(const ContractsScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyF:
+            _openModal(const FleetScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyD:
+            _openModal(const DriversScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyW:
+            _openModal(const WarehousesScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyT:
+            _openModal(const TransactionsScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyEscape:
+            Navigator.of(context).popUntil((route) => route is PopupRoute && Navigator.of(context).canPop() ? false : true);
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyR:
+            _refresh();
+            return KeyEventResult.handled;
+          default:
+            return KeyEventResult.ignored;
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
         backgroundColor: const Color(0xFF1A1A1A),
         drawer: _isDesktop ? null : MobileDrawer(onOpenModal: _openModal),
         body: Row(
@@ -606,6 +640,7 @@ class MapScreenState extends State<MapScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
