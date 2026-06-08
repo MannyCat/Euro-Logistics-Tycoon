@@ -371,6 +371,8 @@ class _ContractCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              _CargoIcon(cargoType: contract.cargoType),
+              const SizedBox(width: 6),
               Expanded(child: Text(contract.cargoType, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600))),
               Text(
                 GameConstants.formatMoney(contract.reward),
@@ -447,6 +449,22 @@ class _ContractCard extends StatelessWidget {
   }
 
 
+}
+
+class _CargoIcon extends StatelessWidget {
+  final String cargoType;
+  const _CargoIcon({required this.cargoType});
+
+  @override
+  Widget build(BuildContext context) {
+    final path = GameConstants.cargoAssetPath(cargoType);
+    if (path.isEmpty) return const SizedBox(width: 20, height: 20);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Image.asset(path, width: 20, height: 20, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox(width: 20, height: 20)),
+    );
+  }
 }
 
 class _AcceptButton extends StatefulWidget {

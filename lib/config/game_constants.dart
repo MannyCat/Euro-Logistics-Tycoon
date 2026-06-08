@@ -133,6 +133,17 @@ class GameConstants {
 
   static const List<String> cargoTypes = ['FMCG', 'Machinery', 'Food', 'Electronics', 'Building Materials', 'Chemicals'];
 
+  static const Map<String, String> _cargoAssetMap = {
+    'FMCG': 'assets/cargo/fmcg.png',
+    'Machinery': 'assets/cargo/machinery.png',
+    'Food': 'assets/cargo/food.png',
+    'Electronics': 'assets/cargo/electronics.png',
+    'Building Materials': 'assets/cargo/building_materials.png',
+    'Chemicals': 'assets/cargo/chemicals.png',
+  };
+
+  static String cargoAssetPath(String type) => _cargoAssetMap[type] ?? '';
+
   static const List<String> driverFirstNames = ['Hans', 'Pierre', 'Marco', 'Jan', 'Erik', 'Sven', 'Klaus', 'Olivier', 'Lukas', 'Fritz', 'Anton', 'Dieter', 'Max', 'Stefan', 'Wolfgang'];
   static const List<String> driverLastNames = ['Mueller', 'Dupont', 'Rossi', 'Jansen', 'Lindberg', 'Kowalski', 'Berg', 'Weber', 'Schmidt', 'Fischer', 'Hoffman', 'Klein', 'Braun', 'Zimmermann', 'Wagner'];
 
