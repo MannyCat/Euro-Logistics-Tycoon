@@ -33,7 +33,7 @@ class _FleetScreenState extends State<FleetScreen> {
       title: 'Автопарк',
       icon: Icons.local_shipping,
       actions: [
-        if (game.myTrucks.length < 20)
+        if (game.myTrucks.length < GameConstants.maxTrucks)
           IconButton(
             icon: const Icon(Icons.add_circle_outline, color: Color(0xFFF5C542), size: 20),
             tooltip: 'Купить грузовик',
@@ -275,7 +275,8 @@ class _TruckCardState extends State<_TruckCard> {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.local_gas_station,
-                    label: 'Заправить',
+                    label: '${GameConstants.formatMoney(((truck.maxFuel - truck.fuelLevel) * GameConstants.fuelCostPerLiter).round())}',
+                    tooltip: 'Заправить',
                     isLoading: _isRefueling,
                     enabled: truck.fuelLevel < truck.maxFuel,
                     color: const Color(0xFF42A5F5),
@@ -286,7 +287,8 @@ class _TruckCardState extends State<_TruckCard> {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.build,
-                    label: 'Ремонт',
+                    label: '${GameConstants.formatMoney((100 - truck.condition) * GameConstants.repairCostPerPoint)}',
+                    tooltip: 'Ремонт',
                     isLoading: _isRepairing,
                     enabled: truck.condition < 100,
                     color: const Color(0xFFF5C542),
@@ -314,19 +316,33 @@ class _TruckCardState extends State<_TruckCard> {
 
   Future<void> _refuel() async {
     setState(() => _isRefueling = true);
-    await game.refuelTruck(truck.id, companyId);
+    final ok = await game.refuelTruck(truck.id, companyId);
     if (mounted) setState(() => _isRefueling = false);
+    if (mounted && !ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(game.error ?? 'Ошибка заправки'),
+        backgroundColor: const Color(0xFFEF5350),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 
   Future<void> _repair() async {
     setState(() => _isRepairing = true);
-    await game.repairTruck(truck.id, companyId);
+    final ok = await game.repairTruck(truck.id, companyId);
     if (mounted) setState(() => _isRepairing = false);
+    if (mounted && !ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(game.error ?? 'Ошибка ремонта'),
+        backgroundColor: const Color(0xFFEF5350),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 
   Future<void> _sell(BuildContext context) async {
     final typeInfo = GameConstants.findTruckType(truck.truckType);
-    final sellPrice = typeInfo != null ? (typeInfo.price * 0.6).round() : 0;
+    final sellPrice = typeInfo != null ? (typeInfo.price * GameConstants.sellBackRatio).round() : 0;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -389,6 +405,7 @@ class _TruckCardState extends State<_TruckCard> {
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String? tooltip;
   final bool isLoading;
   final bool enabled;
   final Color color;
@@ -397,6 +414,7 @@ class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.icon,
     required this.label,
+    this.tooltip,
     required this.isLoading,
     required this.enabled,
     required this.color,

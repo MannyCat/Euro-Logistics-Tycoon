@@ -83,20 +83,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _statRow('Название', company.name),
                   _statRow('Баланс', GameConstants.formatMoney(company.money)),
                   _statRow('Уровень', 'Lv.${company.level}  (${company.xp} XP)'),
-                  _statRow('Репутация', '${company.reputation}/100'),
+                  _statRow('Репутация', '${company.reputation}/${GameConstants.maxReputation}'),
                   const SizedBox(height: 8),
                   // XP progress bar
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: (company.xp % 1000) / 1000,
+                      value: (company.xp % GameConstants.xpPerLevel) / GameConstants.xpPerLevel,
                       backgroundColor: const Color(0xFF1A1A1A),
                       valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF5C542)),
                       minHeight: 6,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text('${1000 - (company.xp % 1000)} XP до след. уровня', style: const TextStyle(color: Color(0xFF666666), fontSize: 11)),
+                  Text('${GameConstants.xpPerLevel - (company.xp % GameConstants.xpPerLevel)} XP до след. уровня', style: const TextStyle(color: Color(0xFF666666), fontSize: 11)),
                 ],
               ),
             ),

@@ -2,6 +2,11 @@ class GameConstants {
   GameConstants._();
 
   static const int startingMoney = 1000000;
+  static const double fuelCostPerLiter = 1.5;
+  static const double sellBackRatio = 0.6;
+  static const int maxTrucks = 20;
+  static const int xpPerLevel = 1000;
+  static const int maxReputation = 100;
   static const int depotFeePerCity = 500;
   static const int driverBaseSalary = 300;
   static const int driverHireCostMultiplier = 30; // 30 days salary upfront
@@ -13,9 +18,9 @@ class GameConstants {
   static const int contractGenerationMinutes = 5;
 
   static const List<TruckTypeInfo> truckTypes = [
-    TruckTypeInfo(type: 'light', name: 'Mercedes Actros L', price: 80000, speed: 85, fuel: 120, capacity: 12, icon: '🚛'),
+    TruckTypeInfo(type: 'light', name: 'Mercedes Actros L', price: 80000, speed: 85, fuel: 120, capacity: 12, icon: '🚚'),
     TruckTypeInfo(type: 'medium', name: 'Volvo FH16', price: 150000, speed: 80, fuel: 200, capacity: 22, icon: '🚛'),
-    TruckTypeInfo(type: 'heavy', name: 'Scania R730', price: 250000, speed: 75, fuel: 300, capacity: 30, icon: '🚛'),
+    TruckTypeInfo(type: 'heavy', name: 'Scania R730', price: 250000, speed: 75, fuel: 300, capacity: 30, icon: '🚚'),
     TruckTypeInfo(type: 'special', name: 'MAN TGX 41.680', price: 400000, speed: 70, fuel: 400, capacity: 44, icon: '🚛'),
   ];
 

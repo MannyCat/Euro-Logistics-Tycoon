@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
@@ -7,6 +6,7 @@ import '../models/contract.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../providers/game_provider.dart' as gp show haversineKm;
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -188,6 +188,8 @@ class _MyContractsTabState extends State<_MyContractsTab> {
               const SizedBox(width: 4),
               _chip('Завершённые (${game.myContracts.where((c) => c.status == 'completed').length})', 1, const Color(0xFF66BB6A)),
               const SizedBox(width: 4),
+              _chip('Просроченные (${game.myContracts.where((c) => c.status == 'expired').length})', 2, const Color(0xFFEF5350)),
+              const SizedBox(width: 4),
               _chip('Все (${game.myContracts.length})', 3, const Color(0xFF888888)),
             ],
           ),
@@ -201,9 +203,9 @@ class _MyContractsTabState extends State<_MyContractsTab> {
                     children: [
                       const Icon(Icons.assignment_outlined, size: 48, color: Color(0xFF666666)),
                       const SizedBox(height: 12),
-                      Text(_filter == 0 ? 'Нет активных контрактов' : _filter == 1 ? 'Нет завершённых контрактов' : 'Нет контрактов', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
+                      Text(_filter == 0 ? 'Нет активных контрактов' : _filter == 1 ? 'Нет завершённых контрактов' : _filter == 2 ? 'Нет просроченных контрактов' : 'Нет контрактов', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                       const SizedBox(height: 4),
-                      Text(_filter == 0 ? 'Примите контракт из списка доступных' : 'Совершайте рейсы, чтобы видеть историю', style: const TextStyle(color: Color(0xFF666666), fontSize: 12)),
+                      Text(_filter == 0 ? 'Примите контракт из списка доступных' : _filter == 1 ? 'Совершайте рейсы, чтобы видеть историю' : 'Просроченные контракты появляются по истечении срока', style: const TextStyle(color: Color(0xFF666666), fontSize: 12)),
                     ],
                   ),
                 )
@@ -266,7 +268,7 @@ class _ContractCard extends StatelessWidget {
     // Calculate distance
     double distKm = 0;
     if (origin != null && dest != null) {
-      distKm = _haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude);
+      distKm = gp.haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude);
     }
     final rewardPerKm = distKm > 0 ? (contract.reward / distKm).round() : 0;
 
@@ -435,15 +437,7 @@ class _ContractCard extends StatelessWidget {
     );
   }
 
-  double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371.0;
-    final dLat = (lat2 - lat1) * 3.14159265359 / 180;
-    final dLon = (lon2 - lon1) * 3.14159265359 / 180;
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(lat1 * 3.14159265359 / 180) * math.cos(lat2 * 3.14159265359 / 180) *
-            math.sin(dLon / 2) * math.sin(dLon / 2);
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-  }
+
 }
 
 class _AcceptButton extends StatelessWidget {

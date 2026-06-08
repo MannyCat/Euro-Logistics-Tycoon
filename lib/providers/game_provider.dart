@@ -374,17 +374,17 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> refuelTruck(String truckId, String companyId) async {
+  Future<bool> refuelTruck(String truckId, String companyId) async {
     try {
       final truck = _myTrucks.where((t) => t.id == truckId).firstOrNull;
-      if (truck == null) return;
+      if (truck == null) { _error = 'Грузовик не найден'; notifyListeners(); return false; }
       final missingFuel = truck.maxFuel - truck.fuelLevel;
-      final cost = (missingFuel * 1.5).round();
-      if (cost <= 0) return;
+      if (missingFuel <= 0) return true; // already full
+      final cost = (missingFuel * GameConstants.fuelCostPerLiter).round();
 
       final comp = await _supabase.from('companies').select('money').eq('id', companyId).maybeSingle();
       final money = (comp?['money'] as num?)?.toInt() ?? 0;
-      if (money < cost) { _error = 'Недостаточно средств для заправки'; notifyListeners(); return; }
+      if (money < cost) { _error = 'Недостаточно средств для заправки (${GameConstants.formatMoney(cost)})'; notifyListeners(); return false; }
 
       await _supabase.from('trucks').update({'fuel_level': truck.maxFuel}).eq('id', truckId);
       await _supabase.from('companies').update({'money': money - cost}).eq('id', companyId);
@@ -393,20 +393,19 @@ class GameProvider extends ChangeNotifier {
       });
       await loadMyTrucks(companyId);
       await loadCompany(companyId);
-    } catch (e) {
-      debugPrint('Refuel error: $e');
-    }
+      return true;
+    } catch (e) { _error = 'Ошибка заправки: $e'; notifyListeners(); return false; }
   }
 
-  Future<void> repairTruck(String truckId, String companyId) async {
+  Future<bool> repairTruck(String truckId, String companyId) async {
     try {
       final truck = _myTrucks.where((t) => t.id == truckId).firstOrNull;
-      if (truck == null || truck.condition >= 100) return;
+      if (truck == null || truck.condition >= 100) { _error = truck == null ? 'Грузовик не найден' : 'Ремонт не нужен'; notifyListeners(); return false; }
       final cost = (100 - truck.condition) * GameConstants.repairCostPerPoint;
 
       final comp = await _supabase.from('companies').select('money').eq('id', companyId).maybeSingle();
       final money = (comp?['money'] as num?)?.toInt() ?? 0;
-      if (money < cost) { _error = 'Недостаточно средств для ремонта'; notifyListeners(); return; }
+      if (money < cost) { _error = 'Недостаточно средств для ремонта (${GameConstants.formatMoney(cost)})'; notifyListeners(); return false; }
 
       await _supabase.from('trucks').update({'condition_pct': 100}).eq('id', truckId);
       await _supabase.from('companies').update({'money': money - cost}).eq('id', companyId);
@@ -415,9 +414,8 @@ class GameProvider extends ChangeNotifier {
       });
       await loadMyTrucks(companyId);
       await loadCompany(companyId);
-    } catch (e) {
-      debugPrint('Repair error: $e');
-    }
+      return true;
+    } catch (e) { _error = 'Ошибка ремонта: $e'; notifyListeners(); return false; }
   }
 
   Future<bool> sellTruck(String truckId, String companyId, int sellPrice) async {

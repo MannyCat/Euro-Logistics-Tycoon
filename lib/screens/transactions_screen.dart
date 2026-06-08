@@ -31,6 +31,7 @@ class Transaction {
     'contract_completed' => Icons.check_circle,
     'contract_accepted' => Icons.description,
     'truck_purchase' => Icons.local_shipping,
+    'truck_sale' => Icons.sell,
     'driver_hire' => Icons.person_add,
     'refuel' => Icons.local_gas_station,
     'repair' => Icons.build,
@@ -42,10 +43,12 @@ class Transaction {
   Color get typeColor => switch (type) {
     'contract_completed' => const Color(0xFF66BB6A),
     'truck_purchase' => const Color(0xFF42A5F5),
+    'truck_sale' => const Color(0xFFCE93D8),
     'driver_hire' => const Color(0xFF64B5F6),
     'refuel' => const Color(0xFFF5C542),
     'repair' => const Color(0xFFEF5350),
     'warehouse' => const Color(0xFF42A5F5),
+    'salary' => const Color(0xFFEF5350),
     _ => const Color(0xFF888888),
   };
 }

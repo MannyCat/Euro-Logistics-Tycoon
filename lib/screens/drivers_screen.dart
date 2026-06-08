@@ -9,6 +9,43 @@ import '../widgets/ets2_modal.dart';
 class DriversScreen extends StatelessWidget {
   const DriversScreen({super.key});
 
+  Future<void> _hireDriver(BuildContext context, GameProvider game, String companyId) async {
+    final cost = GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier;
+    final money = game.company?.money ?? 0;
+    if (money < cost) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Недостаточно средств (нужно: ${GameConstants.formatMoney(cost)})'),
+          backgroundColor: const Color(0xFFEF5350),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+      return;
+    }
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
+        title: const Text('Нанять водителя?', style: TextStyle(color: Color(0xFFD0D0D0))),
+        content: Text('Стоимость: ${GameConstants.formatMoney(cost)} (зарплата за 30 дней)', style: const TextStyle(color: Color(0xFF888888))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Нанять', style: TextStyle(color: Color(0xFF66BB6A)))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    final ok = await game.hireDriver(companyId);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? 'Водитель нанят!' : game.error ?? 'Ошибка'),
+        backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -20,42 +57,7 @@ class DriversScreen extends StatelessWidget {
       icon: Icons.people,
       actions: [
         TextButton.icon(
-          onPressed: game.isLoading ? null : () async {
-            final money = game.company?.money ?? 0;
-            final cost = GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier;
-            if (money < cost) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('Недостаточно средств (нужно: ${GameConstants.formatMoney(cost)})'),
-                  backgroundColor: const Color(0xFFEF5350),
-                  behavior: SnackBarBehavior.floating,
-                ));
-              }
-              return;
-            }
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                backgroundColor: const Color(0xFF1E1E1E),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
-                title: const Text('Нанять водителя?', style: TextStyle(color: Color(0xFFD0D0D0))),
-                content: Text('Стоимость: ${GameConstants.formatMoney(cost)} (зарплата за 30 дней)', style: const TextStyle(color: Color(0xFF888888))),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
-                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Нанять', style: TextStyle(color: Color(0xFF66BB6A)))),
-                ],
-              ),
-            );
-            if (confirm != true) return;
-            final ok = await game.hireDriver(companyId);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(ok ? 'Водитель нанят!' : game.error ?? 'Ошибка'),
-                backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
-                behavior: SnackBarBehavior.floating,
-              ));
-            }
-          },
+          onPressed: game.isLoading ? null : () => _hireDriver(context, game, companyId),
           icon: const Icon(Icons.person_add, color: Color(0xFFF5C542), size: 18),
           label: Text('Нанять (${GameConstants.formatMoney(GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier)})', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 12)),
         ),
@@ -74,31 +76,7 @@ class DriversScreen extends StatelessWidget {
                       const Text('Нанимайте водителей для управления грузовиками', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
-                        onPressed: () async {
-                          final cost = GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier;
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              backgroundColor: const Color(0xFF1E1E1E),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
-                              title: const Text('Нанять водителя?', style: TextStyle(color: Color(0xFFD0D0D0))),
-                              content: Text('Стоимость: ${GameConstants.formatMoney(cost)}', style: const TextStyle(color: Color(0xFF888888))),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
-                                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Нанять', style: TextStyle(color: Color(0xFF66BB6A)))),
-                              ],
-                            ),
-                          );
-                          if (confirm != true) return;
-                          final ok = await game.hireDriver(companyId);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(ok ? 'Водитель нанят!' : game.error ?? 'Ошибка'),
-                              backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
-                              behavior: SnackBarBehavior.floating,
-                            ));
-                          }
-                        },
+                        onPressed: () => _hireDriver(context, game, companyId),
                         icon: const Icon(Icons.person_add),
                         label: Text('Нанять за ${GameConstants.formatMoney(GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier)}'),
                       ),
