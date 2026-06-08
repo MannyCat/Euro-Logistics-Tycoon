@@ -9,12 +9,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/map_screen.dart';
-import 'screens/fleet_screen.dart';
-import 'screens/contracts_screen.dart';
-import 'screens/drivers_screen.dart';
-import 'screens/warehouses_screen.dart';
-import 'screens/transactions_screen.dart';
-import 'screens/settings_screen.dart';
+// All screens except login/register/map are now modals — opened from sidebar
 
 /// A simple Listenable that GoRouter can listen to for auth state changes.
 class _AuthNotifier extends ChangeNotifier {
@@ -49,14 +44,8 @@ class _ELTAppState extends State<ELTApp> {
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
         GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
         GoRoute(path: '/', builder: (_, __) => const MapScreen()),
-        GoRoute(path: '/contracts', builder: (_, __) => const ContractsScreen()),
-        GoRoute(path: '/fleet', builder: (_, __) => const FleetScreen()),
-        GoRoute(path: '/drivers', builder: (_, __) => const DriversScreen()),
-        GoRoute(path: '/warehouses', builder: (_, __) => const WarehousesScreen()),
-        GoRoute(
-            path: '/transactions',
-            builder: (_, __) => const TransactionsScreen()),
-        GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+        // Contracts, Fleet, Drivers, Warehouses, Transactions, Settings
+        // are now opened as ETS2-style modal dialogs from the map sidebar
       ],
     );
 

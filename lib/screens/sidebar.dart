@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
+import 'contracts_screen.dart';
+import 'fleet_screen.dart';
+import 'drivers_screen.dart';
+import 'warehouses_screen.dart';
+import 'transactions_screen.dart';
+import 'settings_screen.dart';
 
 class Sidebar extends StatelessWidget {
   final VoidCallback onRefresh;
-  const Sidebar({super.key, required this.onRefresh});
+  final void Function(Widget modal) onOpenModal;
+
+  const Sidebar({super.key, required this.onRefresh, required this.onOpenModal});
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final game = context.watch<GameProvider>();
     final company = game.company;
-    final currentRoute = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
 
     return Container(
       width: 230,
       decoration: BoxDecoration(color: AppTheme.surface, border: Border(right: BorderSide(color: AppTheme.divider))),
       child: Column(
         children: [
-          // Logo area
+          // Logo
           Container(
             height: 50,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -33,9 +39,7 @@ class Sidebar extends StatelessWidget {
                 child: const Icon(Icons.local_shipping, color: AppTheme.accent, size: 18),
               ),
               const SizedBox(width: 10),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                Text('ELT', style: AppTheme.h2.copyWith(fontSize: 15, letterSpacing: 2)),
-              ]),
+              const Text('ELT', style: TextStyle(color: AppTheme.text, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 2)),
             ]),
           ),
           const Divider(height: 1, color: AppTheme.divider),
@@ -45,27 +49,25 @@ class Sidebar extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 6),
               children: [
-                _navItem(Icons.map_outlined, 'Карта', '/', currentRoute, context),
-                _navItem(Icons.description_outlined, 'Контракты', '/contracts', currentRoute, context),
-                _navItem(Icons.local_shipping_outlined, 'Автопарк', '/fleet', currentRoute, context),
-                _navItem(Icons.people_outlined, 'Водители', '/drivers', currentRoute, context),
-                _navItem(Icons.warehouse_outlined, 'Филиалы', '/warehouses', currentRoute, context),
-                _navItem(Icons.receipt_long_outlined, 'Финансы', '/transactions', currentRoute, context),
+                _navItem(Icons.map_outlined, 'Карта', true, () {}),
+                _navItem(Icons.description_outlined, 'Контракты', false, () => onOpenModal(const ContractsScreen())),
+                _navItem(Icons.local_shipping_outlined, 'Автопарк', false, () => onOpenModal(const FleetScreen())),
+                _navItem(Icons.people_outlined, 'Водители', false, () => onOpenModal(const DriversScreen())),
+                _navItem(Icons.warehouse_outlined, 'Филиалы', false, () => onOpenModal(const WarehousesScreen())),
+                _navItem(Icons.receipt_long_outlined, 'Финансы', false, () => onOpenModal(const TransactionsScreen())),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
-                _navItem(Icons.settings_outlined, 'Настройки', '/settings', currentRoute, context),
+                _navItem(Icons.settings_outlined, 'Настройки', false, () => onOpenModal(const SettingsScreen())),
               ],
             ),
           ),
 
-          // Company info footer
+          // Company info
           if (company != null) Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(border: Border(top: BorderSide(color: AppTheme.divider))),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppTheme.divider))),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Expanded(
-                  child: Text(company.name, style: AppTheme.labelSm, overflow: TextOverflow.ellipsis, maxLines: 1),
-                ),
+                Expanded(child: Text(company.name, style: AppTheme.labelSm, overflow: TextOverflow.ellipsis, maxLines: 1)),
                 IconButton(
                   icon: const Icon(Icons.refresh, color: AppTheme.textMuted, size: 16),
                   tooltip: 'Обновить',
@@ -85,14 +87,14 @@ class Sidebar extends StatelessWidget {
             ]),
           ),
 
-          // Logout button
+          // Logout
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(border: Border(top: BorderSide(color: AppTheme.divider))),
+            decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppTheme.divider))),
             child: SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: () async { await auth.logout(); if (context.mounted) context.go('/login'); },
+                onPressed: () async { await auth.logout(); },
                 icon: const Icon(Icons.logout, color: AppTheme.red, size: 16),
                 label: const Text('Выйти', style: TextStyle(color: AppTheme.red)),
                 style: OutlinedButton.styleFrom(side: BorderSide(color: AppTheme.red.withOpacity(0.3))),
@@ -104,15 +106,14 @@ class Sidebar extends StatelessWidget {
     );
   }
 
-  Widget _navItem(IconData icon, String label, String route, String currentRoute, BuildContext context) {
-    final isActive = currentRoute == route;
+  Widget _navItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => context.go(route),
+          onTap: onTap,
           child: Container(
             height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 12),
