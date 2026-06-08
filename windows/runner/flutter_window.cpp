@@ -51,6 +51,31 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  // ===== CRITICAL: Paint dark background BEFORE Flutter handles anything =====
+  // This prevents white flash/gaps at window edges during resize/startup.
+  switch (message) {
+    case WM_ERASEBKGND: {
+      HDC hdc = reinterpret_cast<HDC>(wparam);
+      RECT client_rect;
+      GetClientRect(hwnd, &client_rect);
+      HBRUSH bg_brush = CreateSolidBrush(RGB(26, 26, 26));
+      FillRect(hdc, &client_rect, bg_brush);
+      DeleteObject(bg_brush);
+      return 1; // Background erased — prevent further processing
+    }
+    case WM_PAINT: {
+      PAINTSTRUCT ps;
+      HDC hdc = BeginPaint(hwnd, &ps);
+      RECT rect;
+      GetClientRect(hwnd, &rect);
+      HBRUSH bg_brush = CreateSolidBrush(RGB(26, 26, 26));
+      FillRect(hdc, &rect, bg_brush);
+      DeleteObject(bg_brush);
+      EndPaint(hwnd, &ps);
+      return 0;
+    }
+  }
+
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =

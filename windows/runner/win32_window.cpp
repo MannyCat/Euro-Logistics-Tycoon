@@ -174,6 +174,16 @@ Win32Window::MessageHandler(HWND hwnd,
                             WPARAM const wparam,
                             LPARAM const lparam) noexcept {
   switch (message) {
+    // Always paint dark background — fallback for any unhandled erase/paint
+    case WM_ERASEBKGND: {
+      HDC hdc = reinterpret_cast<HDC>(wparam);
+      RECT client_rect;
+      GetClientRect(hwnd, &client_rect);
+      HBRUSH bg_brush = CreateSolidBrush(RGB(26, 26, 26));
+      FillRect(hdc, &client_rect, bg_brush);
+      DeleteObject(bg_brush);
+      return 1;
+    }
     case WM_DESTROY:
       window_handle_ = nullptr;
       Destroy();
