@@ -112,6 +112,7 @@ class GameProvider extends ChangeNotifier {
       final resp = await _supabase.from('cities').select().order('name');
       _cities = resp.map<City>((e) => City.fromJson(e)).toList();
     } catch (e) {
+      _error = 'Ошибка загрузки городов';
       debugPrint('Load cities error: $e');
     }
   }
@@ -123,6 +124,7 @@ class GameProvider extends ChangeNotifier {
         _company = Company.fromJson(resp);
       }
     } catch (e) {
+      _error = 'Ошибка загрузки компании';
       debugPrint('Load company error: $e');
     }
   }
@@ -132,6 +134,7 @@ class GameProvider extends ChangeNotifier {
       final resp = await _supabase.from('trucks').select().eq('company_id', companyId);
       _myTrucks = resp.map<Truck>((e) => Truck.fromJson(e)).toList();
     } catch (e) {
+      _error = 'Ошибка загрузки грузовиков';
       debugPrint('Load trucks error: $e');
     }
   }
@@ -141,6 +144,7 @@ class GameProvider extends ChangeNotifier {
       final resp = await _supabase.from('drivers').select().eq('company_id', companyId);
       _myDrivers = resp.map<Driver>((e) => Driver.fromJson(e)).toList();
     } catch (e) {
+      _error = 'Ошибка загрузки водителей';
       debugPrint('Load drivers error: $e');
     }
   }
@@ -155,6 +159,7 @@ class GameProvider extends ChangeNotifier {
           .limit(50);
       _availableContracts = resp.map<Contract>((e) => Contract.fromJson(e)).toList();
     } catch (e) {
+      _error = 'Ошибка загрузки контрактов';
       debugPrint('Load contracts error: $e');
     }
   }
@@ -168,6 +173,7 @@ class GameProvider extends ChangeNotifier {
           .limit(30);
       _myContracts = resp.map<Contract>((e) => Contract.fromJson(e)).toList();
     } catch (e) {
+      _error = 'Ошибка загрузки моих контрактов';
       debugPrint('Load my contracts error: $e');
     }
   }
@@ -177,6 +183,7 @@ class GameProvider extends ChangeNotifier {
       final resp = await _supabase.from('warehouses').select().eq('company_id', companyId);
       _myWarehouses = resp.map<Warehouse>((e) => Warehouse.fromJson(e)).toList();
     } catch (e) {
+      _error = 'Ошибка загрузки складов';
       debugPrint('Load warehouses error: $e');
     }
   }

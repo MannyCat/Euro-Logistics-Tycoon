@@ -4,54 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_theme.dart';
 import '../config/game_constants.dart';
+import '../models/transaction.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
-
-class Transaction {
-  final String id;
-  final String type;
-  final String description;
-  final int amount;
-  final DateTime createdAt;
-
-  const Transaction({required this.id, required this.type, required this.description, required this.amount, required this.createdAt});
-
-  factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
-    id: json['id'] as String? ?? '',
-    type: json['type'] as String? ?? '',
-    description: json['description'] as String? ?? '',
-    amount: (json['amount'] as num?)?.toInt() ?? 0,
-    createdAt: DateTime.tryParse(json['created_at'] as String? ?? '') ?? DateTime.now(),
-  );
-
-  bool get isIncome => amount > 0;
-
-  IconData get typeIcon => switch (type) {
-    'contract_completed' => Icons.check_circle,
-    'contract_accepted' => Icons.description,
-    'truck_purchase' => Icons.local_shipping,
-    'truck_sale' => Icons.sell,
-    'driver_hire' => Icons.person_add,
-    'refuel' => Icons.local_gas_station,
-    'repair' => Icons.build,
-    'warehouse' => Icons.warehouse,
-    'salary' => Icons.account_balance_wallet,
-    _ => Icons.receipt,
-  };
-
-  Color get typeColor => switch (type) {
-    'contract_completed' => const Color(0xFF66BB6A),
-    'truck_purchase' => const Color(0xFF42A5F5),
-    'truck_sale' => const Color(0xFFCE93D8),
-    'driver_hire' => const Color(0xFF64B5F6),
-    'refuel' => const Color(0xFFF5C542),
-    'repair' => const Color(0xFFEF5350),
-    'warehouse' => const Color(0xFF42A5F5),
-    'salary' => const Color(0xFFEF5350),
-    _ => const Color(0xFF888888),
-  };
-}
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -62,6 +18,7 @@ class TransactionsScreen extends StatefulWidget {
 class _TransactionsScreenState extends State<TransactionsScreen> {
   List<Transaction> _transactions = [];
   bool _isLoading = false;
+  bool _hasError = false;
   int _totalIncome = 0;
   int _totalExpense = 0;
 
@@ -75,7 +32,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final auth = context.read<AuthProvider>();
     final companyId = auth.companyId;
     if (companyId == null) return;
-    setState(() => _isLoading = true);
+    setState(() { _isLoading = true; _hasError = false; });
     try {
       final resp = await Supabase.instance.client.from('transactions').select().eq('company_id', companyId).order('created_at', ascending: false).limit(100);
       _transactions = resp.map<Transaction>((e) => Transaction.fromJson(e)).toList();
@@ -84,7 +41,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         if (t.isIncome) _totalIncome += t.amount;
         else _totalExpense += t.amount;
       }
-    } catch (e) { debugPrint('Load transactions error: $e'); }
+    } catch (e) {
+      debugPrint('Load transactions error: $e');
+      setState(() => _hasError = true);
+    }
     if (mounted) setState(() => _isLoading = false);
   }
 
@@ -126,24 +86,43 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
                 const Divider(height: 1, color: Color(0xFF3A3A3A)),
                 Expanded(
-                  child: _transactions.isEmpty
+                  child: _hasError
                       ? Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.receipt_long_outlined, size: 48, color: Color(0xFF666666)),
+                              const Icon(Icons.cloud_off, size: 48, color: Color(0xFFEF5350)),
                               const SizedBox(height: 12),
-                              Text('Нет транзакций', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
+                              Text('Ошибка загрузки', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                               const SizedBox(height: 4),
-                              const Text('Совершайте операции, чтобы увидеть историю', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
+                              const Text('Проверьте подключение и попробуйте снова', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _loadTransactions,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Повторить'),
+                              ),
                             ],
                           ),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(8),
-                          itemCount: _transactions.length,
-                          itemBuilder: (context, i) => _TransactionTile(transaction: _transactions[i]),
-                        ),
+                      : _transactions.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.receipt_long_outlined, size: 48, color: Color(0xFF666666)),
+                                  const SizedBox(height: 12),
+                                  Text('Нет транзакций', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
+                                  const SizedBox(height: 4),
+                                  const Text('Совершайте операции, чтобы увидеть историю', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(8),
+                              itemCount: _transactions.length,
+                              itemBuilder: (context, i) => _TransactionTile(transaction: _transactions[i]),
+                            ),
                 ),
               ],
             ),

@@ -499,45 +499,37 @@ class _BuyTruckDialogState extends State<_BuyTruckDialog> {
                 ),
               ),
               const SizedBox(height: 12),
-              // City selection
+              // City selection (searchable dropdown)
               Text('Город покупки:', style: const TextStyle(color: Color(0xFF888888), fontSize: 12, fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Container(
-                constraints: const BoxConstraints(maxHeight: 120),
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
                   border: Border.all(color: const Color(0xFF3A3A3A)),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.all(4),
-                  itemCount: widget.game.cities.length,
-                  itemBuilder: (context, i) {
-                    final c = widget.game.cities[i];
-                    final selected = _selectedCityId == c.id;
-                    final hasWarehouse = widget.game.myWarehouses.any((w) => w.cityId == c.id);
-                    return InkWell(
-                      onTap: () => setState(() => _selectedCityId = c.id),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        margin: const EdgeInsets.only(bottom: 2),
-                        decoration: BoxDecoration(
-                          color: selected ? const Color(0xFFF5C542).withOpacity(0.1) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: selected ? const Color(0xFFF5C542) : Colors.transparent),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(hasWarehouse ? Icons.warehouse : Icons.location_city, size: 14, color: hasWarehouse ? const Color(0xFF66BB6A) : const Color(0xFF888888)),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(c.name, style: TextStyle(color: selected ? const Color(0xFFF5C542) : const Color(0xFFCCCCCC), fontSize: 12))),
-                            Text(c.country, style: const TextStyle(color: Color(0xFF666666), fontSize: 11)),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _selectedCityId,
+                    isExpanded: true,
+                    dropdownColor: const Color(0xFF252525),
+                    hint: Text('Выберите город', style: const TextStyle(color: Color(0xFF666666), fontSize: 13)),
+                    style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 13),
+                    items: widget.game.cities.map((c) {
+                      final hasW = widget.game.myWarehouses.any((w) => w.cityId == c.id);
+                      return DropdownMenuItem(
+                        value: c.id,
+                        child: Row(children: [
+                          Icon(hasW ? Icons.warehouse : Icons.location_city, size: 14, color: hasW ? const Color(0xFF66BB6A) : const Color(0xFF888888)),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(c.name, overflow: TextOverflow.ellipsis)),
+                          Text(c.country, style: const TextStyle(color: Color(0xFF666666), fontSize: 11)),
+                        ]),
+                      );
+                    }).toList(),
+                    onChanged: (v) => setState(() => _selectedCityId = v),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

@@ -19,6 +19,7 @@ import 'drivers_screen.dart';
 import 'warehouses_screen.dart';
 import 'transactions_screen.dart';
 import 'settings_screen.dart';
+import '../config/game_constants.dart';
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
@@ -550,7 +551,7 @@ class MapScreenState extends State<MapScreen> {
                               alignment: Alignment.center,
                               children: [
                                 FractionallySizedBox(
-                                  widthFactor: (company.xp % 1000) / 1000,
+                                  widthFactor: (company.xp % GameConstants.xpPerLevel) / GameConstants.xpPerLevel,
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF5C542).withOpacity(0.4),
@@ -559,7 +560,7 @@ class MapScreenState extends State<MapScreen> {
                                   ),
                                 ),
                                 Center(
-                                  child: Text('${company.xp % 1000} XP',
+                                  child: Text('${company.xp % GameConstants.xpPerLevel} XP',
                                       style: const TextStyle(color: Color(0xFF999999), fontSize: 9, fontWeight: FontWeight.w600)),
                                 ),
                               ],
@@ -575,13 +576,13 @@ class MapScreenState extends State<MapScreen> {
                   Positioned(
                     top: 58, right: 10,
                     child: Column(children: [
-                      _ets2MapBtn(Icons.add, () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
+                      _ets2MapBtn(Icons.add, 'Приблизить (+)', () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
                       const SizedBox(height: 2),
-                      _ets2MapBtn(Icons.remove, () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
+                      _ets2MapBtn(Icons.remove, 'Отдалить (-)', () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
                       const SizedBox(height: 2),
-                      _ets2MapBtn(Icons.crop_free, () => _mapController.move(const LatLng(50, 10), 4)),
+                      _ets2MapBtn(Icons.crop_free, 'Обзор Европы', () => _mapController.move(const LatLng(50, 10), 4)),
                       const SizedBox(height: 2),
-                      _ets2MapBtn(Icons.my_location, () {
+                      _ets2MapBtn(Icons.my_location, 'К первому грузовику', () {
                         final firstTruck = game.myTrucks.where((t) => t.isIdle).firstOrNull;
                         if (firstTruck != null && firstTruck.currentCityId != null) {
                           final city = game.getCityById(firstTruck.currentCityId!);
@@ -589,7 +590,7 @@ class MapScreenState extends State<MapScreen> {
                         }
                       }),
                       const SizedBox(height: 2),
-                      _ets2MapBtn(Icons.refresh, _refresh),
+                      _ets2MapBtn(Icons.refresh, 'Обновить (R)', _refresh),
                     ]),
                   ),
 
@@ -666,20 +667,23 @@ class MapScreenState extends State<MapScreen> {
 
   Widget _ets2Divider() => Container(width: 1, height: 20, decoration: BoxDecoration(color: const Color(0xFF444444), borderRadius: BorderRadius.circular(1)));
 
-  Widget _ets2MapBtn(IconData icon, VoidCallback onTap) => Material(
+  Widget _ets2MapBtn(IconData icon, String tooltip, VoidCallback onTap) => Material(
     color: Colors.transparent,
     child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
-      child: Container(
-        width: 34, height: 34,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2C2C2C),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: const Color(0xFF444444), width: 0.5),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 1))],
+      child: Tooltip(
+        message: tooltip,
+        child: Container(
+          width: 34, height: 34,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2C2C2C),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFF444444), width: 0.5),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 1))],
+          ),
+          child: Icon(icon, color: const Color(0xFF999999), size: 17),
         ),
-        child: Icon(icon, color: const Color(0xFF999999), size: 17),
       ),
     ),
   );

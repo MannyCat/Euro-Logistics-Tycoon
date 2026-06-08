@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_theme.dart';
 import '../config/game_constants.dart';
 import '../models/warehouse.dart';
@@ -16,45 +14,7 @@ class WarehousesScreen extends StatefulWidget {
 }
 
 class _WarehousesScreenState extends State<WarehousesScreen> {
-  List<Warehouse> _warehouses = [];
-  bool _isLoading = false;
   bool _showBuyMode = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadWarehouses());
-  }
-
-  Future<void> _loadWarehouses() async {
-    final auth = context.read<AuthProvider>();
-    final companyId = auth.companyId;
-    if (companyId == null) return;
-    setState(() => _isLoading = true);
-    try {
-      final resp = await Supabase.instance.client.from('warehouses').select().eq('company_id', companyId);
-      _warehouses = resp.map<Warehouse>((e) => Warehouse.fromJson(e)).toList();
-    } catch (e) {
-      debugPrint('Load warehouses error: $e');
-    }
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  Future<void> _buyWarehouse(int cityId) async {
-    final auth = context.read<AuthProvider>();
-    final game = context.read<GameProvider>();
-    final companyId = auth.companyId;
-    if (companyId == null) return;
-    final ok = await game.claimWarehouse(companyId, cityId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Склад куплен!' : game.error ?? 'Ошибка'),
-        backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
-        behavior: SnackBarBehavior.floating,
-      ));
-      if (ok) { await _loadWarehouses(); await game.loadCompany(companyId); }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,22 +32,21 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
           label: Text(_showBuyMode ? 'Готово' : 'Купить склад', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 12)),
         ),
       ],
-      child: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF5C542)))
-          : _showBuyMode
-              ? _BuyWarehouseView(game: game, companyId: companyId, onPurchased: _loadWarehouses)
-              : _WarehouseListView(warehouses: _warehouses, game: game),
+      child: _showBuyMode
+          ? _BuyWarehouseView(game: game, companyId: companyId)
+          : _WarehouseListView(game: game),
     );
   }
 }
 
 class _WarehouseListView extends StatelessWidget {
-  final List<Warehouse> warehouses;
   final GameProvider game;
-  const _WarehouseListView({required this.warehouses, required this.game});
+  const _WarehouseListView({required this.game});
 
   @override
   Widget build(BuildContext context) {
+    final warehouses = game.myWarehouses;
+
     if (warehouses.isEmpty) {
       return Center(
         child: Column(
@@ -109,6 +68,8 @@ class _WarehouseListView extends StatelessWidget {
       itemBuilder: (context, i) {
         final w = warehouses[i];
         final city = game.getCityById(w.cityId);
+        // Count trucks at this city
+        final trucksHere = game.myTrucks.where((t) => t.currentCityId == city?.id).length;
         return Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.all(12),
@@ -128,6 +89,10 @@ class _WarehouseListView extends StatelessWidget {
                       Text('Ур. ${w.level}', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
                       const SizedBox(width: 12),
                       Text('Вмст: ${w.capacity}т', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
+                      if (trucksHere > 0) ...[
+                        const SizedBox(width: 12),
+                        Text('$trucksHere 🚛', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 12)),
+                      ],
                     ]),
                   ],
                 ),
@@ -152,8 +117,7 @@ class _WarehouseListView extends StatelessWidget {
 class _BuyWarehouseView extends StatelessWidget {
   final GameProvider game;
   final String companyId;
-  final VoidCallback onPurchased;
-  const _BuyWarehouseView({required this.game, required this.companyId, required this.onPurchased});
+  const _BuyWarehouseView({required this.game, required this.companyId});
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +165,7 @@ class _BuyWarehouseView extends StatelessWidget {
                           Row(children: [
                             Text(city.country, style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
                             const SizedBox(width: 8),
-                            Text('Цена: ${GameConstants.formatMoney(city.warehouseCost)}', style: const TextStyle(color: Color(0xFF888888), fontSize: 11, fontFamily: 'monospace')),
+                            Text('${(city.population / 1000000).toStringAsFixed(1)}M  •  ${GameConstants.formatMoney(city.warehouseCost)}', style: const TextStyle(color: Color(0xFF888888), fontSize: 11, fontFamily: 'monospace')),
                           ]),
                         ],
                       ),
@@ -229,8 +193,15 @@ class _BuyWarehouseView extends StatelessWidget {
                             ),
                           );
                           if (confirm == true) {
-                            await game.claimWarehouse(companyId, city.id);
-                            onPurchased();
+                            final game = context.read<GameProvider>();
+                            final ok = await game.claimWarehouse(companyId, city.id);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(ok ? 'Склад в ${city.name} куплен!' : game.error ?? 'Ошибка'),
+                                backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
+                                behavior: SnackBarBehavior.floating,
+                              ));
+                            }
                           }
                         } : null,
                         child: Text(GameConstants.formatMoney(city.warehouseCost), style: TextStyle(color: canAfford ? const Color(0xFF66BB6A) : const Color(0xFFEF5350), fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'monospace')),
