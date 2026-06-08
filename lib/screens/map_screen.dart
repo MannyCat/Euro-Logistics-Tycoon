@@ -93,28 +93,11 @@ class MapScreenState extends State<MapScreen> {
     game.generateNewContracts();
   }
 
-  /// Open a screen as ETS2-style modal dialog.
   void _openModal(Widget screen) {
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width >= 768;
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.6),
-      builder: (_) => Center(
-        child: Container(
-          width: isDesktop ? 600 : size.width * 0.94,
-          height: isDesktop ? 600 : size.height * 0.78,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF444444)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 24, spreadRadius: 2),
-            ],
-          ),
-          child: screen,
-        ),
-      ),
+      builder: (_) => screen,
     );
   }
 
@@ -630,72 +613,4 @@ class MapScreenState extends State<MapScreen> {
       ),
     ),
   );
-}
-
-/// ETS2-style modal wrapper — wraps any screen content in a dialog.
-class ETS2Modal extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Widget child;
-  final double? width;
-  final double? height;
-
-  const ETS2Modal({
-    super.key,
-    required this.title,
-    required this.icon,
-    required this.child,
-    this.width,
-    this.height,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 768;
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        width: width ?? (isDesktop ? 520 : MediaQuery.of(context).size.width * 0.92),
-        height: height ?? (isDesktop ? 560 : MediaQuery.of(context).size.height * 0.75),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF444444), width: 1),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20, spreadRadius: 2),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF2C2C2C),
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
-                border: Border(bottom: BorderSide(color: Color(0xFF444444), width: 1)),
-              ),
-              child: Row(children: [
-                Icon(icon, color: const Color(0xFFF5C542), size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(title,
-                      style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFF999999), size: 20),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
-              ]),
-            ),
-            // Content
-            Expanded(child: child),
-          ],
-        ),
-      ),
-    );
-  }
 }
