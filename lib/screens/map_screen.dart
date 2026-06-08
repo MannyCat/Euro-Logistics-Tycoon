@@ -20,6 +20,8 @@ import 'warehouses_screen.dart';
 import 'transactions_screen.dart';
 import 'settings_screen.dart';
 import '../config/game_constants.dart';
+import 'achievements_screen.dart';
+import 'leaderboard_screen.dart';
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
@@ -275,6 +277,12 @@ class MapScreenState extends State<MapScreen> {
             return KeyEventResult.handled;
           case LogicalKeyboardKey.keyT:
             _openModal(const TransactionsScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyL:
+            _openModal(const LeaderboardScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyA:
+            _openModal(const AchievementsScreen());
             return KeyEventResult.handled;
           case LogicalKeyboardKey.escape:
             Navigator.of(context).popUntil((route) => route is PopupRoute && Navigator.of(context).canPop() ? false : true);

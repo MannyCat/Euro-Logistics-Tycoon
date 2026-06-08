@@ -9,6 +9,8 @@ import 'drivers_screen.dart';
 import 'warehouses_screen.dart';
 import 'transactions_screen.dart';
 import 'settings_screen.dart';
+import 'achievements_screen.dart';
+import 'leaderboard_screen.dart';
 
 class Sidebar extends StatelessWidget {
   final VoidCallback onRefresh;
@@ -56,6 +58,9 @@ class Sidebar extends StatelessWidget {
                 _navItem(Icons.people_outlined, 'Водители', 'D', () => onOpenModal(const DriversScreen())),
                 _navItem(Icons.warehouse_outlined, 'Филиалы', 'W', () => onOpenModal(const WarehousesScreen())),
                 _navItem(Icons.receipt_long_outlined, 'Финансы', 'T', () => onOpenModal(const TransactionsScreen())),
+                const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
+                _navItem(Icons.emoji_events_outlined, 'Рейтинг', 'L', () => onOpenModal(const LeaderboardScreen())),
+                _navItem(Icons.military_tech_outlined, 'Достижения', 'A', () => onOpenModal(const AchievementsScreen())),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
                 _navItem(Icons.settings_outlined, 'Настройки', null, () => onOpenModal(const SettingsScreen())),
               ],

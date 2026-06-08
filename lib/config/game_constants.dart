@@ -1,3 +1,27 @@
+import 'package:flutter/material.dart';
+
+class AchievementDef {
+  final String id;
+  final String name;
+  final String description;
+  final String category; // fleet, logistics, finance, social, level
+  final IconData icon;
+  final Color color;
+  final int reward; // XP reward
+  final int tier; // 1=bronze, 2=silver, 3=gold
+
+  const AchievementDef({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.category,
+    required this.icon,
+    required this.color,
+    this.reward = 50,
+    this.tier = 1,
+  });
+}
+
 class GameConstants {
   GameConstants._();
 
@@ -9,13 +33,93 @@ class GameConstants {
   static const int maxReputation = 100;
   static const int depotFeePerCity = 500;
   static const int driverBaseSalary = 300;
-  static const int driverHireCostMultiplier = 30; // 30 days salary upfront
+  static const int driverHireCostMultiplier = 30;
   static const int fuelCostPer100km = 200;
   static const int repairCostPerPoint = 500;
   static const int conditionLossPerTrip = 3;
   static const int loadingDurationSeconds = 30;
   static const int contractRefreshSeconds = 5;
   static const int contractGenerationMinutes = 5;
+
+  // ===== LEVEL UNLOCKS =====
+  static const List<LevelUnlock> levelUnlocks = [
+    LevelUnlock(level: 1, description: 'Начало пути — 1 грузовик, базовые контракты'),
+    LevelUnlock(level: 2, description: 'Макс. 3 грузовика, контракты средней сложности'),
+    LevelUnlock(level: 3, description: 'Макс. 5 грузовиков, скидка 5% на топливо'),
+    LevelUnlock(level: 4, description: 'Макс. 8 грузовиков, склады дают +10% дохода'),
+    LevelUnlock(level: 5, description: 'Макс. 10 грузовиков, тяжёлые грузовики'),
+    LevelUnlock(level: 6, description: 'Макс. 12 грузовиков, скидка 10% на ремонт'),
+    LevelUnlock(level: 7, description: 'Макс. 14 грузовиков, спец. грузы'),
+    LevelUnlock(level: 8, description: 'Макс. 16 грузовиков, водители экономят топливо -5%'),
+    LevelUnlock(level: 9, description: 'Макс. 18 грузовиков, всё доступно'),
+    LevelUnlock(level: 10, description: 'Макс. 20 грузовиков, логистическая империя'),
+  ];
+
+  /// Max trucks allowed at a given level
+  static int maxTrucksAtLevel(int level) {
+    for (final u in levelUnlocks.reversed) {
+      if (level >= u.level) return switch (u.level) {
+        1 => 1, 2 => 3, 3 => 5, 4 => 8, 5 => 10,
+        6 => 12, 7 => 14, 8 => 16, 9 => 18, 10 => 20,
+        _ => 20,
+      };
+    }
+    return 1;
+  }
+
+  /// Fuel discount percentage at level (0-20)
+  static double fuelDiscountAtLevel(int level) {
+    if (level >= 8) return 0.15;
+    if (level >= 3) return 0.05;
+    return 0;
+  }
+
+  /// Repair discount percentage at level (0-20)
+  static double repairDiscountAtLevel(int level) {
+    if (level >= 10) return 0.15;
+    if (level >= 6) return 0.10;
+    return 0;
+  }
+
+  // ===== ACHIEVEMENTS =====
+  static const List<AchievementDef> achievements = [
+    // Fleet
+    AchievementDef(id: 'first_truck', name: 'Первый грузовик', description: 'Купить первый грузовик', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 25),
+    AchievementDef(id: 'fleet_3', name: 'Малый автопарк', description: 'Владеть 3 грузовиками', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 50),
+    AchievementDef(id: 'fleet_5', name: 'Автопарк', description: 'Владеть 5 грузовиками', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 100, tier: 2),
+    AchievementDef(id: 'fleet_10', name: 'Транспортный магнат', description: 'Владеть 10 грузовиками', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 200, tier: 2),
+    AchievementDef(id: 'fleet_20', name: 'Логистическая империя', description: 'Владеть 20 грузовиками', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 500, tier: 3),
+
+    // Logistics
+    AchievementDef(id: 'first_delivery', name: 'Первый рейс', description: 'Выполнить первый контракт', category: 'logistics', icon: Icons.check_circle, color: Color(0xFF66BB6A), reward: 25),
+    AchievementDef(id: 'deliveries_10', name: 'Опытный перевозчик', description: 'Выполнить 10 контрактов', category: 'logistics', icon: Icons.check_circle, color: Color(0xFF66BB6A), reward: 75),
+    AchievementDef(id: 'deliveries_50', name: 'Мастер логистики', description: 'Выполнить 50 контрактов', category: 'logistics', icon: Icons.check_circle, color: Color(0xFF66BB6A), reward: 200, tier: 2),
+    AchievementDef(id: 'deliveries_100', name: 'Легенда дорог', description: 'Выполнить 100 контрактов', category: 'logistics', icon: Icons.check_circle, color: Color(0xFF66BB6A), reward: 500, tier: 3),
+    AchievementDef(id: 'cities_5', name: 'Междугородний', description: 'Доставить груз в 5 разных городов', category: 'logistics', icon: Icons.location_city, color: Color(0xFF66BB6A), reward: 75),
+    AchievementDef(id: 'cities_all', name: 'Евротур', description: 'Доставить груз во все города', category: 'logistics', icon: Icons.public, color: Color(0xFF66BB6A), reward: 500, tier: 3),
+
+    // Finance
+    AchievementDef(id: 'earned_100k', name: 'Первая прибыль', description: 'Заработать €100K на контрактах', category: 'finance', icon: Icons.euro, color: Color(0xFFF5C542), reward: 25),
+    AchievementDef(id: 'earned_1m', name: 'Миллионер', description: 'Заработать €1M на контрактах', category: 'finance', icon: Icons.euro, color: Color(0xFFF5C542), reward: 100, tier: 2),
+    AchievementDef(id: 'earned_10m', name: 'Тайкон', description: 'Заработать €10M на контрактах', category: 'finance', icon: Icons.euro, color: Color(0xFFF5C542), reward: 300, tier: 3),
+    AchievementDef(id: 'money_5m', name: 'Капитал', description: 'Накопить €5M на балансе', category: 'finance', icon: Icons.account_balance, color: Color(0xFFF5C542), reward: 200, tier: 2),
+
+    // Infrastructure
+    AchievementDef(id: 'first_warehouse', name: 'Первый склад', description: 'Купить первый склад', category: 'infra', icon: Icons.warehouse, color: Color(0xFFCE93D8), reward: 50),
+    AchievementDef(id: 'warehouses_3', name: 'Сеть складов', description: 'Владеть 3 складами', category: 'infra', icon: Icons.warehouse, color: Color(0xFFCE93D8), reward: 100),
+    AchievementDef(id: 'first_driver', name: 'Первый водитель', description: 'Нанять первого водителя', category: 'infra', icon: Icons.person, color: Color(0xFFCE93D8), reward: 25),
+    AchievementDef(id: 'drivers_5', name: 'Команда', description: 'Нанять 5 водителей', category: 'infra', icon: Icons.groups, color: Color(0xFFCE93D8), reward: 100, tier: 2),
+
+    // Level
+    AchievementDef(id: 'level_5', name: 'Растущая компания', description: 'Достичь 5-го уровня', category: 'level', icon: Icons.star, color: Color(0xFFFF9800), reward: 100, tier: 2),
+    AchievementDef(id: 'level_10', name: 'Лидер рынка', description: 'Достичь 10-го уровня', category: 'level', icon: Icons.star, color: Color(0xFFFF9800), reward: 300, tier: 3),
+    AchievementDef(id: 'reputation_max', name: 'Безупречная репутация', description: 'Достичь максимальной репутации', category: 'level', icon: Icons.verified, color: Color(0xFFFF9800), reward: 200, tier: 3),
+  ];
+
+  static AchievementDef? findAchievement(String id) {
+    for (final a in achievements) { if (a.id == id) return a; }
+    return null;
+  }
 
   static const List<TruckTypeInfo> truckTypes = [
     TruckTypeInfo(type: 'light', name: 'Mercedes Actros L', price: 80000, speed: 85, fuel: 120, capacity: 12, icon: '🚚'),
@@ -49,10 +153,17 @@ class TruckTypeInfo {
   final String type;
   final String name;
   final int price;
-  final int speed; // km/h
-  final double fuel; // liters
-  final int capacity; // tons
+  final int speed;
+  final double fuel;
+  final int capacity;
   final String icon;
 
   const TruckTypeInfo({required this.type, required this.name, required this.price, required this.speed, required this.fuel, required this.capacity, required this.icon});
+}
+
+class LevelUnlock {
+  final int level;
+  final String description;
+
+  const LevelUnlock({required this.level, required this.description});
 }

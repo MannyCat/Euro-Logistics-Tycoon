@@ -9,6 +9,7 @@ import '../models/truck.dart';
 import '../models/driver.dart';
 import '../models/contract.dart';
 import '../models/warehouse.dart';
+import '../models/achievement.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371.0;
@@ -36,6 +37,8 @@ class GameProvider extends ChangeNotifier {
   List<Contract> _availableContracts = [];
   List<Contract> _myContracts = [];
   List<Warehouse> _myWarehouses = [];
+  List<Achievement> _myAchievements = [];
+  List<Map<String, dynamic>> _leaderboard = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
@@ -55,6 +58,10 @@ class GameProvider extends ChangeNotifier {
   List<Contract> get availableContracts => _availableContracts.where((c) => c.isAvailable && !c.isExpired).toList();
   List<Contract> get myContracts => _myContracts;
   List<Warehouse> get myWarehouses => _myWarehouses;
+  List<Achievement> get myAchievements => _myAchievements;
+  List<Map<String, dynamic>> get leaderboard => _leaderboard;
+  Set<String> get unlockedAchievementIds => _myAchievements.map((a) => a.id).toSet();
+  int get achievementCount => _myAchievements.length;
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get error => _error;
@@ -188,6 +195,45 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadMyAchievements(String companyId) async {
+    try {
+      final resp = await _supabase.from('achievements').select().eq('company_id', companyId);
+      _myAchievements = resp.map<Achievement>((e) => Achievement.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint('Load achievements error: $e'); // non-critical, don't set _error
+    }
+  }
+
+  Future<void> loadLeaderboard() async {
+    try {
+      final resp = await _supabase.from('leaderboard').select().limit(20);
+      _leaderboard = List<Map<String, dynamic>>.from(resp);
+    } catch (e) {
+      debugPrint('Load leaderboard error: $e');
+    }
+  }
+
+  /// Check and unlock achievements. Returns list of newly unlocked IDs.
+  Future<List<String>> checkAchievements(String companyId) async {
+    try {
+      final resp = await _supabase.rpc('check_achievements', params: {'p_company_id': companyId});
+      final newIds = <String>[];
+      for (final row in resp) {
+        final aid = row['achievement_id'] as String?;
+        final isNew = row['is_new'] as bool? ?? false;
+        if (aid != null && isNew) newIds.add(aid);
+      }
+      if (newIds.isNotEmpty) {
+        await loadMyAchievements(companyId);
+        await loadCompany(companyId);
+      }
+      return newIds;
+    } catch (e) {
+      debugPrint('Check achievements error: $e');
+      return [];
+    }
+  }
+
   Future<void> loadAll(String companyId) async {
     _currentCompanyId = companyId;  // Cache for realtime
     _isLoading = true;
@@ -202,6 +248,8 @@ class GameProvider extends ChangeNotifier {
         loadContracts(),
         loadMyContracts(companyId),
         loadMyWarehouses(companyId),
+        loadMyAchievements(companyId),
+        loadLeaderboard(),
       ]);
       // Try to complete expired contracts server-side
       await _supabase.rpc('complete_expired_contracts');

@@ -10,6 +10,8 @@ import 'drivers_screen.dart';
 import 'warehouses_screen.dart';
 import 'transactions_screen.dart';
 import 'settings_screen.dart';
+import 'achievements_screen.dart';
+import 'leaderboard_screen.dart';
 
 class MobileDrawer extends StatelessWidget {
   final void Function(Widget modal) onOpenModal;
@@ -91,6 +93,15 @@ class MobileDrawer extends StatelessWidget {
                   _navItem(context, Icons.receipt_long_outlined, 'Финансы', () {
                     Navigator.pop(context);
                     onOpenModal(const TransactionsScreen());
+                  }),
+                  const Divider(height: 1, color: AppTheme.divider, indent: 16, endIndent: 16),
+                  _navItem(context, Icons.emoji_events_outlined, 'Рейтинг', () {
+                    Navigator.pop(context);
+                    onOpenModal(const LeaderboardScreen());
+                  }),
+                  _navItem(context, Icons.military_tech_outlined, 'Достижения', () {
+                    Navigator.pop(context);
+                    onOpenModal(const AchievementsScreen());
                   }),
                   const Divider(height: 1, color: AppTheme.divider, indent: 16, endIndent: 16),
                   _navItem(context, Icons.settings_outlined, 'Настройки', () {
