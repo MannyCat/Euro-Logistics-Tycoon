@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'providers/game_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
+import 'screens/splash_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/fleet_screen.dart';
 import 'screens/contracts_screen.dart';
@@ -15,23 +16,34 @@ import 'screens/transactions_screen.dart';
 import 'screens/settings_screen.dart';
 
 late final GoRouter _router = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/splash', // Start at splash — auto-login or redirect
   redirect: (context, state) {
     final authProvider = context.read<AuthProvider>();
 
-    final isAuthRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+    final isAuthRoute = state.matchedLocation == '/login' ||
+        state.matchedLocation == '/register';
+    final isSplash = state.matchedLocation == '/splash';
     final isLoading = authProvider.isLoading;
     final isAuthenticated = authProvider.isAuthenticated;
 
-    if (isLoading && !isAuthRoute) {
-      return '/login';
+    // Stay on splash while session is being restored
+    if (isSplash && isLoading) return null;
+
+    // Splash done: redirect based on auth state
+    if (isSplash) {
+      return isAuthenticated ? '/' : '/login';
     }
 
+    // If not authenticated and not on auth routes → login
     if (!isAuthenticated && !isAuthRoute) return '/login';
+
+    // If authenticated and on auth routes → map
     if (isAuthenticated && isAuthRoute) return '/';
+
     return null;
   },
   routes: [
+    GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
     GoRoute(path: '/', builder: (_, __) => const MapScreen()),
@@ -39,7 +51,9 @@ late final GoRouter _router = GoRouter(
     GoRoute(path: '/fleet', builder: (_, __) => const FleetScreen()),
     GoRoute(path: '/drivers', builder: (_, __) => const DriversScreen()),
     GoRoute(path: '/warehouses', builder: (_, __) => const WarehousesScreen()),
-    GoRoute(path: '/transactions', builder: (_, __) => const TransactionsScreen()),
+    GoRoute(
+        path: '/transactions',
+        builder: (_, __) => const TransactionsScreen()),
     GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
   ],
 );

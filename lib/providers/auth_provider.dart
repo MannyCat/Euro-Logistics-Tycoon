@@ -7,7 +7,7 @@ class AuthProvider extends ChangeNotifier {
   StreamSubscription<AuthState>? _authSub;
   String? _userId;
   String? _companyId;
-  bool _isLoading = true;
+  bool _isLoading = true; // Start as true for splash screen
   String? _error;
 
   bool get isLoading => _isLoading;
@@ -21,12 +21,13 @@ class AuthProvider extends ChangeNotifier {
     _authSub = _supabase.auth.onAuthStateChange.listen(_onAuthState);
   }
 
+  /// Restore session on app start — auto-login if session exists.
   Future<void> _restoreSession() async {
     try {
       final session = _supabase.auth.currentSession;
       if (session != null) {
         _userId = session.user.id;
-        await _loadCompany();
+        await _loadOrCreateCompany();
       }
     } catch (e) {
       debugPrint('Session restore error: $e');
@@ -38,7 +39,7 @@ class AuthProvider extends ChangeNotifier {
   void _onAuthState(AuthState state) async {
     if (state.event == AuthChangeEvent.signedIn && state.session != null) {
       _userId = state.session!.user.id;
-      await _loadCompany();
+      await _loadOrCreateCompany();
     } else if (state.event == AuthChangeEvent.signedOut) {
       _userId = null;
       _companyId = null;
@@ -47,20 +48,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadCompany() async {
+  /// Load company for user, or create one with starter truck if missing.
+  Future<void> _loadOrCreateCompany() async {
     if (_userId == null) return;
     try {
-      final resp = await _supabase.from('companies').select('id').eq('owner_id', _userId!).maybeSingle();
+      final resp = await _supabase
+          .from('companies')
+          .select('id')
+          .eq('owner_id', _userId!)
+          .maybeSingle();
       _companyId = resp?['id'] as String?;
+
+      // No company yet? Create one with starter truck (auto-setup)
       if (_companyId == null) {
-        // Trigger should auto-create, but fallback
-        await _supabase.from('companies').insert({
-          'owner_id': _userId,
-          'name': 'New Logistics Co.',
-          'money': 1000000,
-        });
-        final newResp = await _supabase.from('companies').select('id').eq('owner_id', _userId!).maybeSingle();
-        _companyId = newResp?['id'] as String?;
+        await _createCompanyAndTruck('New Logistics Co.');
       }
     } catch (e) {
       debugPrint('Load company error: $e');
@@ -73,15 +74,19 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final resp = await _supabase.auth.signInWithPassword(email: email.trim(), password: password);
-      // After successful login, wait for auth state change to set companyId
+      final resp = await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password,
+      );
       if (resp.session != null) {
         _userId = resp.session!.user.id;
-        await _loadCompany();
+        await _loadOrCreateCompany();
       }
       return _companyId != null;
     } on AuthException catch (e) {
-      _error = e.message.contains('Invalid') ? 'Неверный email или пароль' : e.message;
+      _error = e.message.contains('Invalid')
+          ? 'Неверный email или пароль'
+          : e.message;
       return false;
     } catch (e) {
       _error = 'Ошибка подключения';
@@ -102,7 +107,7 @@ class AuthProvider extends ChangeNotifier {
         password: password,
         data: {'company_name': companyName.trim()},
       );
-      // Wait for session then create company + starter truck from Flutter
+      // Wait for session
       await Future.delayed(const Duration(seconds: 1));
       final session = _supabase.auth.currentSession;
       if (session != null) {
@@ -132,25 +137,38 @@ class AuthProvider extends ChangeNotifier {
     await _supabase.auth.signOut();
   }
 
+  /// Create company + starter truck in London.
   Future<void> _createCompanyAndTruck(String companyName) async {
     if (_userId == null) return;
     try {
-      // Check if company already exists
-      final existing = await _supabase.from('companies').select('id').eq('owner_id', _userId!).maybeSingle();
+      // Check if already exists
+      final existing = await _supabase
+          .from('companies')
+          .select('id')
+          .eq('owner_id', _userId!)
+          .maybeSingle();
       if (existing != null) {
         _companyId = existing['id'] as String?;
         return;
       }
+
       // Create company
       await _supabase.from('companies').insert({
         'owner_id': _userId,
         'name': companyName,
         'money': 1000000,
       });
-      final comp = await _supabase.from('companies').select('id').eq('owner_id', _userId!).maybeSingle();
+
+      // Get company ID
+      final comp = await _supabase
+          .from('companies')
+          .select('id')
+          .eq('owner_id', _userId!)
+          .maybeSingle();
       _companyId = comp?['id'] as String?;
+
+      // Create starter truck in London (city id = 1)
       if (_companyId != null) {
-        // Create starter truck in London
         await _supabase.from('trucks').insert({
           'company_id': _companyId,
           'truck_type': 'light',
@@ -169,8 +187,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearError() { _error = null; notifyListeners(); }
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
 
   @override
-  void dispose() { _authSub?.cancel(); super.dispose(); }
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
 }

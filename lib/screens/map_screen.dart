@@ -13,42 +13,41 @@ import 'sidebar.dart';
 import 'mobile_drawer.dart';
 import 'city_detail_dialog.dart';
 
-/// ETS2-style road network connections between cities (city id pairs).
-/// These mirror the approximate highway connections from Euro Truck Simulator 2.
+/// ETS2 road network — highway connections between cities (city id pairs).
+/// Mirrors approximate real-world ETS2 highway routes across Europe.
 const List<List<int>> _roadNetwork = [
-  // UK / Northern France
+  // UK – Benelux – France
   [1, 5],   // London – Brussels
   [1, 4],   // London – Amsterdam
-  [1, 2],   // London – Paris
-  // France / Benelux
+  [1, 2],   // London – Paris (via Calais)
+  // France – Benelux
   [2, 5],   // Paris – Brussels
-  [2, 8],   // Paris – Madrid
+  [2, 8],   // Paris – Madrid (long haul south)
   [2, 6],   // Paris – Frankfurt
-  [2, 7],   // Paris – Zurich
-  // Benelux / Germany
+  [2, 7],   // Paris – Zurich (via Dijon)
+  // Benelux – Germany
   [4, 5],   // Amsterdam – Brussels
-  [4, 3],   // Amsterdam – Berlin
-  [5, 6],   // Brussels – Frankfurt
-  // Germany / Switzerland
+  [4, 3],   // Amsterdam – Berlin (via Hannover)
+  [5, 6],   // Brussels – Frankfurt (via Cologne)
+  // Germany – Switzerland – Austria
   [6, 3],   // Frankfurt – Berlin
   [6, 7],   // Frankfurt – Zurich
   [6, 12],  // Frankfurt – Prague
-  [7, 9],   // Zurich – Rome
-  [7, 11],  // Zurich – Vienna
+  [7, 9],   // Zurich – Rome (via Milan)
+  [7, 11],  // Zurich – Vienna (via Innsbruck)
   // Central Europe
   [12, 11], // Prague – Vienna
   [12, 10], // Prague – Warsaw
-  [12, 3],  // Prague – Berlin
+  [12, 3],  // Prague – Berlin (via Dresden)
   [11, 13], // Vienna – Budapest
-  [11, 14], // Vienna – Stockholm (long highway)
-  [10, 3],  // Warsaw – Berlin
-  [10, 13], // Warsaw – Budapest
+  [10, 3],  // Warsaw – Berlin (via Poznan)
+  [10, 13], // Warsaw – Budapest (via Bratislava)
   // Scandinavia
-  [15, 14], // Oslo – Stockholm
-  [14, 10], // Stockholm – Warsaw (long highway)
+  [15, 14], // Oslo – Stockholm (via Karlstad)
+  [14, 10], // Stockholm – Warsaw ferry / long route
   // Southern Europe
-  [8, 9],   // Madrid – Rome (long highway)
-  [13, 9],  // Budapest – Rome
+  [8, 9],   // Madrid – Rome (very long)
+  [13, 9],  // Budapest – Rome (via Zagreb)
 ];
 
 class MapScreen extends StatefulWidget {
@@ -76,7 +75,7 @@ class MapScreenState extends State<MapScreen> {
     _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
     _contractGenTimer = Timer.periodic(const Duration(minutes: 5), (_) => _generateContracts());
     _truckAnimTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {}); // Repaint truck positions
+      if (mounted) setState(() {});
     });
   }
 
@@ -153,9 +152,10 @@ class MapScreenState extends State<MapScreen> {
   }
 
   LatLng _interpolate(LatLng start, LatLng end, double t) {
-    final midLat = (start.latitude + end.latitude) / 2 + (end.longitude - start.longitude) * 0.12 * math.sin(t * math.pi);
-    final midLng = (start.longitude + end.longitude) / 2 - (end.latitude - start.latitude) * 0.12 * math.sin(t * math.pi);
-
+    final midLat = (start.latitude + end.latitude) / 2 +
+        (end.longitude - start.longitude) * 0.12 * math.sin(t * math.pi);
+    final midLng = (start.longitude + end.longitude) / 2 -
+        (end.latitude - start.latitude) * 0.12 * math.sin(t * math.pi);
     if (t < 0.5) {
       final localT = t * 2;
       return LatLng(
@@ -171,29 +171,59 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
-  /// Build road network polylines between cities (ETS2 highway grid).
+  /// Build ETS2-style road network — olive-green highway grid lines.
   List<Polyline> _buildRoadNetwork(GameProvider game) {
     final roads = <Polyline>[];
     final cityMap = <int, City>{};
     for (final c in game.cities) {
       cityMap[c.id] = c;
     }
-
     for (final pair in _roadNetwork) {
       final a = cityMap[pair[0]];
       final b = cityMap[pair[1]];
       if (a == null || b == null) continue;
 
-      // Main road: subtle dark gray line (highway)
+      // ETS2 discovered road: olive-green stroke with subtle dark border
       roads.add(Polyline(
         points: [LatLng(a.latitude, a.longitude), LatLng(b.latitude, b.longitude)],
-        color: const Color(0xFF546E7A).withOpacity(0.35),
+        color: const Color(0xFF8B9A46).withOpacity(0.55), // olive green
         strokeWidth: 2.5,
-        borderStrokeWidth: 1.0,
-        borderColor: const Color(0xFF37474F).withOpacity(0.3),
+        borderStrokeWidth: 4.0,
+        borderColor: const Color(0xFF37474F).withOpacity(0.5), // dark border
       ));
     }
     return roads;
+  }
+
+  /// Build active truck route polylines — ETS2 GPS navigation style.
+  List<Polyline> _buildTruckRoutes(GameProvider game) {
+    final routes = <Polyline>[];
+    for (final truck in game.transitTrucks) {
+      final origin = truck.originCityId != null ? game.getCityById(truck.originCityId!) : null;
+      final dest = truck.destinationCityId != null ? game.getCityById(truck.destinationCityId!) : null;
+      if (origin == null || dest == null) continue;
+      final pos = _getTruckPosition(truck, game);
+      final truckPos = pos ?? LatLng(origin.latitude, origin.longitude);
+
+      // Completed route segment: bright yellow (ETS2 GPS color)
+      routes.add(Polyline(
+        points: [LatLng(origin.latitude, origin.longitude), truckPos],
+        color: const Color(0xFFF5C542), // ETS2 yellow route
+        strokeWidth: 4.5,
+        borderStrokeWidth: 2.0,
+        borderColor: const Color(0xFFD4A017).withOpacity(0.7),
+      ));
+
+      // Remaining route: dimmer yellow dashed-style (we simulate with thinner line)
+      routes.add(Polyline(
+        points: [truckPos, LatLng(dest.latitude, dest.longitude)],
+        color: const Color(0xFFF5C542).withOpacity(0.35),
+        strokeWidth: 3.0,
+        borderStrokeWidth: 1.5,
+        borderColor: const Color(0xFFD4A017).withOpacity(0.25),
+      ));
+    }
+    return routes;
   }
 
   @override
@@ -202,27 +232,40 @@ class MapScreenState extends State<MapScreen> {
     final game = context.watch<GameProvider>();
     final company = game.company;
 
+    // Loading state
     if (game.isLoading && !game.isInitialized) {
       return Scaffold(
-        backgroundColor: AppTheme.bg,
+        backgroundColor: const Color(0xFF1A1A1A),
         body: Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const CircularProgressIndicator(color: AppTheme.accent, strokeWidth: 3),
-            const SizedBox(height: 16),
-            Text('Загрузка...', style: AppTheme.body),
+            // ETS2-style loading spinner
+            Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.3), width: 3),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(color: Color(0xFFF5C542), strokeWidth: 3),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Загрузка карты...', style: AppTheme.body.copyWith(color: const Color(0xFF90A4AE), fontSize: 13)),
           ]),
         ),
       );
     }
 
+    // Error state
     if (game.error != null && !game.isInitialized) {
       return Scaffold(
-        backgroundColor: AppTheme.bg,
+        backgroundColor: const Color(0xFF1A1A1A),
         body: Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.error_outline, size: 48, color: AppTheme.red),
+            const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF5350)),
             const SizedBox(height: 12),
-            Text(game.error!, style: AppTheme.body.copyWith(color: AppTheme.red)),
+            Text(game.error!, style: AppTheme.body.copyWith(color: const Color(0xFFEF5350))),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => game.loadAll(auth.companyId ?? ''),
@@ -234,17 +277,18 @@ class MapScreenState extends State<MapScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: const Color(0xFF1A1A1A),
       drawer: _isDesktop ? null : const MobileDrawer(),
       body: SafeArea(
         child: Row(
           children: [
             if (_isDesktop) Sidebar(onRefresh: _refresh),
 
+            // ===== MAIN MAP AREA =====
             Expanded(
               child: Stack(
                 children: [
-                  // ===== FLUTTER MAP =====
+                  // --- FLUTTER MAP ---
                   FlutterMap(
                     mapController: _mapController,
                     options: MapOptions(
@@ -258,136 +302,80 @@ class MapScreenState extends State<MapScreen> {
                       onTap: (_, __) => setState(() => _selectedCityId = null),
                     ),
                     children: [
-                      // ETS2-style map tiles: CartoDB Voyager (clean road atlas look, no API key needed)
+                      // ETS2-style dark map: CartoDB Dark Matter
                       TileLayer(
-                        urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                        urlTemplate:
+                            'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                         userAgentPackageName: 'com.elt.logistics',
                         retinaMode: true,
                       ),
 
-                      // Road network (ETS2 highway grid)
+                      // ETS2 road network (olive-green highway grid)
                       PolylineLayer(polylines: _buildRoadNetwork(game)),
 
-                      // Active truck routes — solid orange/yellow (ETS2 GPS style)
-                      PolylineLayer(
-                        polylines: game.transitTrucks.map((truck) {
-                          final origin = truck.originCityId != null ? game.getCityById(truck.originCityId!) : null;
-                          final dest = truck.destinationCityId != null ? game.getCityById(truck.destinationCityId!) : null;
-                          if (origin == null || dest == null) return Polyline(points: []);
-                          final pos = _getTruckPosition(truck, game);
-                          // Completed part of route (origin → truck position)
-                          final completedPolyline = Polyline(
-                            points: [
-                              LatLng(origin.latitude, origin.longitude),
-                              pos ?? LatLng(origin.latitude, origin.longitude),
-                            ],
-                            color: const Color(0xFFFFC107), // Yellow: completed
-                            strokeWidth: 4.0,
-                            borderStrokeWidth: 2.0,
-                            borderColor: const Color(0xFFF57F17).withOpacity(0.6),
-                          );
-                          // Remaining part of route (truck position → destination)
-                          final remainingPolyline = Polyline(
-                            points: [
-                              pos ?? LatLng(origin.latitude, origin.longitude),
-                              LatLng(dest.latitude, dest.longitude),
-                            ],
-                            color: const Color(0xFF42A5F5).withOpacity(0.6), // Blue: remaining
-                            strokeWidth: 3.0,
-                            borderStrokeWidth: 1.5,
-                            borderColor: const Color(0xFF1565C0).withOpacity(0.3),
-                          );
-                          return completedPolyline; // We return first, remaining added below
-                        }).toList()
-                          ..addAll(game.transitTrucks.map((truck) {
-                            final origin = truck.originCityId != null ? game.getCityById(truck.originCityId!) : null;
-                            final dest = truck.destinationCityId != null ? game.getCityById(truck.destinationCityId!) : null;
-                            if (origin == null || dest == null) return Polyline(points: []);
-                            final pos = _getTruckPosition(truck, game);
-                            return Polyline(
-                              points: [
-                                pos ?? LatLng(origin.latitude, origin.longitude),
-                                LatLng(dest.latitude, dest.longitude),
-                              ],
-                              color: const Color(0xFF42A5F5).withOpacity(0.6),
-                              strokeWidth: 3.0,
-                              borderStrokeWidth: 1.5,
-                              borderColor: const Color(0xFF1565C0).withOpacity(0.3),
-                            );
-                          })),
-                      ),
+                      // Active truck GPS routes (yellow, ETS2 style)
+                      PolylineLayer(polylines: _buildTruckRoutes(game)),
 
-                      // City markers — ETS2-style industrial/discovery pins
+                      // ===== City markers — ETS2 discovery dot style =====
                       MarkerLayer(
                         markers: game.cities.map((city) {
                           final isSelected = _selectedCityId == city.id;
-                          final hasWarehouse = game.myWarehouses.any((w) => w.cityId == city.id);
-                          final hasTruck = game.myTrucks.any((t) => t.currentCityId == city.id && t.isIdle);
+                          final hasWarehouse =
+                              game.myWarehouses.any((w) => w.cityId == city.id);
+                          final hasTruck = game.myTrucks
+                              .any((t) => t.currentCityId == city.id && t.isIdle);
+
+                          // ETS2 city dot color based on status
+                          Color dotColor;
+                          if (hasWarehouse) {
+                            dotColor = const Color(0xFF66BB6A); // green = owned
+                          } else if (hasTruck) {
+                            dotColor = const Color(0xFFF5C542); // yellow = truck there
+                          } else {
+                            dotColor = const Color(0xFF8B9A46); // olive = unvisited
+                          }
 
                           return Marker(
                             point: LatLng(city.latitude, city.longitude),
-                            width: isSelected ? 56 : 44,
-                            height: isSelected ? 56 : 44,
+                            width: isSelected ? 48 : 36,
+                            height: isSelected ? 48 : 36,
                             child: GestureDetector(
                               onTap: () => _onCityTap(city),
                               child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  // Outer glow ring
-                                  Container(
-                                    width: isSelected ? 50 : 38,
-                                    height: isSelected ? 50 : 38,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: hasTruck
-                                          ? const Color(0xFFFF9800).withOpacity(0.2)
-                                          : isSelected
-                                              ? const Color(0xFF2196F3).withOpacity(0.25)
-                                              : const Color(0xFFFFFFFF).withOpacity(0.08),
-                                      border: Border.all(
-                                        color: hasTruck
-                                            ? const Color(0xFFFF9800).withOpacity(0.5)
-                                            : isSelected
-                                                ? const Color(0xFF2196F3).withOpacity(0.6)
-                                                : const Color(0xFFFFFFFF).withOpacity(0.15),
-                                        width: 1.5,
+                                  // Outer selection ring
+                                  if (isSelected)
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xFFF5C542)
+                                            .withOpacity(0.15),
+                                        border: Border.all(
+                                          color: const Color(0xFFF5C542)
+                                              .withOpacity(0.5),
+                                          width: 2,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  // Inner pin circle
+                                  // ETS2-style city dot
                                   Container(
-                                    width: isSelected ? 32 : 24,
-                                    height: isSelected ? 32 : 24,
+                                    width: isSelected ? 18 : 12,
+                                    height: isSelected ? 18 : 12,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: hasWarehouse
-                                            ? [const Color(0xFF66BB6A), const Color(0xFF2E7D32)]
-                                            : hasTruck
-                                                ? [const Color(0xFFFFB74D), const Color(0xFFF57C00)]
-                                                : [const Color(0xFFE0E0E0), const Color(0xFF9E9E9E)],
-                                      ),
-                                      border: Border.all(color: Colors.white, width: isSelected ? 2.5 : 1.5),
+                                      color: dotColor,
+                                      border:
+                                          Border.all(color: Colors.white, width: 1.5),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.5),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 3),
+                                          color: dotColor.withOpacity(0.6),
+                                          blurRadius: isSelected ? 12 : 8,
+                                          spreadRadius: isSelected ? 3 : 1,
                                         ),
                                       ],
-                                    ),
-                                    child: Center(
-                                      child: Icon(
-                                        hasWarehouse
-                                            ? Icons.warehouse
-                                            : hasTruck
-                                                ? Icons.local_shipping
-                                                : Icons.location_city,
-                                        size: isSelected ? 14 : 10,
-                                        color: Colors.white,
-                                      ),
                                     ),
                                   ),
                                 ],
@@ -397,57 +385,39 @@ class MapScreenState extends State<MapScreen> {
                         }).toList(),
                       ),
 
-                      // City name labels — ETS2 style: semi-transparent dark pill
+                      // ===== City name labels — ETS2 atlas style =====
                       MarkerLayer(
                         markers: game.cities.map((city) {
                           return Marker(
                             point: LatLng(city.latitude, city.longitude),
-                            width: 120,
-                            height: 26,
+                            width: 110,
+                            height: 22,
                             child: Align(
                               alignment: Alignment.bottomCenter,
                               child: Transform.translate(
-                                offset: const Offset(0, -16),
+                                offset: const Offset(0, -12),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF263238).withOpacity(0.85),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: const Color(0xFFFFFFFF).withOpacity(0.1),
-                                      width: 0.5,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.4),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                    color: const Color(0xFF1A1A1A).withOpacity(0.75),
+                                    borderRadius: BorderRadius.circular(3),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        city.name,
-                                        style: const TextStyle(
-                                          color: Color(0xFFECEFF1),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.5,
-                                          shadows: [Shadow(color: Colors.black, blurRadius: 3)],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        city.country,
-                                        style: TextStyle(
-                                          color: const Color(0xFF90A4AE).withOpacity(0.8),
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    city.name,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Color(0xFFD0D0D0),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.8,
+                                      shadows: [
+                                        Shadow(
+                                            color: Colors.black,
+                                            blurRadius: 4,
+                                            offset: Offset(1, 1)),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -456,83 +426,104 @@ class MapScreenState extends State<MapScreen> {
                         }).toList(),
                       ),
 
-                      // Truck markers
+                      // ===== Truck markers — ETS2 GPS arrow style =====
                       MarkerLayer(
                         markers: [
-                          // Idle trucks — green badge
+                          // Idle trucks — green circle marker
                           ...game.myTrucks.where((t) => t.isIdle).map((truck) {
                             final pos = _getTruckPosition(truck, game);
-                            if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
+                            if (pos == null) {
+                              return const Marker(
+                                  point: LatLng(0, 0),
+                                  width: 0,
+                                  height: 0,
+                                  child: SizedBox());
+                            }
                             return Marker(
                               point: pos,
-                              width: 34, height: 34,
+                              width: 28,
+                              height: 28,
                               child: Align(
                                 alignment: Alignment.topCenter,
                                 child: Transform.translate(
-                                  offset: const Offset(0, 8),
+                                  offset: const Offset(0, 6),
                                   child: Container(
-                                    padding: const EdgeInsets.all(3),
+                                    width: 20,
+                                    height: 20,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF4CAF50),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.white, width: 2),
+                                      color: const Color(0xFF66BB6A),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: const Color(0xFF4CAF50).withOpacity(0.6),
-                                          blurRadius: 10,
-                                          spreadRadius: 2,
+                                          color: const Color(0xFF66BB6A)
+                                              .withOpacity(0.5),
+                                          blurRadius: 8,
+                                          spreadRadius: 1,
                                         ),
                                       ],
                                     ),
-                                    child: const Icon(Icons.local_shipping, size: 14, color: Colors.white),
+                                    child: const Icon(Icons.local_shipping,
+                                        size: 10, color: Colors.white),
                                   ),
                                 ),
                               ),
                             );
                           }),
-                          // Transit trucks — orange pulsing badge
+
+                          // Transit trucks — amber pulsing marker (ETS2 waypoint)
                           ...game.myTrucks.where((t) => t.isInTransit).map((truck) {
                             final pos = _getTruckPosition(truck, game);
-                            if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
+                            if (pos == null) {
+                              return const Marker(
+                                  point: LatLng(0, 0),
+                                  width: 0,
+                                  height: 0,
+                                  child: SizedBox());
+                            }
                             return Marker(
                               point: pos,
-                              width: 44, height: 44,
+                              width: 36,
+                              height: 36,
                               child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  // Pulse ring (ETS2 waypoint marker style)
+                                  // Pulse ring
                                   Container(
-                                    width: 40,
-                                    height: 40,
+                                    width: 32,
+                                    height: 32,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: const Color(0xFFFF9800).withOpacity(0.15),
+                                      color: const Color(0xFFF5C542)
+                                          .withOpacity(0.15),
                                       border: Border.all(
-                                        color: const Color(0xFFFF9800).withOpacity(0.4),
-                                        width: 2,
+                                        color: const Color(0xFFF5C542)
+                                            .withOpacity(0.4),
+                                        width: 1.5,
                                       ),
                                     ),
                                   ),
-                                  // Truck icon container
+                                  // Truck marker
                                   Container(
-                                    padding: const EdgeInsets.all(4),
+                                    width: 22,
+                                    height: 22,
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [Color(0xFFFFB74D), Color(0xFFF57C00)],
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: Colors.white, width: 2),
+                                      color: const Color(0xFFF5C542),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: const Color(0xFFFF9800).withOpacity(0.8),
-                                          blurRadius: 14,
+                                          color: const Color(0xFFF5C542)
+                                              .withOpacity(0.7),
+                                          blurRadius: 12,
                                           spreadRadius: 2,
                                         ),
                                       ],
                                     ),
-                                    child: const Icon(Icons.local_shipping, size: 18, color: Colors.white),
+                                    child: const Icon(Icons.local_shipping,
+                                        size: 11, color: const Color(0xFF1A1A1A)),
                                   ),
                                 ],
                               ),
@@ -543,205 +534,220 @@ class MapScreenState extends State<MapScreen> {
                     ],
                   ),
 
-                  // ===== TOP BAR — ETS2 dashboard =====
+                  // ===== ETS2 ROUTE ADVISOR — TOP BAR =====
                   Positioned(
-                    top: 0, left: 0, right: 0,
+                    top: 0,
+                    left: 0,
+                    right: 0,
                     child: Container(
-                      height: 54,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            const Color(0xFF1A2332).withOpacity(0.98),
-                            const Color(0xFF0F1923).withOpacity(0.96),
-                          ],
+                      height: 50,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2C2C2C),
+                        border: Border(
+                          bottom: BorderSide(
+                              color: Color(0xFF444444), width: 1),
                         ),
-                        border: const Border(bottom: BorderSide(color: Color(0xFF2A3A4A), width: 1)),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 10, offset: const Offset(0, 3)),
+                          BoxShadow(
+                            color: Colors.black,
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
                         ],
                       ),
                       child: Row(children: [
                         if (!_isDesktop) ...[
                           IconButton(
-                            icon: const Icon(Icons.menu, color: Color(0xFF78909C)),
-                            onPressed: () => Scaffold.of(context).openDrawer(),
+                            icon: const Icon(Icons.menu,
+                                color: Color(0xFF999999)),
+                            onPressed: () =>
+                                Scaffold.of(context).openDrawer(),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 2),
                         ],
-                        // Logo
-                        Container(
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2196F3).withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.local_shipping, color: Color(0xFF2196F3), size: 22),
-                        ),
-                        const SizedBox(width: 10),
-                        // Company name
+                        // Company logo/name — ETS2 dashboard style
+                        const Icon(Icons.local_shipping,
+                            color: Color(0xFFF5C542), size: 20),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             company?.name ?? '...',
                             style: const TextStyle(
-                              color: Color(0xFFECEFF1),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.6,
+                              color: Color(0xFFD0D0D0),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.4,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         if (company != null) ...[
-                          // Money badge
-                          _topBadge(
-                            Icons.euro_symbol,
+                          // Money — ETS2 amber style
+                          _ets2Badge(
                             company.moneyFormatted,
-                            const Color(0xFF4CAF50),
-                            const Color(0xFF1B5E20),
+                            const Color(0xFFF5C542),
                           ),
-                          const SizedBox(width: 8),
-                          // Level badge
-                          _topBadge(
-                            Icons.star,
+                          const SizedBox(width: 6),
+                          // Level
+                          _ets2Badge(
                             'Lv.${company.level}',
-                            const Color(0xFF2196F3),
-                            const Color(0xFF0D47A1),
+                            const Color(0xFF66BB6A),
                           ),
-                          const SizedBox(width: 8),
-                          // XP progress bar
+                          const SizedBox(width: 6),
+                          // XP bar — ETS2 style thin progress
                           Container(
-                            width: 90,
-                            height: 24,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            width: 80,
+                            height: 18,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A2332),
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(color: const Color(0xFF2A3A4A)),
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(2),
+                              border: Border.all(
+                                  color: const Color(0xFF444444), width: 0.5),
                             ),
                             child: Stack(
-                              alignment: Alignment.centerLeft,
+                              alignment: Alignment.center,
                               children: [
                                 FractionallySizedBox(
                                   widthFactor: (company.xp % 1000) / 1000,
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF2196F3).withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(4),
+                                      color: const Color(0xFFF5C542)
+                                          .withOpacity(0.4),
+                                      borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),
                                 ),
                                 Center(
                                   child: Text(
                                     '${company.xp % 1000} XP',
-                                    style: const TextStyle(color: Color(0xFF90CAF9), fontSize: 10, fontWeight: FontWeight.w700),
+                                    style: const TextStyle(
+                                        color: Color(0xFF999999),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],
                             ),
                           ),
                         ],
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 10),
                       ]),
                     ),
                   ),
 
-                  // ===== MAP CONTROLS — ETS2 minimal =====
+                  // ===== MAP CONTROLS — ETS2 minimal dark buttons =====
                   Positioned(
-                    top: 66, right: 12,
+                    top: 60,
+                    right: 10,
                     child: Column(children: [
-                      _mapBtn(Icons.add, () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
-                      const SizedBox(height: 3),
-                      _mapBtn(Icons.remove, () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
-                      const SizedBox(height: 3),
-                      _mapBtn(Icons.crop_free, () => _mapController.move(const LatLng(50, 10), 4)),
-                      const SizedBox(height: 3),
-                      _mapBtn(Icons.my_location, () {
-                        // Center on first idle truck if available
-                        final firstTruck = game.myTrucks.where((t) => t.isIdle).firstOrNull;
-                        if (firstTruck != null && firstTruck.currentCityId != null) {
-                          final city = game.getCityById(firstTruck.currentCityId!);
+                      _ets2MapBtn(Icons.add, () => _mapController.move(
+                          _mapController.camera.center,
+                          _mapController.camera.zoom + 1)),
+                      const SizedBox(height: 2),
+                      _ets2MapBtn(Icons.remove, () => _mapController.move(
+                          _mapController.camera.center,
+                          _mapController.camera.zoom - 1)),
+                      const SizedBox(height: 2),
+                      _ets2MapBtn(Icons.crop_free,
+                          () => _mapController.move(const LatLng(50, 10), 4)),
+                      const SizedBox(height: 2),
+                      _ets2MapBtn(Icons.my_location, () {
+                        final firstTruck = game.myTrucks
+                            .where((t) => t.isIdle)
+                            .firstOrNull;
+                        if (firstTruck != null &&
+                            firstTruck.currentCityId != null) {
+                          final city =
+                              game.getCityById(firstTruck.currentCityId!);
                           if (city != null) {
-                            _mapController.move(LatLng(city.latitude, city.longitude), 7);
+                            _mapController.move(
+                                LatLng(city.latitude, city.longitude), 7);
                           }
                         }
                       }),
-                      const SizedBox(height: 3),
-                      _mapBtn(Icons.refresh, _refresh),
+                      const SizedBox(height: 2),
+                      _ets2MapBtn(Icons.refresh, _refresh),
                     ]),
                   ),
 
-                  // ===== BOTTOM BAR — ETS2 job market / quick stats =====
+                  // ===== ETS2 ROUTE ADVISOR — BOTTOM INFO BAR =====
                   Positioned(
-                    bottom: 0, left: 0, right: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
                     child: Container(
-                      height: 48,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            const Color(0xFF1A2332).withOpacity(0.98),
-                            const Color(0xFF0F1923).withOpacity(0.93),
-                          ],
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2C2C2C),
+                        border: Border(
+                          top: BorderSide(
+                              color: Color(0xFF444444), width: 1),
                         ),
-                        border: const Border(top: BorderSide(color: Color(0xFF2A3A4A), width: 1)),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, -2)),
+                          BoxShadow(
+                            color: Colors.black,
+                            blurRadius: 6,
+                            offset: Offset(0, -2),
+                          ),
                         ],
                       ),
-                      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                        _bottomStat(
-                          '${game.idleTrucks.length}',
-                          'Свободных',
-                          Icons.check_circle_outline,
-                          const Color(0xFF4CAF50),
-                        ),
-                        _bottomDivider(),
-                        _bottomStat(
-                          '${game.transitTrucks.length}',
-                          'В пути',
-                          Icons.local_shipping,
-                          const Color(0xFFFF9800),
-                        ),
-                        _bottomDivider(),
-                        _bottomStat(
-                          '${game.availableContracts.length}',
-                          'Контрактов',
-                          Icons.description_outlined,
-                          const Color(0xFF2196F3),
-                        ),
-                        _bottomDivider(),
-                        _bottomStat(
-                          '${game.myDrivers.length}',
-                          'Водителей',
-                          Icons.person_outline,
-                          const Color(0xFF64B5F6),
-                        ),
-                      ]),
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _ets2Stat(
+                              '${game.idleTrucks.length}',
+                              'Свободных',
+                              const Color(0xFF66BB6A),
+                            ),
+                            _ets2Divider(),
+                            _ets2Stat(
+                              '${game.transitTrucks.length}',
+                              'В пути',
+                              const Color(0xFFF5C542),
+                            ),
+                            _ets2Divider(),
+                            _ets2Stat(
+                              '${game.availableContracts.length}',
+                              'Контрактов',
+                              const Color(0xFF42A5F5),
+                            ),
+                            _ets2Divider(),
+                            _ets2Stat(
+                              '${game.myDrivers.length}',
+                              'Водителей',
+                              const Color(0xFF90CAF9),
+                            ),
+                          ]),
                     ),
                   ),
 
-                  // ===== MINIMAP / COMPASS (ETS2 style) =====
+                  // ===== COMPASS — ETS2 style =====
                   Positioned(
-                    bottom: 60, left: 12,
+                    bottom: 52,
+                    left: 10,
                     child: Container(
-                      width: 42, height: 42,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A2332).withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF2A3A4A)),
+                        color: const Color(0xFF2C2C2C),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                            color: const Color(0xFF444444), width: 0.5),
                       ),
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('N', style: TextStyle(color: Color(0xFFEF5350), fontSize: 14, fontWeight: FontWeight.w800)),
-                          SizedBox(height: 1),
-                          Icon(Icons.navigation, color: Color(0xFF78909C), size: 14),
+                          Text('N',
+                              style: TextStyle(
+                                  color: Color(0xFFEF5350),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800)),
+                          Icon(Icons.navigation,
+                              color: Color(0xFF999999), size: 10),
                         ],
                       ),
                     ),
@@ -755,65 +761,80 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
-  // ===== UI HELPER WIDGETS =====
+  // ===== ETS2-STYLE UI HELPERS =====
 
-  Widget _topBadge(IconData icon, String text, Color iconColor, Color bgColor) {
+  /// ETS2 info badge — dark background, colored text
+  Widget _ets2Badge(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: bgColor.withOpacity(0.55),
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: iconColor.withOpacity(0.3)),
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: const Color(0xFF444444), width: 0.5),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: iconColor, size: 15),
-        const SizedBox(width: 5),
-        Text(
-          text,
-          style: TextStyle(
-            color: iconColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            letterSpacing: 0.4,
-          ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+          letterSpacing: 0.3,
         ),
-      ]),
+      ),
     );
   }
 
-  Widget _bottomStat(String val, String label, IconData icon, Color color) => Row(mainAxisSize: MainAxisSize.min, children: [
-    Icon(icon, size: 16, color: color),
-    const SizedBox(width: 5),
-    Text(val, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5)),
-    const SizedBox(width: 5),
-    Text(label, style: const TextStyle(color: Color(0xFF78909C), fontSize: 11, fontWeight: FontWeight.w500)),
-  ]);
+  /// ETS2 bottom stat item
+  Widget _ets2Stat(String val, String label, Color color) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(val,
+              style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  letterSpacing: 0.4)),
+          const SizedBox(width: 4),
+          Text(label,
+              style:
+                  const TextStyle(color: Color(0xFF888888), fontSize: 10)),
+        ],
+      );
 
-  Widget _bottomDivider() => Container(
-    width: 1, height: 24,
-    decoration: BoxDecoration(
-      color: const Color(0xFF2A3A4A),
-      borderRadius: BorderRadius.circular(1),
-    ),
-  );
-
-  Widget _mapBtn(IconData icon, VoidCallback onTap) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 38, height: 38,
+  /// Thin vertical divider for ETS2 panels
+  Widget _ets2Divider() => Container(
+        width: 1,
+        height: 20,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A2332).withOpacity(0.94),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFF2A3A4A)),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 5, offset: const Offset(0, 2)),
-          ],
+          color: const Color(0xFF444444),
+          borderRadius: BorderRadius.circular(1),
         ),
-        child: Icon(icon, color: const Color(0xFF90A4AE), size: 19),
-      ),
-    ),
-  );
+      );
+
+  /// ETS2 dark map control button
+  Widget _ets2MapBtn(IconData icon, VoidCallback onTap) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2C2C2C),
+              borderRadius: BorderRadius.circular(4),
+              border:
+                  Border.all(color: const Color(0xFF444444), width: 0.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: const Color(0xFF999999), size: 17),
+          ),
+        ),
+      );
 }
