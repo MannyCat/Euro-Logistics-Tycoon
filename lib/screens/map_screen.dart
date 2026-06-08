@@ -582,19 +582,22 @@ class MapScreenState extends State<MapScreen> {
                     ),
                   ),
 
-                  // ===== ETS2-style route advisor info =====
+                  // ===== Real-time clock =====
                   Positioned(
                     bottom: 50, left: 10,
                     child: Container(
-                      width: 36, height: 36,
+                      width: 58, height: 36,
                       decoration: BoxDecoration(
                         color: const Color(0xFF2C2C2C),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFF444444), width: 0.5),
                       ),
-                      child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.speed, color: Color(0xFFF5C542), size: 16),
-                        Text('1x', style: TextStyle(color: Color(0xFF999999), fontSize: 8, fontWeight: FontWeight.w700)),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.access_time, color: Color(0xFFF5C542), size: 12),
+                        Text(
+                          '${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(color: Color(0xFF999999), fontSize: 9, fontWeight: FontWeight.w700, fontFamily: 'monospace'),
+                        ),
                       ]),
                     ),
                   ),

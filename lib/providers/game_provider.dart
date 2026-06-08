@@ -378,7 +378,8 @@ class GameProvider extends ChangeNotifier {
     try {
       final truck = _myTrucks.where((t) => t.id == truckId).firstOrNull;
       if (truck == null) return;
-      final cost = ((1.0 - truck.fuelLevel / truck.maxFuel) * GameConstants.fuelCostPer100km).round();
+      final missingFuel = truck.maxFuel - truck.fuelLevel;
+      final cost = (missingFuel * 1.5).round();
       if (cost <= 0) return;
 
       final comp = await _supabase.from('companies').select('money').eq('id', companyId).maybeSingle();

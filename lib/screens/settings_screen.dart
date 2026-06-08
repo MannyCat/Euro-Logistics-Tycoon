@@ -63,7 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Euro Logistics Tycoon', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 15, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 2),
-                  const Text('Версия 1.1.0  •  Сессия: ${0}ч', style: TextStyle(color: Color(0xFF888888), fontSize: 12)),
+                  Text('Версия 1.1.0  •  Сессия: ${_fmtDuration(_uptime)}', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
                 ]),
               ],
             ),

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
@@ -194,24 +195,70 @@ class _ContractCard extends StatelessWidget {
     final origin = game.getCityById(contract.originCityId);
     final dest = game.getCityById(contract.destinationCityId);
 
+    // Calculate distance
+    double distKm = 0;
+    if (origin != null && dest != null) {
+      distKm = _haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude);
+    }
+    final rewardPerKm = distKm > 0 ? (contract.reward / distKm).round() : 0;
+
     Color statusColor;
     String statusText;
+    IconData statusIcon;
     switch (contract.status) {
       case 'accepted':
         statusColor = const Color(0xFFF5C542);
         statusText = 'Активен';
+        statusIcon = Icons.local_shipping;
         break;
       case 'completed':
         statusColor = const Color(0xFF66BB6A);
         statusText = 'Завершён';
+        statusIcon = Icons.check_circle;
         break;
       case 'expired':
         statusColor = const Color(0xFFEF5350);
         statusText = 'Истёк';
+        statusIcon = Icons.timer_off;
         break;
       default:
         statusColor = const Color(0xFF42A5F5);
         statusText = 'Доступен';
+        statusIcon = Icons.description;
+    }
+
+    // Deadline progress
+    double deadlineProgress = 0.0;
+    Color deadlineColor = const Color(0xFF66BB6A);
+    if (contract.expiresAt != null && contract.createdAt != null) {
+      final total = contract.expiresAt!.difference(contract.createdAt).inSeconds;
+      if (total > 0) {
+        final elapsed = DateTime.now().difference(contract.createdAt).inSeconds;
+        deadlineProgress = (elapsed / total).clamp(0.0, 1.0);
+        if (deadlineProgress > 0.8) {
+          deadlineColor = const Color(0xFFEF5350);
+        } else if (deadlineProgress > 0.5) {
+          deadlineColor = const Color(0xFFF5C542);
+        }
+      }
+    }
+
+    // Find assigned truck info for active contracts
+    String? assignedTruckName;
+    if (isOwn && contract.assignedTruckId != null) {
+      final truck = game.myTrucks.where((t) => t.id == contract.assignedTruckId).firstOrNull;
+      if (truck != null) {
+        assignedTruckName = truck.name;
+        // Show ETA
+        if (truck.estimatedArrival != null) {
+          final diff = truck.estimatedArrival!.difference(DateTime.now());
+          if (!diff.isNegative) {
+            statusText = '${diff.inHours}ч ${diff.inMinutes % 60}м';
+          } else {
+            statusText = 'Прибыл!';
+          }
+        }
+      }
     }
 
     return Container(
@@ -220,11 +267,12 @@ class _ContractCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF252525),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF3A3A3A)),
+        border: Border.all(color: contract.status == 'accepted' ? const Color(0xFFF5C542).withOpacity(0.3) : const Color(0xFF3A3A3A)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header row
           Row(
             children: [
               Container(
@@ -234,7 +282,14 @@ class _ContractCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: statusColor.withOpacity(0.3)),
                 ),
-                child: Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 11)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(statusIcon, size: 12, color: statusColor),
+                    const SizedBox(width: 4),
+                    Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 11)),
+                  ],
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(child: Text(contract.cargoType, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600))),
@@ -244,28 +299,65 @@ class _ContractCard extends StatelessWidget {
               ),
             ],
           ),
+          // Assigned truck info
+          if (assignedTruckName != null) ...[
+            const SizedBox(height: 4),
+            Row(children: [
+              Icon(Icons.local_shipping, size: 12, color: const Color(0xFFF5C542).withOpacity(0.7)),
+              const SizedBox(width: 4),
+              Text(assignedTruckName, style: TextStyle(color: const Color(0xFFF5C542).withOpacity(0.9), fontSize: 11)),
+            ]),
+          ],
           const SizedBox(height: 8),
+          // Route row
           Row(
             children: [
               Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF66BB6A))),
               const SizedBox(width: 6),
-              Text(origin?.name ?? '?', style: const TextStyle(color: Color(0xFFBBBBBB), fontSize: 12)),
-              const Spacer(),
-              const Icon(Icons.arrow_forward, size: 14, color: Color(0xFF666666)),
-              const SizedBox(width: 8),
-              Text(dest?.name ?? '?', style: const TextStyle(color: Color(0xFFBBBBBB), fontSize: 12)),
+              Flexible(child: Text(origin?.name ?? '?', style: const TextStyle(color: Color(0xFFBBBBBB), fontSize: 12), overflow: TextOverflow.ellipsis)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(width: 40, height: 1, color: const Color(0xFF666666)),
+                    Icon(Icons.arrow_forward, size: 10, color: const Color(0xFF666666)),
+                    Container(width: 40, height: 1, color: const Color(0xFF666666)),
+                  ],
+                ),
+              ),
+              Flexible(child: Text(dest?.name ?? '?', style: const TextStyle(color: Color(0xFFBBBBBB), fontSize: 12), overflow: TextOverflow.ellipsis)),
               const SizedBox(width: 6),
               Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFEF5350))),
             ],
           ),
           const SizedBox(height: 6),
+          // Stats row
           Row(
             children: [
               Text('${contract.cargoWeight}т', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
-              const SizedBox(width: 16),
-              Text('Срок: ${contract.deadlineHours}ч', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
+              const SizedBox(width: 12),
+              Text('${distKm.round()}km', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
+              const SizedBox(width: 12),
+              Text('${GameConstants.formatMoney(rewardPerKm)}/km', style: const TextStyle(color: Color(0xFF42A5F5), fontSize: 11, fontFamily: 'monospace')),
+              const Spacer(),
+              Text('${contract.deadlineHours}ч', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
             ],
           ),
+          // Deadline progress bar for available/accepted contracts
+          if (contract.isAvailable || contract.isAccepted) ...[
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: deadlineProgress,
+                backgroundColor: const Color(0xFF1A1A1A),
+                valueColor: AlwaysStoppedAnimation<Color>(deadlineColor),
+                minHeight: 3,
+              ),
+            ),
+          ],
+          // Accept button
           if (!isOwn && contract.isAvailable) ...[
             const SizedBox(height: 10),
             _AcceptButton(contract: contract, game: game, companyId: companyId),
@@ -273,6 +365,16 @@ class _ContractCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371.0;
+    final dLat = (lat2 - lat1) * 3.14159265359 / 180;
+    final dLon = (lon2 - lon1) * 3.14159265359 / 180;
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * 3.14159265359 / 180) * math.cos(lat2 * 3.14159265359 / 180) *
+            math.sin(dLon / 2) * math.sin(dLon / 2);
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   }
 }
 

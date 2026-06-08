@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_theme.dart';
 import '../config/game_constants.dart';
 import '../providers/auth_provider.dart';
+import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
 
 class Transaction {
@@ -86,6 +87,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final game = context.watch<GameProvider>();
     return ETS2Modal(
       title: 'Финансы',
       icon: Icons.receipt_long,
@@ -110,7 +112,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     Container(width: 1, height: 36, color: const Color(0xFF3A3A3A)),
                     _summaryItem('Расход', _totalExpense, const Color(0xFFEF5350)),
                     Container(width: 1, height: 36, color: const Color(0xFF3A3A3A)),
-                    _summaryItem('Баланс', _totalIncome + _totalExpense, (_totalIncome + _totalExpense) >= 0 ? const Color(0xFF42A5F5) : const Color(0xFFEF5350)),
+                    Column(
+                      children: [
+                        const Text('Баланс', style: TextStyle(color: Color(0xFF888888), fontSize: 11)),
+                        const SizedBox(height: 4),
+                        Text(GameConstants.formatMoney(game.company?.money ?? 0), style: TextStyle(color: (game.company?.money ?? 0) >= 0 ? const Color(0xFF42A5F5) : const Color(0xFFEF5350), fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'monospace')),
+                      ],
+                    ),
                   ]),
                 ),
                 const Divider(height: 1, color: Color(0xFF3A3A3A)),

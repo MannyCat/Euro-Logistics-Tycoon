@@ -214,7 +214,25 @@ class _BuyWarehouseView extends StatelessWidget {
                       )
                     else
                       TextButton(
-                        onPressed: canAfford ? () async { await game.claimWarehouse(companyId, city.id); onPurchased(); } : null,
+                        onPressed: canAfford ? () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              backgroundColor: const Color(0xFF1E1E1E),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
+                              title: Text('Купить склад в ${city.name}?', style: const TextStyle(color: Color(0xFFD0D0D0))),
+                              content: Text('Стоимость: ${GameConstants.formatMoney(city.warehouseCost)}', style: const TextStyle(color: Color(0xFF888888))),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
+                                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Купить', style: TextStyle(color: Color(0xFF66BB6A)))),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await game.claimWarehouse(companyId, city.id);
+                            onPurchased();
+                          }
+                        } : null,
                         child: Text(GameConstants.formatMoney(city.warehouseCost), style: TextStyle(color: canAfford ? const Color(0xFF66BB6A) : const Color(0xFFEF5350), fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'monospace')),
                       ),
                   ],
