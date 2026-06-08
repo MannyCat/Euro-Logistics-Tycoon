@@ -22,6 +22,7 @@ import 'settings_screen.dart';
 import '../config/game_constants.dart';
 import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
+import 'clan_screen.dart';
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
@@ -283,6 +284,9 @@ class MapScreenState extends State<MapScreen> {
             return KeyEventResult.handled;
           case LogicalKeyboardKey.keyA:
             _openModal(const AchievementsScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyG:
+            _openModal(const ClanScreen());
             return KeyEventResult.handled;
           case LogicalKeyboardKey.escape:
             Navigator.of(context).popUntil((route) => route is PopupRoute && Navigator.of(context).canPop() ? false : true);
@@ -546,6 +550,10 @@ class MapScreenState extends State<MapScreen> {
                           _ets2Badge(company.moneyFormatted, const Color(0xFFF5C542)),
                           const SizedBox(width: 6),
                           _ets2Badge('Lv.${company.level}', const Color(0xFF66BB6A)),
+                          if (game.isInClan && game.myClan != null) ...[
+                            const SizedBox(width: 6),
+                            _ets2Badge('[${game.myClan!.tag}]', const Color(0xFFCE93D8)),
+                          ],
                           const SizedBox(width: 6),
                           Container(
                             width: 80, height: 18,

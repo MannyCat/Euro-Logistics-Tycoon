@@ -12,6 +12,7 @@ import 'transactions_screen.dart';
 import 'settings_screen.dart';
 import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
+import 'clan_screen.dart';
 
 class MobileDrawer extends StatelessWidget {
   final void Function(Widget modal) onOpenModal;
@@ -102,6 +103,10 @@ class MobileDrawer extends StatelessWidget {
                   _navItem(context, Icons.military_tech_outlined, 'Достижения', () {
                     Navigator.pop(context);
                     onOpenModal(const AchievementsScreen());
+                  }),
+                  _navItem(context, Icons.shield_outlined, 'Кланы', () {
+                    Navigator.pop(context);
+                    onOpenModal(const ClanScreen());
                   }),
                   const Divider(height: 1, color: AppTheme.divider, indent: 16, endIndent: 16),
                   _navItem(context, Icons.settings_outlined, 'Настройки', () {

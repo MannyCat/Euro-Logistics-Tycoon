@@ -11,6 +11,7 @@ import 'transactions_screen.dart';
 import 'settings_screen.dart';
 import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
+import 'clan_screen.dart';
 
 class Sidebar extends StatelessWidget {
   final VoidCallback onRefresh;
@@ -61,6 +62,7 @@ class Sidebar extends StatelessWidget {
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
                 _navItem(Icons.emoji_events_outlined, 'Рейтинг', 'L', () => onOpenModal(const LeaderboardScreen())),
                 _navItem(Icons.military_tech_outlined, 'Достижения', 'A', () => onOpenModal(const AchievementsScreen())),
+                _navItem(Icons.shield_outlined, 'Кланы', 'G', () => onOpenModal(const ClanScreen())),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
                 _navItem(Icons.settings_outlined, 'Настройки', null, () => onOpenModal(const SettingsScreen())),
               ],

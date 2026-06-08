@@ -40,6 +40,9 @@ class GameConstants {
   static const int loadingDurationSeconds = 30;
   static const int contractRefreshSeconds = 5;
   static const int contractGenerationMinutes = 5;
+  static const int clanCreateCost = 50000;
+  static const int clanMaxMembers = 10;
+  static const int clanXpPerLevel = 5000;
 
   // ===== LEVEL UNLOCKS =====
   static const List<LevelUnlock> levelUnlocks = [
@@ -132,6 +135,8 @@ class GameConstants {
 
   static const List<String> driverFirstNames = ['Hans', 'Pierre', 'Marco', 'Jan', 'Erik', 'Sven', 'Klaus', 'Olivier', 'Lukas', 'Fritz', 'Anton', 'Dieter', 'Max', 'Stefan', 'Wolfgang'];
   static const List<String> driverLastNames = ['Mueller', 'Dupont', 'Rossi', 'Jansen', 'Lindberg', 'Kowalski', 'Berg', 'Weber', 'Schmidt', 'Fischer', 'Hoffman', 'Klein', 'Braun', 'Zimmermann', 'Wagner'];
+
+  static String truckAssetPath(String type) => 'assets/trucks/$type.png';
 
   static TruckTypeInfo? findTruckType(String type) {
     for (final t in truckTypes) {

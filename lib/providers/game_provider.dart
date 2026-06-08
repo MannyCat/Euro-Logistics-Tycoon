@@ -10,6 +10,7 @@ import '../models/driver.dart';
 import '../models/contract.dart';
 import '../models/warehouse.dart';
 import '../models/achievement.dart';
+import '../models/clan.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371.0;
@@ -39,6 +40,9 @@ class GameProvider extends ChangeNotifier {
   List<Warehouse> _myWarehouses = [];
   List<Achievement> _myAchievements = [];
   List<Map<String, dynamic>> _leaderboard = [];
+  Clan? _myClan;
+  List<ClanMember> _clanMembers = [];
+  List<Map<String, dynamic>> _clanLeaderboard = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
@@ -61,6 +65,18 @@ class GameProvider extends ChangeNotifier {
   List<Achievement> get myAchievements => _myAchievements;
   List<Map<String, dynamic>> get leaderboard => _leaderboard;
   Set<String> get unlockedAchievementIds => _myAchievements.map((a) => a.id).toSet();
+  Clan? get myClan => _myClan;
+  List<ClanMember> get clanMembers => _clanMembers;
+  List<Map<String, dynamic>> get clanLeaderboard => _clanLeaderboard;
+  String? get myClanRole {
+    for (final m in _clanMembers) {
+      if (m.companyId == _currentCompanyId) return m.role;
+    }
+    return null;
+  }
+  bool get isInClan => _myClan != null;
+  bool get isClanLeader => myClanRole == 'leader';
+  bool get canManageClan => myClanRole == 'leader' || myClanRole == 'officer';
   int get achievementCount => _myAchievements.length;
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
@@ -204,6 +220,51 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadMyClan(String companyId) async {
+    try {
+      final resp = await _supabase
+          .from('clan_members')
+          .select('clan_id, role')
+          .eq('company_id', companyId)
+          .maybeSingle();
+      if (resp != null && resp['clan_id'] != null) {
+        await loadClanDetails(resp['clan_id'] as String);
+      } else {
+        _myClan = null;
+        _clanMembers = [];
+      }
+    } catch (e) {
+      debugPrint('Load my clan error: $e');
+    }
+  }
+
+  Future<void> loadClanDetails(String clanId) async {
+    try {
+      final details = await _supabase.rpc('get_clan_details', params: {'p_clan_id': clanId});
+      if (details != null && details is Map<String, dynamic>) {
+        final clanData = details['clan'] as Map<String, dynamic>?;
+        if (clanData != null) {
+          _myClan = Clan.fromJson(Map<String, dynamic>.from(clanData));
+        }
+        final membersData = details['members'] as List<dynamic>?;
+        _clanMembers = (membersData ?? []).map<ClanMember>((e) {
+          return ClanMember.fromJson(Map<String, dynamic>.from(e as Map));
+        }).toList();
+      }
+    } catch (e) {
+      debugPrint('Load clan details error: $e');
+    }
+  }
+
+  Future<void> loadClanLeaderboard() async {
+    try {
+      final resp = await _supabase.rpc('clan_leaderboard');
+      _clanLeaderboard = List<Map<String, dynamic>>.from(resp as List? ?? []);
+    } catch (e) {
+      debugPrint('Load clan leaderboard error: $e');
+    }
+  }
+
   Future<void> loadLeaderboard() async {
     try {
       final resp = await _supabase.from('leaderboard').select().limit(20);
@@ -250,6 +311,8 @@ class GameProvider extends ChangeNotifier {
         loadMyWarehouses(companyId),
         loadMyAchievements(companyId),
         loadLeaderboard(),
+        loadMyClan(companyId),
+        loadClanLeaderboard(),
       ]);
       // Try to complete expired contracts server-side
       await _supabase.rpc('complete_expired_contracts');
@@ -536,6 +599,91 @@ class GameProvider extends ChangeNotifier {
       return true;
     } catch (e) { _error = 'Ошибка покупки склада: $e'; return false; }
     finally { _isLoading = false; notifyListeners(); }
+  }
+
+  Future<bool> createClan(String companyId, String name, String tag, String description) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final resp = await _supabase.rpc('create_clan', params: {
+        'p_company_id': companyId,
+        'p_name': name,
+        'p_tag': tag,
+        'p_description': description,
+      });
+      final clanId = resp as String?;
+      if (clanId != null) {
+        await loadMyClan(companyId);
+        await loadClanLeaderboard();
+        await loadMyTrucks(companyId);
+        await loadCompany(companyId);
+        return true;
+      }
+      _error = 'Не удалось создать клан';
+      return false;
+    } catch (e) { _error = 'Ошибка создания клана: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
+  Future<bool> joinClan(String companyId, String clanId) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final resp = await _supabase.rpc('join_clan', params: {
+        'p_company_id': companyId,
+        'p_clan_id': clanId,
+      });
+      if (resp == true) {
+        await loadMyClan(companyId);
+        await loadClanLeaderboard();
+        return true;
+      }
+      _error = 'Не удалось вступить в клан';
+      return false;
+    } catch (e) { _error = 'Ошибка вступления: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
+  Future<bool> leaveClan(String companyId) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final resp = await _supabase.rpc('leave_clan', params: {'p_company_id': companyId});
+      if (resp == true) {
+        _myClan = null;
+        _clanMembers = [];
+        await loadClanLeaderboard();
+        return true;
+      }
+      _error = 'Не удалось покинуть клан';
+      return false;
+    } catch (e) { _error = 'Ошибка выхода: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
+  Future<bool> kickClanMember(String companyId, String targetCompanyId) async {
+    try {
+      final resp = await _supabase.rpc('kick_clan_member', params: {
+        'p_company_id': companyId,
+        'p_target_company_id': targetCompanyId,
+      });
+      if (_myClan != null) await loadClanDetails(_myClan!.id);
+      return resp == true;
+    } catch (e) { _error = 'Ошибка исключения: $e'; return false; }
+  }
+
+  Future<bool> promoteMember(String companyId, String targetCompanyId, String newRole) async {
+    try {
+      final resp = await _supabase.rpc('set_clan_role', params: {
+        'p_company_id': companyId,
+        'p_target_company_id': targetCompanyId,
+        'p_new_role': newRole,
+      });
+      if (_myClan != null) await loadClanDetails(_myClan!.id);
+      return resp == true;
+    } catch (e) { _error = 'Ошибка: $e'; return false; }
+  }
+
+  Future<void> refreshClan(String companyId) async {
+    await loadMyClan(companyId);
+    await loadClanLeaderboard();
   }
 
   @override

@@ -178,10 +178,19 @@ class _TruckCardState extends State<_TruckCard> {
         children: [
           Row(
             children: [
-              Container(
-                width: 42, height: 42,
-                decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-                child: Icon(statusIcon, color: statusColor, size: 22),
+              // Truck image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  GameConstants.truckAssetPath(truck.truckType),
+                  width: 42, height: 42,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 42, height: 42,
+                    decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                    child: Icon(statusIcon, color: statusColor, size: 22),
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -614,6 +623,17 @@ class _TruckOption extends StatelessWidget {
                 child: selected ? Center(child: Container(width: 10, height: 10, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFF5C542)))) : null,
               ),
               const SizedBox(width: 10),
+              // Truck type image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.asset(
+                  GameConstants.truckAssetPath(info.type),
+                  width: 40, height: 28,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(width: 40, height: 28),
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

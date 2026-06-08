@@ -29,6 +29,7 @@ class Transaction {
     'repair' => Icons.build,
     'warehouse' => Icons.warehouse,
     'salary' => Icons.account_balance_wallet,
+    'clan_create' => Icons.shield,
     _ => Icons.receipt,
   };
 
@@ -41,6 +42,7 @@ class Transaction {
     'repair' => const Color(0xFFEF5350),
     'warehouse' => const Color(0xFF42A5F5),
     'salary' => const Color(0xFFEF5350),
+    'clan_create' => const Color(0xFFCE93D8),
     _ => const Color(0xFF888888),
   };
 }
