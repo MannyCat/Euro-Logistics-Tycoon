@@ -349,7 +349,7 @@ class _TruckCardState extends State<_TruckCard> {
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
         title: Text('Продать ${truck.name}?', style: const TextStyle(color: Color(0xFFD0D0D0))),
-        content: Text('Вы получите ${GameConstants.formatMoney(sellPrice)} (60% от стоимости)', style: const TextStyle(color: Color(0xFF888888))),
+        content: Text('Вы получите ${GameConstants.formatMoney(sellPrice)} (${(GameConstants.sellBackRatio * 100).toInt()}% от стоимости)', style: const TextStyle(color: Color(0xFF888888))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Продать', style: TextStyle(color: Color(0xFFEF5350)))),

@@ -32,7 +32,16 @@ class _ContractsScreenState extends State<ContractsScreen> {
           IconButton(
             icon: const Icon(Icons.add_circle_outline, color: Color(0xFFF5C542), size: 20),
             tooltip: 'Сгенерировать',
-            onPressed: () => game.generateNewContracts(),
+            onPressed: () async {
+              await game.generateNewContracts();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Новые контракты сгенерированы'),
+                  backgroundColor: Color(0xFF42A5F5),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
+            },
           ),
         IconButton(
           icon: const Icon(Icons.refresh, color: Color(0xFF999999), size: 18),
@@ -440,11 +449,22 @@ class _ContractCard extends StatelessWidget {
 
 }
 
-class _AcceptButton extends StatelessWidget {
+class _AcceptButton extends StatefulWidget {
   final Contract contract;
   final GameProvider game;
   final String companyId;
   const _AcceptButton({required this.contract, required this.game, required this.companyId});
+
+  @override
+  State<_AcceptButton> createState() => _AcceptButtonState();
+}
+
+class _AcceptButtonState extends State<_AcceptButton> {
+  bool _isAccepting = false;
+
+  Contract get contract => widget.contract;
+  GameProvider get game => widget.game;
+  String get companyId => widget.companyId;
 
   @override
   Widget build(BuildContext context) {
@@ -454,20 +474,24 @@ class _AcceptButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: hasIdle ? () => _accept(context) : null,
+        onPressed: (hasIdle && !_isAccepting) ? () => _accept(context) : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFF5C542),
           foregroundColor: const Color(0xFF1A1A1A),
           minimumSize: const Size(double.infinity, 40),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        icon: const Icon(Icons.check, size: 16),
+        icon: _isAccepting
+            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Color(0xFF1A1A1A), strokeWidth: 2))
+            : const Icon(Icons.check, size: 16),
         label: Text(
-          nearest != null
-              ? 'Принять (${nearest.name})'
-              : hasIdle
-                  ? 'Принять (${game.idleTrucks.first.name})'
-                  : 'Нет свободных грузовиков',
+          _isAccepting
+              ? 'Принятие...'
+              : nearest != null
+                  ? 'Принять (${nearest.name})'
+                  : hasIdle
+                      ? 'Принять (${game.idleTrucks.first.name})'
+                      : 'Нет свободных грузовиков',
           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
         ),
       ),
@@ -475,11 +499,13 @@ class _AcceptButton extends StatelessWidget {
   }
 
   void _accept(BuildContext context) async {
+    setState(() => _isAccepting = true);
     final result = await game.acceptContract(
       contractId: contract.id,
       truckId: null,
       companyId: companyId,
     );
+    if (mounted) setState(() => _isAccepting = false);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(result.success

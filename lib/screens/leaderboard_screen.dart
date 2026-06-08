@@ -25,9 +25,7 @@ class LeaderboardScreen extends StatelessWidget {
           onPressed: () => game.loadLeaderboard(),
         ),
       ],
-      child: game.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF5C542)))
-          : leaderboard.isEmpty
+      child: leaderboard.isEmpty
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

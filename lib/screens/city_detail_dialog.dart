@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
@@ -6,7 +5,7 @@ import '../config/game_constants.dart';
 import '../models/city.dart';
 import '../models/contract.dart';
 import '../providers/auth_provider.dart';
-import '../providers/game_provider.dart';
+import '../providers/game_provider.dart' as gp show haversineKm;
 
 class CityDetailDialog extends StatelessWidget {
   final City city;
@@ -153,10 +152,20 @@ class CityDetailDialog extends StatelessWidget {
   ]);
 }
 
-class _ContractCard extends StatelessWidget {
+class _ContractCard extends StatefulWidget {
   final Contract contract;
   final String companyId;
   const _ContractCard({required this.contract, required this.companyId});
+
+  @override
+  State<_ContractCard> createState() => _ContractCardState();
+}
+
+class _ContractCardState extends State<_ContractCard> {
+  bool _isAccepting = false;
+
+  Contract get contract => widget.contract;
+  String get companyId => widget.companyId;
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +174,7 @@ class _ContractCard extends StatelessWidget {
     final dest = game.getCityById(contract.destinationCityId);
 
     final dist = origin != null && dest != null
-        ? _haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude).round()
+        ? gp.haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude).round()
         : 0;
 
     final hasIdle = game.idleTrucks.isNotEmpty;
@@ -205,9 +214,11 @@ class _ContractCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => _accept(context, game),
-              icon: const Icon(Icons.check, size: 16),
-              label: Text('Принять (${nearest.name})', style: const TextStyle(fontSize: 12)),
+              onPressed: !_isAccepting ? () => _accept(context, game) : null,
+              icon: _isAccepting
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Color(0xFF1A1A1A), strokeWidth: 2))
+                  : const Icon(Icons.check, size: 16),
+              label: Text(_isAccepting ? 'Принятие...' : 'Принять (${nearest.name})', style: const TextStyle(fontSize: 12)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF5C542),
                 foregroundColor: const Color(0xFF1A1A1A),
@@ -236,11 +247,13 @@ class _ContractCard extends StatelessWidget {
   }
 
   void _accept(BuildContext context, GameProvider game) async {
+    setState(() => _isAccepting = true);
     final result = await game.acceptContract(
       contractId: contract.id,
       truckId: null,
       companyId: companyId,
     );
+    if (mounted) setState(() => _isAccepting = false);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(result.success
@@ -251,15 +264,5 @@ class _ContractCard extends StatelessWidget {
       ));
       if (result.success) Navigator.pop(context);
     }
-  }
-
-  double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371.0;
-    final dLat = (lat2 - lat1) * math.pi / 180;
-    final dLon = (lon2 - lon1) * math.pi / 180;
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(lat1 * math.pi / 180) * math.cos(lat2 * math.pi / 180) *
-            math.sin(dLon / 2) * math.sin(dLon / 2);
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   }
 }

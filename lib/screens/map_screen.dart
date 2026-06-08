@@ -621,6 +621,8 @@ class MapScreenState extends State<MapScreen> {
                         _ets2Stat('${game.availableContracts.length}', 'Контрактов', const Color(0xFF42A5F5)),
                         _ets2Divider(),
                         _ets2Stat('${game.myDrivers.length}', 'Водителей', const Color(0xFF90CAF9)),
+                        _ets2Divider(),
+                        _ets2Stat('${game.myWarehouses.length}', 'Складов', const Color(0xFFCE93D8)),
                       ]),
                     ),
                   ),
