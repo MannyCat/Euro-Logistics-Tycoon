@@ -5,7 +5,7 @@ import '../config/game_constants.dart';
 import '../models/city.dart';
 import '../models/contract.dart';
 import '../providers/auth_provider.dart';
-import '../providers/game_provider.dart' as gp show haversineKm;
+import '../providers/game_provider.dart';
 
 class CityDetailDialog extends StatelessWidget {
   final City city;
@@ -174,7 +174,7 @@ class _ContractCardState extends State<_ContractCard> {
     final dest = game.getCityById(contract.destinationCityId);
 
     final dist = origin != null && dest != null
-        ? gp.haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude).round()
+        ? haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude).round()
         : 0;
 
     final hasIdle = game.idleTrucks.isNotEmpty;

@@ -152,7 +152,7 @@ class _NoClanView extends StatelessWidget {
                       const SizedBox(width: 8),
                       const Text('Создать клан', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w600)),
                       const Spacer(),
-                      Text(GameConstants.formatMoney(GameConstants.clanCreateCost), style: const TextStyle(color: canAfford ? Color(0xFF66BB6A) : Color(0xFFEF5350), fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'monospace')),
+                      Text(GameConstants.formatMoney(GameConstants.clanCreateCost), style: TextStyle(color: canAfford ? const Color(0xFF66BB6A) : const Color(0xFFEF5350), fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'monospace')),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -344,7 +344,8 @@ class _CreateClanDialogState extends State<_CreateClanDialog> {
               const SizedBox(height: 12),
               TextField(
                 controller: _tagCtrl,
-                style: const TextStyle(color: Color(0xFFD0D0D0), textCapitalization: TextCapitalization.characters),
+                style: const TextStyle(color: Color(0xFFD0D0D0)),
+                textCapitalization: TextCapitalization.characters,
                 maxLength: 5,
                 decoration: const InputDecoration(
                   labelText: 'Тег (2-5 символов)',
@@ -387,7 +388,7 @@ class _CreateClanDialogState extends State<_CreateClanDialog> {
   }
 
   void _create() async {
-    setState(() => _isCreating = true; _error = null);
+    setState(() { _isCreating = true; _error = null; });
     final ok = await widget.game.createClan(
       widget.companyId,
       _nameCtrl.text.trim(),
@@ -531,7 +532,7 @@ class _ClanDetailView extends StatelessWidget {
       content: const Text('Вы уверены?', style: TextStyle(color: Color(0xFF888888))),
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
-        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Покинуть', style: TextStyle(color: Color(0xFFEF5350))),
+        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Покинуть', style: TextStyle(color: Color(0xFFEF5350)))),
       ],
     ))).then((confirmed) async {
       if (confirmed == true) {
@@ -583,7 +584,7 @@ class _MemberCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Flexible(child: Text(member.companyName ?? '???", style: TextStyle(color: const Color(0xFFD0D0D0), fontSize: 13, fontWeight: isMe ? FontWeight.w700 : FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                    Flexible(child: Text(member.companyName ?? '???', style: TextStyle(color: const Color(0xFFD0D0D0), fontSize: 13, fontWeight: isMe ? FontWeight.w700 : FontWeight.w600), overflow: TextOverflow.ellipsis)),
                     const SizedBox(width: 8),
                     if (isMe)
                       const Text('(вы)', style: TextStyle(color: Color(0xFFF5C542), fontSize: 10, fontWeight: FontWeight.w600)),
@@ -642,7 +643,7 @@ class _MemberCard extends StatelessWidget {
           content: const Text('Участник будет удалён из клана.', style: TextStyle(color: Color(0xFF888888))),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Исключить', style: TextStyle(color: Color(0xFFEF5350))),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Исключить', style: TextStyle(color: Color(0xFFEF5350)))),
           ],
         )));
         if (confirm == true) ok = await game.kickClanMember(companyId, member.companyId);
