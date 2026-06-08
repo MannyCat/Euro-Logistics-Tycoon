@@ -4,6 +4,7 @@ import '../config/app_theme.dart';
 import '../config/game_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
+import '../models/clan.dart';
 import '../widgets/ets2_modal.dart';
 
 class ClanScreen extends StatefulWidget {
@@ -534,7 +535,7 @@ class _ClanDetailView extends StatelessWidget {
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
         TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Покинуть', style: TextStyle(color: Color(0xFFEF5350)))),
       ],
-    ))).then((confirmed) async {
+    )).then((confirmed) async {
       if (confirmed == true) {
         final ok = await game.leaveClan(companyId);
         if (context.mounted) {
@@ -645,7 +646,7 @@ class _MemberCard extends StatelessWidget {
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
             TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Исключить', style: TextStyle(color: Color(0xFFEF5350)))),
           ],
-        )));
+        ));
         if (confirm == true) ok = await game.kickClanMember(companyId, member.companyId);
         break;
     }

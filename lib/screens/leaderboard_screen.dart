@@ -208,6 +208,7 @@ class _PodiumCard extends StatelessWidget {
     final level = entry['level'] as int? ?? 1;
     final money = entry['money'] as int? ?? 0;
     final truckCount = entry['truck_count'] as int? ?? 0;
+    final clanTag = entry['clan_tag'] as String?;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: isFirst ? 18 : 12),
@@ -265,6 +266,25 @@ class _PodiumCard extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
+          // Clan tag badge
+          if (clanTag != null && clanTag.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFCE93D8).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFCE93D8).withOpacity(0.3)),
+              ),
+              child: Text(
+                clanTag,
+                style: const TextStyle(
+                  color: Color(0xFFCE93D8),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          if (clanTag != null && clanTag.isNotEmpty) const SizedBox(height: 4),
           // Level badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -335,6 +355,7 @@ class _PlayerRow extends StatelessWidget {
     final truckCount = entry['truck_count'] as int? ?? 0;
     final completedContracts = entry['completed_contracts'] as int? ?? 0;
     final achievementCount = entry['achievement_count'] as int? ?? 0;
+    final clanTag = entry['clan_tag'] as String?;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -363,20 +384,45 @@ class _PlayerRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          // Name + level
+          // Name + clan tag + level
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    color: isMe ? const Color(0xFFF5C542) : const Color(0xFFD0D0D0),
-                    fontSize: 13,
-                    fontWeight: isMe ? FontWeight.w700 : FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: TextStyle(
+                          color: isMe ? const Color(0xFFF5C542) : const Color(0xFFD0D0D0),
+                          fontSize: 13,
+                          fontWeight: isMe ? FontWeight.w700 : FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (clanTag != null && clanTag.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCE93D8).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFCE93D8).withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          clanTag,
+                          style: const TextStyle(
+                            color: Color(0xFFCE93D8),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 1),
                 Text(
