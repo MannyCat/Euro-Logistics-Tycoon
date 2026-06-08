@@ -56,7 +56,6 @@ class MapScreenState extends State<MapScreen> {
       if (mounted) setState(() {});
     });
   }
-
   @override
   void dispose() {
     _refreshTimer?.cancel();
@@ -379,6 +378,7 @@ class MapScreenState extends State<MapScreen> {
                         // Truck markers
                         MarkerLayer(
                           markers: [
+                            // Idle trucks — green circles
                             ...game.myTrucks.where((t) => t.isIdle).map((truck) {
                               final pos = _getTruckPosition(truck, game);
                               if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
@@ -402,7 +402,39 @@ class MapScreenState extends State<MapScreen> {
                                 ),
                               );
                             }),
-                            ...game.myTrucks.where((t) => t.isInTransit).map((truck) {
+                            // Loading trucks — blue pulsing
+                            ...game.myTrucks.where((t) => t.status == 'loading').map((truck) {
+                              final pos = _getTruckPosition(truck, game);
+                              if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
+                              return Marker(
+                                point: pos, width: 38, height: 38,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Container(
+                                      width: 34, height: 34,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xFF42A5F5).withOpacity(0.12),
+                                        border: Border.all(color: const Color(0xFF42A5F5).withOpacity(0.3), width: 1.5),
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 22, height: 22,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF42A5F5),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 2),
+                                        boxShadow: [BoxShadow(color: const Color(0xFF42A5F5).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)],
+                                      ),
+                                      child: const Icon(Icons.hourglass_top, size: 11, color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            // In-transit trucks — amber
+                            ...game.myTrucks.where((t) => t.status == 'in_transit').map((truck) {
                               final pos = _getTruckPosition(truck, game);
                               if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
                               return Marker(
@@ -550,7 +582,7 @@ class MapScreenState extends State<MapScreen> {
                     ),
                   ),
 
-                  // ===== COMPASS =====
+                  // ===== ETS2-style route advisor info =====
                   Positioned(
                     bottom: 50, left: 10,
                     child: Container(
@@ -561,8 +593,8 @@ class MapScreenState extends State<MapScreen> {
                         border: Border.all(color: const Color(0xFF444444), width: 0.5),
                       ),
                       child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text('N', style: TextStyle(color: Color(0xFFEF5350), fontSize: 12, fontWeight: FontWeight.w800)),
-                        Icon(Icons.navigation, color: Color(0xFF999999), size: 10),
+                        Icon(Icons.speed, color: Color(0xFFF5C542), size: 16),
+                        Text('1x', style: TextStyle(color: Color(0xFF999999), fontSize: 8, fontWeight: FontWeight.w700)),
                       ]),
                     ),
                   ),

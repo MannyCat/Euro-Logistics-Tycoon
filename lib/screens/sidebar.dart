@@ -35,33 +35,34 @@ class Sidebar extends StatelessWidget {
             child: Row(children: [
               Container(
                 width: 32, height: 32,
-                decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.local_shipping, color: AppTheme.accent, size: 18),
+                decoration: BoxDecoration(color: const Color(0xFFF5C542).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 18),
               ),
               const SizedBox(width: 10),
-              const Text('ELT', style: TextStyle(color: AppTheme.text, fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 2)),
+              const Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text('ELT', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 2)),
+              ]),
             ]),
           ),
           const Divider(height: 1, color: AppTheme.divider),
 
-          // Navigation
+          // Navigation — all modals
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 6),
               children: [
-                _navItem(Icons.map_outlined, 'Карта', true, () {}),
-                _navItem(Icons.description_outlined, 'Контракты', false, () => onOpenModal(const ContractsScreen())),
-                _navItem(Icons.local_shipping_outlined, 'Автопарк', false, () => onOpenModal(const FleetScreen())),
-                _navItem(Icons.people_outlined, 'Водители', false, () => onOpenModal(const DriversScreen())),
-                _navItem(Icons.warehouse_outlined, 'Филиалы', false, () => onOpenModal(const WarehousesScreen())),
-                _navItem(Icons.receipt_long_outlined, 'Финансы', false, () => onOpenModal(const TransactionsScreen())),
+                _navItem(Icons.description_outlined, 'Контракты', 'C', () => onOpenModal(const ContractsScreen())),
+                _navItem(Icons.local_shipping_outlined, 'Автопарк', 'F', () => onOpenModal(const FleetScreen())),
+                _navItem(Icons.people_outlined, 'Водители', 'D', () => onOpenModal(const DriversScreen())),
+                _navItem(Icons.warehouse_outlined, 'Филиалы', 'W', () => onOpenModal(const WarehousesScreen())),
+                _navItem(Icons.receipt_long_outlined, 'Финансы', 'T', () => onOpenModal(const TransactionsScreen())),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
-                _navItem(Icons.settings_outlined, 'Настройки', false, () => onOpenModal(const SettingsScreen())),
+                _navItem(Icons.settings_outlined, 'Настройки', null, () => onOpenModal(const SettingsScreen())),
               ],
             ),
           ),
 
-          // Company info
+          // Company info footer
           if (company != null) Container(
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppTheme.divider))),
@@ -82,7 +83,7 @@ class Sidebar extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text('XP: ${company.xp}', style: AppTheme.bodySm),
                 const Spacer(),
-                Text('Lv.${company.level}', style: AppTheme.monoSm.copyWith(color: AppTheme.accent)),
+                Text('Lv.${company.level}', style: AppTheme.monoSm.copyWith(color: const Color(0xFFF5C542))),
               ]),
             ]),
           ),
@@ -106,7 +107,7 @@ class Sidebar extends StatelessWidget {
     );
   }
 
-  Widget _navItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
+  Widget _navItem(IconData icon, String label, String? shortcut, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
@@ -114,23 +115,34 @@ class Sidebar extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: onTap,
-          child: Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: isActive ? AppTheme.accent.withOpacity(0.12) : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: isActive ? Border.all(color: AppTheme.accent.withOpacity(0.2)) : null,
+          child: Tooltip(
+            message: shortcut != null ? '$label ($shortcut)' : label,
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(children: [
+                Icon(icon, color: const Color(0xFF999999), size: 18),
+                const SizedBox(width: 12),
+                Text(label, style: const TextStyle(
+                  color: Color(0xFFCCCCCC),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                )),
+                const Spacer(),
+                if (shortcut != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3A3A3A),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: Text(shortcut, style: const TextStyle(color: Color(0xFF666666), fontSize: 10, fontFamily: 'monospace')),
+                  ),
+              ]),
             ),
-            child: Row(children: [
-              Icon(icon, color: isActive ? AppTheme.accent : AppTheme.textMuted, size: 18),
-              const SizedBox(width: 12),
-              Text(label, style: TextStyle(
-                color: isActive ? AppTheme.text : AppTheme.textMuted,
-                fontSize: 13,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-              )),
-            ]),
           ),
         ),
       ),

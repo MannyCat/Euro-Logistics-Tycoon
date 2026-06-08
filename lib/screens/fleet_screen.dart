@@ -7,14 +7,27 @@ import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
 
-class FleetScreen extends StatelessWidget {
+class FleetScreen extends StatefulWidget {
   const FleetScreen({super.key});
+
+  @override
+  State<FleetScreen> createState() => _FleetScreenState();
+}
+
+class _FleetScreenState extends State<FleetScreen> {
+  int _selectedFilter = 0; // 0=All, 1=Idle, 2=Transit
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final game = context.watch<GameProvider>();
     final companyId = auth.companyId ?? '';
+
+    final filteredTrucks = switch (_selectedFilter) {
+      1 => game.idleTrucks,
+      2 => game.transitTrucks,
+      _ => game.myTrucks,
+    };
 
     return ETS2Modal(
       title: 'Автопарк',
@@ -55,51 +68,74 @@ class FleetScreen extends StatelessWidget {
                       color: const Color(0xFF252525),
                       child: Row(
                         children: [
-                          _filterChip('Все (${game.myTrucks.length})', true),
+                          _filterChip('Все (${game.myTrucks.length})', 0),
                           const SizedBox(width: 6),
-                          _filterChip('Свободных (${game.idleTrucks.length})', false),
+                          _filterChip('Свободных (${game.idleTrucks.length})', 1),
                           const SizedBox(width: 6),
-                          _filterChip('В пути (${game.transitTrucks.length})', false),
+                          _filterChip('В пути (${game.transitTrucks.length})', 2),
                         ],
                       ),
                     ),
                     const Divider(height: 1, color: Color(0xFF3A3A3A)),
                     Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: game.myTrucks.length,
-                        itemBuilder: (context, i) => _TruckCard(truck: game.myTrucks[i], game: game, companyId: companyId),
-                      ),
+                      child: filteredTrucks.isEmpty
+                          ? Center(
+                              child: Text('Нет грузовиков в этой категории', style: AppTheme.bodySm),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(8),
+                              itemCount: filteredTrucks.length,
+                              itemBuilder: (context, i) => _TruckCard(truck: filteredTrucks[i], game: game, companyId: companyId),
+                            ),
                     ),
                   ],
                 ),
     );
   }
 
-  Widget _filterChip(String label, bool selected) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: selected ? const Color(0xFFF5C542).withOpacity(0.15) : const Color(0xFF1A1A1A),
+  Widget _filterChip(String label, int index) {
+    final selected = _selectedFilter == index;
+    return InkWell(
+      onTap: () => setState(() => _selectedFilter = index),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: selected ? const Color(0xFFF5C542).withOpacity(0.4) : const Color(0xFF3A3A3A)),
-    ),
-    child: Text(label, style: TextStyle(
-      color: selected ? const Color(0xFFF5C542) : const Color(0xFF888888),
-      fontSize: 11,
-      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-    )),
-  );
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFF5C542).withOpacity(0.15) : const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? const Color(0xFFF5C542).withOpacity(0.4) : const Color(0xFF3A3A3A)),
+        ),
+        child: Text(label, style: TextStyle(
+          color: selected ? const Color(0xFFF5C542) : const Color(0xFF888888),
+          fontSize: 11,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+        )),
+      ),
+    );
+  }
 
   void _showBuyDialog(BuildContext context, GameProvider game, String companyId) {
     showDialog(context: context, builder: (ctx) => _BuyTruckDialog(game: game, companyId: companyId));
   }
 }
 
-class _TruckCard extends StatelessWidget {
+class _TruckCard extends StatefulWidget {
   final Truck truck;
   final GameProvider game;
   final String companyId;
   const _TruckCard({required this.truck, required this.game, required this.companyId});
+
+  @override
+  State<_TruckCard> createState() => _TruckCardState();
+}
+
+class _TruckCardState extends State<_TruckCard> {
+  bool _isRefueling = false;
+  bool _isRepairing = false;
+
+  Truck get truck => widget.truck;
+  GameProvider get game => widget.game;
+  String get companyId => widget.companyId;
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +188,7 @@ class _TruckCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(truck.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w600)),
-                    Text(typeInfo?.name ?? truck.truckType, style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
+                    Text('${typeInfo?.name ?? truck.truckType}  •  ${typeInfo?.capacity ?? '?'}т', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
                   ],
                 ),
               ),
@@ -168,17 +204,19 @@ class _TruckCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+          // Stats row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _stat('Сост.', '${truck.condition}%', truck.condition < 30 ? const Color(0xFFEF5350) : const Color(0xFF888888)),
-              _stat('Топливо', '${truck.fuelLevel.toStringAsFixed(0)}%', const Color(0xFF888888)),
+              _stat('Сост.', '${truck.condition}%', truck.condition < 30 ? const Color(0xFFEF5350) : truck.condition < 60 ? const Color(0xFFF5C542) : const Color(0xFF66BB6A)),
+              _stat('Топливо', '${truck.fuelLevel.toStringAsFixed(0)}%', truck.fuelLevel < 20 ? const Color(0xFFEF5350) : const Color(0xFF888888)),
               if (curCity != null)
                 Expanded(
                   child: Text(curCity.name, style: const TextStyle(color: Color(0xFF888888), fontSize: 12), textAlign: TextAlign.right, overflow: TextOverflow.ellipsis),
                 ),
             ],
           ),
+          // Route info for transit trucks
           if (truck.isInTransit && originCity != null && destCity != null) ...[
             const SizedBox(height: 6),
             Container(
@@ -201,35 +239,30 @@ class _TruckCard extends StatelessWidget {
               ),
             ),
           ],
+          // Action buttons for idle trucks
           if (truck.isIdle) ...[
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async { await game.refuelTruck(truck.id, companyId); },
-                    icon: const Icon(Icons.local_gas_station, size: 14),
-                    label: const Text('Заправить'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF42A5F5),
-                      side: const BorderSide(color: Color(0xFF42A5F5)),
-                      minimumSize: const Size(double.infinity, 36),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
+                  child: _ActionButton(
+                    icon: Icons.local_gas_station,
+                    label: 'Заправить',
+                    isLoading: _isRefueling,
+                    enabled: truck.fuelLevel < truck.maxFuel,
+                    color: const Color(0xFF42A5F5),
+                    onPressed: _isRefueling ? null : () => _refuel(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: truck.condition < 100 ? () async { await game.repairTruck(truck.id, companyId); } : null,
-                    icon: const Icon(Icons.build, size: 14),
-                    label: const Text('Ремонт'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFF5C542),
-                      side: const BorderSide(color: Color(0xFFF5C542)),
-                      minimumSize: const Size(double.infinity, 36),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
+                  child: _ActionButton(
+                    icon: Icons.build,
+                    label: 'Ремонт',
+                    isLoading: _isRepairing,
+                    enabled: truck.condition < 100,
+                    color: const Color(0xFFF5C542),
+                    onPressed: _isRepairing || truck.condition >= 100 ? null : () => _repair(),
                   ),
                 ),
               ],
@@ -238,6 +271,18 @@ class _TruckCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _refuel() async {
+    setState(() => _isRefueling = true);
+    await game.refuelTruck(truck.id, companyId);
+    if (mounted) setState(() => _isRefueling = false);
+  }
+
+  Future<void> _repair() async {
+    setState(() => _isRepairing = true);
+    await game.repairTruck(truck.id, companyId);
+    if (mounted) setState(() => _isRepairing = false);
   }
 
   Widget _stat(String label, String value, Color color) => Row(
@@ -258,6 +303,42 @@ class _TruckCard extends StatelessWidget {
   }
 }
 
+/// Reusable action button with loading state
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isLoading;
+  final bool enabled;
+  final Color color;
+  final VoidCallback? onPressed;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.isLoading,
+    required this.enabled,
+    required this.color,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: isLoading ? null : onPressed,
+      icon: isLoading
+          ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: color, strokeWidth: 2))
+          : Icon(icon, size: 14),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: enabled ? color : const Color(0xFF3A3A3A)),
+        minimumSize: const Size(double.infinity, 36),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+}
+
 class _BuyTruckDialog extends StatefulWidget {
   final GameProvider game;
   final String companyId;
@@ -270,6 +351,8 @@ class _BuyTruckDialog extends StatefulWidget {
 class _BuyTruckDialogState extends State<_BuyTruckDialog> {
   final _nameCtrl = TextEditingController();
   String? _selectedType;
+  bool _isBuying = false;
+  String? _error;
 
   @override
   void dispose() { _nameCtrl.dispose(); super.dispose(); }
@@ -277,6 +360,8 @@ class _BuyTruckDialogState extends State<_BuyTruckDialog> {
   @override
   Widget build(BuildContext context) {
     final money = widget.game.company?.money ?? 0;
+    final info = _selectedType != null ? GameConstants.findTruckType(_selectedType!) : null;
+    final canBuy = _selectedType != null && _nameCtrl.text.trim().isNotEmpty && (info != null && money >= info.price);
 
     return Dialog(
       backgroundColor: const Color(0xFF1E1E1E),
@@ -305,6 +390,8 @@ class _BuyTruckDialogState extends State<_BuyTruckDialog> {
                 hintText: 'Мой грузовик #1',
                 labelStyle: const TextStyle(color: Color(0xFF888888)),
                 hintStyle: const TextStyle(color: Color(0xFF666666)),
+                helperText: _nameCtrl.text.trim().isEmpty ? 'Введите название грузовика' : null,
+                helperStyle: const TextStyle(color: Color(0xFFF5C542), fontSize: 11),
               ),
             ),
             const SizedBox(height: 12),
@@ -314,32 +401,45 @@ class _BuyTruckDialogState extends State<_BuyTruckDialog> {
               canAfford: money >= t.price,
               onTap: () => setState(() => _selectedType = t.type),
             )),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, style: const TextStyle(color: Color(0xFFEF5350), fontSize: 12)),
+            ],
             const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: (_selectedType == null || _nameCtrl.text.trim().isEmpty) ? null : () async {
-                final info = GameConstants.findTruckType(_selectedType!);
-                if (info == null) return;
-                final ok = await widget.game.buyTruck(
-                  widget.companyId, _selectedType!, _nameCtrl.text.trim(), 1,
-                );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  if (ok) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Грузовик "${_nameCtrl.text.trim()}" куплен!'), backgroundColor: const Color(0xFF66BB6A), behavior: SnackBarBehavior.floating),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF5C542), foregroundColor: const Color(0xFF1A1A1A)),
-              child: Text(_selectedType != null
-                  ? 'Купить за ${GameConstants.formatMoney(GameConstants.findTruckType(_selectedType!)?.price ?? 0)}'
-                  : 'Выберите тип'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: canBuy && !_isBuying ? () => _buy() : null,
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF5C542), foregroundColor: const Color(0xFF1A1A1A)),
+                child: _isBuying
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFF1A1A1A), strokeWidth: 2))
+                    : Text(_selectedType != null
+                        ? 'Купить за ${GameConstants.formatMoney(info?.price ?? 0)}'
+                        : 'Выберите тип'),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _buy() async {
+    setState(() => _isBuying = true);
+    _error = null;
+    final ok = await widget.game.buyTruck(
+      widget.companyId, _selectedType!, _nameCtrl.text.trim(), 1,
+    );
+    if (mounted) {
+      if (ok) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Грузовик "${_nameCtrl.text.trim()}" куплен!'), backgroundColor: const Color(0xFF66BB6A), behavior: SnackBarBehavior.floating),
+        );
+      } else {
+        setState(() => _error = widget.game.error ?? 'Ошибка покупки');
+      }
+    }
   }
 }
 
@@ -378,7 +478,7 @@ class _TruckOption extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(info.name, style: TextStyle(color: disabled ? const Color(0xFF666666) : const Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w600)),
-                    Text('${info.capacity}т | ${info.speed}км/ч | ${info.fuel}л', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
+                    Text('${info.capacity}т  •  ${info.speed}км/ч  •  ${info.fuel}л', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
                   ],
                 ),
               ),

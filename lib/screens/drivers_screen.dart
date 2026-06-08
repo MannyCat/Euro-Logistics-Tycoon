@@ -21,6 +21,18 @@ class DriversScreen extends StatelessWidget {
       actions: [
         TextButton.icon(
           onPressed: game.isLoading ? null : () async {
+            final money = game.company?.money ?? 0;
+            final cost = GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier;
+            if (money < cost) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Недостаточно средств (нужно: ${GameConstants.formatMoney(cost)})'),
+                  backgroundColor: const Color(0xFFEF5350),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
+              return;
+            }
             final ok = await game.hireDriver(companyId);
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -46,6 +58,21 @@ class DriversScreen extends StatelessWidget {
                       Text('Нет водителей', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                       const SizedBox(height: 4),
                       const Text('Нанимайте водителей для управления грузовиками', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final ok = await game.hireDriver(companyId);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text(ok ? 'Водитель нанят!' : game.error ?? 'Ошибка'),
+                              backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
+                              behavior: SnackBarBehavior.floating,
+                            ));
+                          }
+                        },
+                        icon: const Icon(Icons.person_add),
+                        label: Text('Нанять за ${GameConstants.formatMoney(GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier)}'),
+                      ),
                     ],
                   ),
                 )
@@ -55,7 +82,15 @@ class DriversScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       color: const Color(0xFF252525),
-                      child: Text('Всего: ${game.myDrivers.length} | Свободных: ${game.availableDrivers.length}', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
+                      child: Row(
+                        children: [
+                          Text('Всего: ${game.myDrivers.length}', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
+                          const SizedBox(width: 16),
+                          Text('Свободных: ${game.availableDrivers.length}', style: const TextStyle(color: Color(0xFF66BB6A), fontSize: 12, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 16),
+                          Text('В рейсе: ${game.myDrivers.length - game.availableDrivers.length}', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 12, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                     ),
                     const Divider(height: 1, color: Color(0xFF3A3A3A)),
                     Expanded(
@@ -84,8 +119,12 @@ class DriversScreen extends StatelessWidget {
                                       Text(d.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w600)),
                                       Row(
                                         children: [
-                                          Text('Ур. ${d.skillLevel}', style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
-                                          const SizedBox(width: 12),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                            decoration: BoxDecoration(color: const Color(0xFFF5C542).withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+                                            child: Text('Ур. ${d.skillLevel}', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 11, fontWeight: FontWeight.w600)),
+                                          ),
+                                          const SizedBox(width: 10),
                                           Text('${GameConstants.formatMoney(d.salaryDaily)}/день', style: const TextStyle(color: Color(0xFF888888), fontSize: 12, fontFamily: 'monospace')),
                                         ],
                                       ),
