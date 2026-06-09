@@ -6,6 +6,7 @@ class Company {
   int reputation;
   int level;
   int xp;
+  final int prestigeLevel;
 
   Company({
     required this.id,
@@ -15,6 +16,7 @@ class Company {
     required this.reputation,
     required this.level,
     required this.xp,
+    this.prestigeLevel = 0,
   });
 
   factory Company.fromJson(Map<String, dynamic> json) => Company(
@@ -25,6 +27,7 @@ class Company {
     reputation: (json['reputation'] as num?)?.toInt() ?? 50,
     level: (json['level'] as num?)?.toInt() ?? 1,
     xp: (json['xp'] as num?)?.toInt() ?? 0,
+    prestigeLevel: (json['prestige_level'] as num?)?.toInt() ?? 0,
   );
 
   String get moneyFormatted {
@@ -32,4 +35,23 @@ class Company {
     if (money >= 1000) return '\u20AC${(money / 1000).toStringAsFixed(0)}K';
     return '\u20AC$money';
   }
+
+  /// Prestige stars display (up to 5 stars)
+  String get prestigeDisplay {
+    if (prestigeLevel == 0) return '';
+    final count = prestigeLevel.clamp(0, 5);
+    return '⭐' * count;
+  }
+
+  /// Prestige income bonus: +5% per level
+  double get prestigeIncomeBonus => prestigeLevel * 0.05;
+
+  /// Prestige XP bonus: +10% per level
+  double get prestigeXpBonus => prestigeLevel * 0.10;
+
+  /// Prestige fuel discount: +3% per level
+  double get prestigeFuelDiscount => prestigeLevel * 0.03;
+
+  /// Whether the company can prestige (level >= 10)
+  bool get canPrestige => level >= 10;
 }

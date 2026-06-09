@@ -173,6 +173,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 16),
 
+          // ===== PRESTIGE SECTION =====
+          if (company != null)
+            _PrestigeSection(company: company),
+
+          if (company != null) const SizedBox(height: 16),
+
           // Logout
           OutlinedButton.icon(
             onPressed: () async {
@@ -407,4 +413,216 @@ class _CompanyCustomizationSection extends StatelessWidget {
     'favorite' => Icons.favorite,
     _ => Icons.local_shipping,
   };
+}
+
+/// Prestige section — shows prestige level, bonuses, and reset button
+class _PrestigeSection extends StatelessWidget {
+  final Company company;
+  const _PrestigeSection({required this.company});
+
+  @override
+  Widget build(BuildContext context) {
+    final game = context.watch<GameProvider>();
+    final auth = context.watch<AuthProvider>();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: company.prestigeLevel > 0
+              ? const Color(0xFFF5C542).withOpacity(0.5)
+              : const Color(0xFF3A3A3A),
+          width: company.prestigeLevel > 0 ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.star, color: Color(0xFFF5C542), size: 16),
+              const SizedBox(width: 6),
+              const Text('Престиж', style: TextStyle(color: Color(0xFF888888), fontSize: 12, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              if (company.prestigeLevel > 0)
+                Text(
+                  company.prestigeDisplay,
+                  style: const TextStyle(fontSize: 16),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Current level
+          Row(
+            children: [
+              const Text('Уровень престижа: ', style: TextStyle(color: Color(0xFF888888), fontSize: 12)),
+              Text(
+                '${company.prestigeLevel}',
+                style: const TextStyle(
+                  color: Color(0xFFF5C542),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
+          ),
+
+          if (company.prestigeLevel > 0) ...[
+            const SizedBox(height: 8),
+
+            // Bonuses
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5C542).withOpacity(0.06),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.15)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Бонусы престижа:', style: TextStyle(color: Color(0xFFF5C542), fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  _bonusRow('💰 Доход', '+${(company.prestigeIncomeBonus * 100).toStringAsFixed(0)}%', const Color(0xFF66BB6A)),
+                  _bonusRow('⭐ Опыт', '+${(company.prestigeXpBonus * 100).toStringAsFixed(0)}%', const Color(0xFF42A5F5)),
+                  _bonusRow('⛽ Топливо', '-${(company.prestigeFuelDiscount * 100).toStringAsFixed(0)}%', const Color(0xFFFF9800)),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 10),
+
+          // Requirement text
+          if (company.canPrestige)
+            const Text(
+              'Доступен престиж-сброс!',
+              style: TextStyle(color: Color(0xFF66BB6A), fontSize: 11),
+            )
+          else
+            Text(
+              'Нужен ${10 - company.level > 0 ? 10 - company.level : 0} ур. до престижа (мин. 10)',
+              style: const TextStyle(color: Color(0xFF888888), fontSize: 11),
+            ),
+
+          const SizedBox(height: 10),
+
+          // Prestige reset button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: company.canPrestige && !game.isLoading
+                  ? () => _showPrestigeConfirmDialog(context, auth.companyId ?? '', game)
+                  : null,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Престиж-сброс', style: TextStyle(fontSize: 13)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: company.canPrestige ? const Color(0xFFEF5350) : const Color(0xFF444444),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bonusRow(String label, String value, Color color) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 1.5),
+    child: Row(
+      children: [
+        Text('$label: ', style: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 12)),
+        Text(value, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+      ],
+    ),
+  );
+
+  void _showPrestigeConfirmDialog(BuildContext context, String companyId, GameProvider game) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFFEF5350).withOpacity(0.5), width: 1.5),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Color(0xFFEF5350), size: 24),
+            SizedBox(width: 10),
+            Text('ПРЕСТИЖ-СБРОС', style: TextStyle(color: Color(0xFFEF5350), fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Это необратимое действие!',
+              style: TextStyle(color: Color(0xFFEF5350), fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            const Text('❌ Все грузовики будут удалены', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13)),
+            const Text('❌ Все водители будут удалены', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13)),
+            const Text('❌ Все склады и гаражи будут удалены', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13)),
+            const Text('❌ Вы покинете клан', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5C542).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Вы получите:', style: TextStyle(color: Color(0xFFF5C542), fontSize: 12, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text('✅ +1 уровень престижа и постоянные бонусы', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
+                  Text('✅ Начало с €1M', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
+                  Text('✅ Уровень 1, репутация 50', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await game.prestigeReset(companyId);
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(
+                    content: Text(success
+                        ? '⭐ Престиж-сброс выполнен!'
+                        : 'Ошибка престиж-сброса: ${game.error ?? "неизвестная ошибка"}'),
+                    backgroundColor: success ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF5350),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Сбросить (ПРЕСТИЖ!)', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -29,6 +29,7 @@ import '../widgets/achievement_toast.dart';
 import '../widgets/tutorial_overlay.dart';
 import 'market_screen.dart';
 import 'analytics_screen.dart';
+import '../models/seasonal_event.dart';
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
@@ -56,6 +57,8 @@ class MapScreenState extends State<MapScreen> {
   final GlobalKey<AchievementToastOverlayState> _achievementToastKey =
       GlobalKey<AchievementToastOverlayState>();
   Truck? _selectedTruck;
+  bool _eventBannerDismissed = false;
+  Timer? _eventBannerTimer;
 
   @override
   void initState() {
@@ -83,6 +86,7 @@ class MapScreenState extends State<MapScreen> {
     _refreshTimer?.cancel();
     _contractGenTimer?.cancel();
     _truckAnimTimer?.cancel();
+    _eventBannerTimer?.cancel();
     _mapFocus.dispose();
     super.dispose();
   }
@@ -694,79 +698,94 @@ class MapScreenState extends State<MapScreen> {
                   // ===== TOP BAR — ETS2 Route Advisor =====
                   Positioned(
                     top: 0, left: 0, right: 0,
-                    child: Container(
-                      height: 50,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2C2C2C),
-                        border: Border(bottom: BorderSide(color: Color(0xFF444444), width: 1)),
-                        boxShadow: [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
-                      ),
-                      child: Row(children: [
-                        if (!_isDesktop) ...[
-                          IconButton(
-                            icon: const Icon(Icons.menu, color: Color(0xFF999999)),
-                            onPressed: () => Scaffold.of(context).openDrawer(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 50,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF2C2C2C),
+                            border: Border(bottom: BorderSide(color: Color(0xFF444444), width: 1)),
+                            boxShadow: [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, 2))],
                           ),
-                          const SizedBox(width: 2),
-                        ],
-                        const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 20),
-                        const SizedBox(width: 6),
-                        Icon(GameConstants.weatherIcon, color: GameConstants.weatherColor, size: 16),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            company?.name ?? '...',
-                            style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.4),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (company != null) ...[
-                          _ets2Badge(company.moneyFormatted, const Color(0xFFF5C542)),
-                          const SizedBox(width: 6),
-                          _ets2Badge('Lv.${company.level}', const Color(0xFF66BB6A)),
-                          if (game.isInClan && game.myClan != null) ...[
+                          child: Row(children: [
+                            if (!_isDesktop) ...[
+                              IconButton(
+                                icon: const Icon(Icons.menu, color: Color(0xFF999999)),
+                                onPressed: () => Scaffold.of(context).openDrawer(),
+                              ),
+                              const SizedBox(width: 2),
+                            ],
+                            const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 20),
                             const SizedBox(width: 6),
-                            _ets2Badge('[${game.myClan!.tag}]', const Color(0xFFCE93D8)),
-                          ],
-                          const SizedBox(width: 6),
-                          Container(
-                            width: 80, height: 18,
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A),
-                              borderRadius: BorderRadius.circular(2),
-                              border: Border.all(color: const Color(0xFF444444), width: 0.5),
+                            Icon(GameConstants.weatherIcon, color: GameConstants.weatherColor, size: 16),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                company?.name ?? '...',
+                                style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.4),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                FractionallySizedBox(
-                                  widthFactor: (company.xp % GameConstants.xpPerLevel) / GameConstants.xpPerLevel,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF5C542).withOpacity(0.4),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                ),
-                                Center(
-                                  child: Text('${company.xp % GameConstants.xpPerLevel} XP',
-                                      style: const TextStyle(color: Color(0xFF999999), fontSize: 9, fontWeight: FontWeight.w600)),
-                                ),
+                            const SizedBox(width: 8),
+                            if (company != null) ...[
+                              _ets2Badge(company.moneyFormatted, const Color(0xFFF5C542)),
+                              const SizedBox(width: 6),
+                              _ets2Badge('Lv.${company.level}${company.prestigeDisplay}', const Color(0xFF66BB6A)),
+                              if (game.isInClan && game.myClan != null) ...[
+                                const SizedBox(width: 6),
+                                _ets2Badge('[${game.myClan!.tag}]', const Color(0xFFCE93D8)),
                               ],
-                            ),
+                              const SizedBox(width: 6),
+                              Container(
+                                width: 80, height: 18,
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1A1A1A),
+                                  borderRadius: BorderRadius.circular(2),
+                                  border: Border.all(color: const Color(0xFF444444), width: 0.5),
+                                ),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    FractionallySizedBox(
+                                      widthFactor: (company.xp % GameConstants.xpPerLevel) / GameConstants.xpPerLevel,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF5C542).withOpacity(0.4),
+                                          borderRadius: BorderRadius.circular(2),
+                                        ),
+                                      ),
+                                    ),
+                                    Center(
+                                      child: Text('${company.xp % GameConstants.xpPerLevel} XP',
+                                          style: const TextStyle(color: Color(0xFF999999), fontSize: 9, fontWeight: FontWeight.w600)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            const SizedBox(width: 10),
+                          ]),
+                        ),
+                        // ===== SEASONAL EVENT BANNER =====
+                        if (game.activeEvents.isNotEmpty && !_eventBannerDismissed)
+                          _SeasonalEventBanner(
+                            events: game.activeEvents,
+                            onDismiss: () {
+                              setState(() => _eventBannerDismissed = true);
+                              _eventBannerTimer?.cancel();
+                            },
+                            onShowDetails: (event) => _showEventDetailsDialog(event),
                           ),
-                        ],
-                        const SizedBox(width: 10),
-                      ]),
+                      ],
                     ),
                   ),
 
                   // ===== MAP CONTROLS =====
                   Positioned(
-                    top: 58, right: 10,
+                    top: 58 + (game.activeEvents.isNotEmpty && !_eventBannerDismissed ? 38 : 0), right: 10,
                     child: Column(children: [
                       _ets2MapBtn(Icons.add, 'Приблизить (+)', () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
                       const SizedBox(height: 2),

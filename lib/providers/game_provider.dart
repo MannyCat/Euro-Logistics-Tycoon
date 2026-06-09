@@ -17,6 +17,7 @@ import '../models/garage.dart';
 import '../models/clan_mission.dart';
 import '../models/chat_message.dart';
 import '../models/market_listing.dart';
+import '../models/seasonal_event.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
@@ -56,6 +57,7 @@ class GameProvider extends ChangeNotifier {
   List<ClanMission> _clanMissions = [];
   List<ChatMessage> _clanMessages = [];
   List<MarketListing> _marketListings = [];
+  List<SeasonalEvent> _activeEvents = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
@@ -89,6 +91,7 @@ class GameProvider extends ChangeNotifier {
   List<ClanMission> get clanMissions => _clanMissions;
   List<ChatMessage> get clanMessages => _clanMessages;
   List<MarketListing> get marketListings => _marketListings;
+  List<SeasonalEvent> get activeEvents => _activeEvents;
   String? get myClanRole {
     for (final m in _clanMembers) {
       if (m.companyId == _currentCompanyId) return m.role;
@@ -406,6 +409,38 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadActiveEvents() async {
+    try {
+      final resp = await _supabase.rpc('get_active_events');
+      _activeEvents = (resp as List)
+          .map<SeasonalEvent>((e) => SeasonalEvent.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } catch (e) {
+      debugPrint('Load active events error: $e');
+      _activeEvents = [];
+    }
+  }
+
+  /// Prestige reset — destructive! Resets company to level 1 with €1M.
+  /// Requires level >= 10. Deletes all trucks, drivers, warehouses, garages.
+  Future<bool> prestigeReset(String companyId) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final resp = await _supabase.rpc('prestige_reset', params: {'p_company_id': companyId});
+      if (resp == true) {
+        await loadAll(companyId);
+        return true;
+      }
+      _error = 'Не удалось выполнить престиж-сброс';
+      return false;
+    } catch (e) {
+      _error = 'Ошибка: $e';
+      return false;
+    } finally {
+      _isLoading = false; notifyListeners();
+    }
+  }
+
   Future<void> loadLeaderboard() async {
     try {
       final resp = await _supabase.from('leaderboard').select().limit(20);
@@ -466,6 +501,7 @@ class GameProvider extends ChangeNotifier {
         loadMyGarages(companyId),
         loadMarketListings(),
         loadCompanyCustomization(),
+        loadActiveEvents(),
       ]);
       // Try to complete expired contracts server-side
       await _supabase.rpc('complete_expired_contracts');
