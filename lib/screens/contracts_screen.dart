@@ -392,6 +392,21 @@ class _ContractCard extends StatelessWidget {
                 GameConstants.formatMoney(contract.reward),
                 style: const TextStyle(color: Color(0xFF66BB6A), fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'monospace'),
               ),
+              if (!isOwn && GameConstants.isNightTime)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  margin: const EdgeInsets.only(left: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7C4DFF).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.3)),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.dark_mode, size: 10, color: Color(0xFF7C4DFF)),
+                    SizedBox(width: 2),
+                    Text('+20%', style: TextStyle(color: Color(0xFF7C4DFF), fontSize: 10, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
             ],
           ),
           // Assigned truck info

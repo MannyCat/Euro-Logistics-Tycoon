@@ -5,6 +5,8 @@ import '../config/game_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../models/clan.dart';
+import '../models/clan_mission.dart';
+import '../models/chat_message.dart';
 import '../widgets/ets2_modal.dart';
 
 class ClanScreen extends StatefulWidget {
@@ -15,7 +17,7 @@ class ClanScreen extends StatefulWidget {
 }
 
 class _ClanScreenState extends State<ClanScreen> {
-  int _activeTab = 0; // 0 = my clan, 1 = leaderboard
+  int _activeTab = 0; // 0 = my clan, 1 = missions, 2 = leaderboard
 
   @override
   Widget build(BuildContext context) {
@@ -47,14 +49,18 @@ class _ClanScreenState extends State<ClanScreen> {
               children: [
                 _tabButton('Мой клан', 0),
                 const SizedBox(width: 4),
-                _tabButton('Рейтинг кланов', 1),
+                _tabButton('Миссии', 1),
+                const SizedBox(width: 4),
+                _tabButton('Рейтинг кланов', 2),
               ],
             ),
           ),
           Expanded(
             child: _activeTab == 0
                 ? _MyClanTab(game: game, companyId: companyId)
-                : _ClanLeaderboardTab(game: game),
+                : _activeTab == 1
+                    ? _ClanMissionsTab(game: game, companyId: companyId)
+                    : _ClanLeaderboardTab(game: game),
           ),
         ],
       ),
@@ -501,14 +507,19 @@ class _ClanDetailView extends StatelessWidget {
         // Members list
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: game.clanMembers.length,
-            itemBuilder: (context, i) => _MemberCard(
-              member: game.clanMembers[i],
-              game: game,
-              companyId: companyId,
-              isMe: game.clanMembers[i].companyId == companyId,
-            ),
+            padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+            itemCount: game.clanMembers.length + 1, // +1 for chat section header
+            itemBuilder: (context, i) {
+              if (i == game.clanMembers.length) {
+                return _ClanChatSection(game: game, companyId: companyId);
+              }
+              return _MemberCard(
+                member: game.clanMembers[i],
+                game: game,
+                companyId: companyId,
+                isMe: game.clanMembers[i].companyId == companyId,
+              );
+            },
           ),
         ),
       ],
@@ -547,6 +558,236 @@ class _ClanDetailView extends StatelessWidget {
         }
       }
     });
+  }
+}
+
+// ===== CLAN CHAT SECTION =====
+class _ClanChatSection extends StatefulWidget {
+  final GameProvider game;
+  final String companyId;
+  const _ClanChatSection({required this.game, required this.companyId});
+
+  @override
+  State<_ClanChatSection> createState() => _ClanChatSectionState();
+}
+
+class _ClanChatSectionState extends State<_ClanChatSection> {
+  final _msgCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  @override
+  void dispose() {
+    _msgCtrl.dispose();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    if (_scrollCtrl.hasClients) {
+      _scrollCtrl.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+    }
+  }
+
+  Future<void> _send() async {
+    final text = _msgCtrl.text.trim();
+    if (text.isEmpty || _isSending) return;
+    setState(() => _isSending = true);
+    final ok = await widget.game.sendClanMessage(widget.companyId, text);
+    if (ok) {
+      _msgCtrl.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    }
+    if (mounted) setState(() => _isSending = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final messages = widget.game.clanMessages;
+    final isMe = (ChatMessage msg) => msg.companyId == widget.companyId;
+
+    return Column(
+      children: [
+        // Chat header
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          child: Row(
+            children: [
+              const Icon(Icons.chat_bubble_outline, color: Color(0xFF42A5F5), size: 16),
+              const SizedBox(width: 8),
+              const Text('Чат клана', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              Text('${messages.length} сообщ.', style: const TextStyle(color: Color(0xFF666666), fontSize: 11)),
+            ],
+          ),
+        ),
+        // Messages list (reversed: newest at top, scroll up for older)
+        if (messages.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Text('Пока нет сообщений', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
+          )
+        else
+          Container(
+            height: 180,
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A1A1A),
+              border: Border(top: BorderSide(color: Color(0xFF3A3A3A))),
+            ),
+            child: ListView.builder(
+              controller: _scrollCtrl,
+              reverse: true,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              itemCount: messages.length,
+              itemBuilder: (context, i) {
+                final msg = messages[i];
+                final own = isMe(msg);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    mainAxisAlignment: own ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!own) ...[
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: const Color(0xFF42A5F5).withOpacity(0.15),
+                          child: const Icon(Icons.person, color: Color(0xFF42A5F5), size: 14),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: own ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                          children: [
+                            if (!own)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(msg.senderName ?? '???', style: const TextStyle(color: Color(0xFF42A5F5), fontSize: 10, fontWeight: FontWeight.w600)),
+                                    const SizedBox(width: 6),
+                                    Text(msg.timeAgo, style: const TextStyle(color: Color(0xFF555555), fontSize: 9)),
+                                  ],
+                                ),
+                              ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
+                              decoration: BoxDecoration(
+                                color: own
+                                    ? const Color(0xFFF5C542).withOpacity(0.15)
+                                    : const Color(0xFF2A2A2A),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: const Radius.circular(10),
+                                  topRight: const Radius.circular(10),
+                                  bottomLeft: Radius.circular(own ? 10 : 2),
+                                  bottomRight: Radius.circular(own ? 2 : 10),
+                                ),
+                                border: Border.all(
+                                  color: own
+                                      ? const Color(0xFFF5C542).withOpacity(0.3)
+                                      : const Color(0xFF3A3A3A),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: own ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                children: [
+                                  Text(msg.content, style: TextStyle(color: own ? const Color(0xFFF5C542) : const Color(0xFFD0D0D0), fontSize: 12)),
+                                  if (own)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(msg.timeAgo, style: const TextStyle(color: Color(0xFF888866), fontSize: 9)),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (own) ...[
+                        const SizedBox(width: 8),
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: const Color(0xFFF5C542).withOpacity(0.15),
+                          child: const Icon(Icons.person, color: Color(0xFFF5C542), size: 14),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        // Input
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(
+            color: Color(0xFF252525),
+            border: Border(top: BorderSide(color: Color(0xFF3A3A3A))),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _msgCtrl,
+                  style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 13),
+                  maxLength: 500,
+                  maxLengthEnforcement: MaxLengthEnforcement.truncateAfterCompositionEnds,
+                  decoration: const InputDecoration(
+                    hintText: 'Написать сообщение...',
+                    hintStyle: TextStyle(color: Color(0xFF666666), fontSize: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Color(0xFF3A3A3A)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Color(0xFF3A3A3A)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Color(0xFF42A5F5)),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    counterText: '',
+                    isDense: true,
+                    filled: true,
+                    fillColor: Color(0xFF1E1E1E),
+                  ),
+                  onSubmitted: (_) => _send(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: ElevatedButton(
+                  onPressed: _isSending ? null : _send,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF42A5F5),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _isSending
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Icon(Icons.send, size: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -655,6 +896,231 @@ class _MemberCard extends StatelessWidget {
         content: Text(game.error!), backgroundColor: const Color(0xFFEF5350), behavior: SnackBarBehavior.floating,
       ));
     }
+  }
+}
+
+// ===== CLAN MISSIONS TAB =====
+class _ClanMissionsTab extends StatelessWidget {
+  final GameProvider game;
+  final String companyId;
+  const _ClanMissionsTab({required this.game, required this.companyId});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!game.isInClan) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.shield_outlined, size: 48, color: Color(0xFF666666)),
+            const SizedBox(height: 12),
+            Text('Вступите в клан', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
+            const SizedBox(height: 4),
+            const Text('Миссии доступны только членам клана', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
+          ],
+        ),
+      );
+    }
+
+    final missions = game.clanMissions;
+
+    return Column(
+      children: [
+        // Generate button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
+          child: Row(
+            children: [
+              const Icon(Icons.assignment_outlined, color: Color(0xFFF5C542), size: 16),
+              const SizedBox(width: 8),
+              const Text('Клановые миссии', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
+              const Spacer(),
+              OutlinedButton.icon(
+                onPressed: () => game.generateClanMissions(),
+                icon: const Icon(Icons.casino, size: 14),
+                label: const Text('Сгенерировать', style: TextStyle(fontSize: 11)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFF5C542),
+                  side: const BorderSide(color: Color(0xFFF5C542).withOpacity(0.4)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: Size.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: Color(0xFF3A3A3A)),
+        // Missions list
+        Expanded(
+          child: missions.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.inventory_2_outlined, size: 48, color: Color(0xFF666666)),
+                      const SizedBox(height: 12),
+                      const Text('Нет активных миссий', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 14)),
+                      const SizedBox(height: 4),
+                      const Text('Нажмите «Сгенерировать» для новых заданий', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: missions.length,
+                  itemBuilder: (context, i) => _MissionCard(mission: missions[i]),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ===== MISSION CARD =====
+class _MissionCard extends StatelessWidget {
+  final ClanMission mission;
+  const _MissionCard({required this.mission});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = mission.progressPercent;
+    final pctText = '${(pct * 100).toStringAsFixed(0)}%';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: mission.completed ? const Color(0xFF66BB6A).withOpacity(0.05) : const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: mission.completed
+              ? const Color(0xFF66BB6A).withOpacity(0.4)
+              : mission.isExpired
+                  ? const Color(0xFFEF5350).withOpacity(0.3)
+                  : const Color(0xFF3A3A3A),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row: icon + title + type badge + time
+          Row(
+            children: [
+              Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                  color: mission.progressColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(mission.missionIcon, color: mission.progressColor, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            mission.title,
+                            style: TextStyle(
+                              color: mission.completed ? const Color(0xFF66BB6A) : const Color(0xFFD0D0D0),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              decoration: mission.completed ? TextDecoration.lineThrough : null,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFCE93D8).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Text(mission.typeLabel, style: const TextStyle(color: Color(0xFFCE93D8), fontSize: 9, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    if (mission.description.isNotEmpty)
+                      Text(mission.description, style: const TextStyle(color: Color(0xFF888888), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    mission.timeLeft,
+                    style: TextStyle(
+                      color: mission.isExpired ? const Color(0xFFEF5350) : mission.completed ? const Color(0xFF66BB6A) : const Color(0xFF888888),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (mission.completed)
+                    const Text('✓ Выполнено', style: TextStyle(color: Color(0xFF66BB6A), fontSize: 9, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Progress bar
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    backgroundColor: const Color(0xFF333333),
+                    valueColor: AlwaysStoppedAnimation(mission.progressColor),
+                    minHeight: 8,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 42,
+                child: Text(
+                  '$pctText ${mission.progressText}',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: mission.completed ? const Color(0xFF66BB6A) : const Color(0xFFD0D0D0),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Rewards
+          Row(
+            children: [
+              if (mission.rewardXp > 0) ...[
+                const Icon(Icons.star, color: Color(0xFFF5C542), size: 13),
+                const SizedBox(width: 3),
+                Text('+${mission.rewardXp} XP', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 11, fontWeight: FontWeight.w600)),
+              ],
+              if (mission.rewardXp > 0 && mission.rewardMoney > 0)
+                const SizedBox(width: 12),
+              if (mission.rewardMoney > 0) ...[
+                const Icon(Icons.euro, color: Color(0xFF66BB6A), size: 13),
+                const SizedBox(width: 3),
+                Text(GameConstants.formatMoney(mission.rewardMoney), style: const TextStyle(color: Color(0xFF66BB6A), fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'monospace')),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

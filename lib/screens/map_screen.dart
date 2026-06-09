@@ -52,15 +52,23 @@ class MapScreenState extends State<MapScreen> {
   final FocusNode _mapFocus = FocusNode();
   final GlobalKey<AchievementToastOverlayState> _achievementToastKey =
       GlobalKey<AchievementToastOverlayState>();
+  Truck? _selectedTruck;
 
   @override
   void initState() {
     super.initState();
+    GameConstants.updateWeather();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initialLoad();
       _checkPlatform();
     });
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _refresh();
+      // Also update weather every 5 minutes
+      if (DateTime.now().minute % 5 == 0 && DateTime.now().second < 6) {
+        GameConstants.updateWeather();
+      }
+    });
     _contractGenTimer = Timer.periodic(const Duration(minutes: 5), (_) => _generateContracts());
     _truckAnimTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
@@ -120,7 +128,10 @@ class MapScreenState extends State<MapScreen> {
   }
 
   void _onCityTap(City city) {
-    setState(() => _selectedCityId = city.id);
+    setState(() {
+      _selectedCityId = city.id;
+      _selectedTruck = null;
+    });
     _mapController.move(LatLng(city.latitude, city.longitude), 7);
     showDialog(context: context, builder: (_) => CityDetailDialog(city: city)).then((_) {
       setState(() => _selectedCityId = null);
@@ -401,7 +412,7 @@ class MapScreenState extends State<MapScreen> {
                         interactionOptions: const InteractionOptions(
                           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                         ),
-                        onTap: (_, __) => setState(() => _selectedCityId = null),
+                        onTap: (_, __) => setState(() { _selectedCityId = null; _selectedTruck = null; }),
                       ),
                       children: [
                         // ETS2 dark map tiles
@@ -523,21 +534,39 @@ class MapScreenState extends State<MapScreen> {
                             ...game.myTrucks.where((t) => t.isIdle).map((truck) {
                               final pos = _getTruckPosition(truck, game);
                               if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
+                              final isDistressed = truck.fuelLevel < truck.maxFuel * 0.15 || truck.condition < 20;
                               return Marker(
                                 point: pos, width: 28, height: 28,
                                 child: Align(
                                   alignment: Alignment.topCenter,
                                   child: Transform.translate(
                                     offset: const Offset(0, 6),
-                                    child: Container(
-                                      width: 20, height: 20,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF66BB6A),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                        boxShadow: [BoxShadow(color: const Color(0xFF66BB6A).withOpacity(0.5), blurRadius: 8, spreadRadius: 1)],
+                                    child: GestureDetector(
+                                      onTap: () => setState(() { _selectedTruck = null; _onCityTap(game.getCityById(truck.currentCityId!)!); }),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          if (isDistressed)
+                                            Container(
+                                              width: 30, height: 30,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: const Color(0xFFEF5350).withOpacity(0.15),
+                                                border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.4), width: 1.5),
+                                              ),
+                                            ),
+                                          Container(
+                                            width: 20, height: 20,
+                                            decoration: BoxDecoration(
+                                              color: isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: Colors.white, width: 2),
+                                              boxShadow: [BoxShadow(color: (isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)).withOpacity(0.5), blurRadius: 8, spreadRadius: 1)],
+                                            ),
+                                            child: const Icon(Icons.local_shipping, size: 10, color: Colors.white),
+                                          ),
+                                        ],
                                       ),
-                                      child: const Icon(Icons.local_shipping, size: 10, color: Colors.white),
                                     ),
                                   ),
                                 ),
@@ -578,30 +607,43 @@ class MapScreenState extends State<MapScreen> {
                             ...game.myTrucks.where((t) => t.status == 'in_transit').map((truck) {
                               final pos = _getTruckPosition(truck, game);
                               if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
+                              final isDistressed = truck.fuelLevel < truck.maxFuel * 0.15 || truck.condition < 20;
                               return Marker(
                                 point: pos, width: 36, height: 36,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Container(
-                                      width: 32, height: 32,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: const Color(0xFFF5C542).withOpacity(0.15),
-                                        border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.4), width: 1.5),
+                                child: GestureDetector(
+                                  onTap: () => setState(() { _selectedCityId = null; _selectedTruck = truck; }),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      if (isDistressed)
+                                        Container(
+                                          width: 42, height: 42,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: const Color(0xFFEF5350).withOpacity(0.12),
+                                            border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.35), width: 1.5),
+                                          ),
+                                        ),
+                                      Container(
+                                        width: 32, height: 32,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: (isDistressed ? const Color(0xFFEF5350) : const Color(0xFFF5C542)).withOpacity(0.15),
+                                          border: Border.all(color: (isDistressed ? const Color(0xFFEF5350) : const Color(0xFFF5C542)).withOpacity(0.4), width: 1.5),
+                                        ),
                                       ),
-                                    ),
-                                    Container(
-                                      width: 22, height: 22,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF5C542),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                        boxShadow: [BoxShadow(color: const Color(0xFFF5C542).withOpacity(0.7), blurRadius: 12, spreadRadius: 2)],
+                                      Container(
+                                        width: 22, height: 22,
+                                        decoration: BoxDecoration(
+                                          color: isDistressed ? const Color(0xFFEF5350) : const Color(0xFFF5C542),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white, width: 2),
+                                          boxShadow: [BoxShadow(color: (isDistressed ? const Color(0xFFEF5350) : const Color(0xFFF5C542)).withOpacity(0.7), blurRadius: 12, spreadRadius: 2)],
+                                        ),
+                                        child: const Icon(Icons.local_shipping, size: 11, color: Color(0xFF1A1A1A)),
                                       ),
-                                      child: const Icon(Icons.local_shipping, size: 11, color: Color(0xFF1A1A1A)),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               );
                             }),
@@ -610,6 +652,33 @@ class MapScreenState extends State<MapScreen> {
                       ],
                     ),
                   ),
+
+                  // ===== WEATHER OVERLAY =====
+                  if (GameConstants.currentWeather != 'clear')
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Container(color: GameConstants.weatherOverlayColor),
+                      ),
+                    ),
+
+                  // ===== NIGHT OVERLAY =====
+                  if (GameConstants.isNightTime)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Container(color: Colors.black.withOpacity(0.05)),
+                      ),
+                    ),
+
+                  // ===== TRUCK INFO POPUP =====
+                  if (_selectedTruck != null)
+                    Positioned(
+                      top: 60, left: _isDesktop ? 250 : 10, right: 10,
+                      child: _TruckInfoPopup(
+                        truck: _selectedTruck!,
+                        game: game,
+                        onClose: () => setState(() => _selectedTruck = null),
+                      ),
+                    ),
 
                   // ===== TOP BAR — ETS2 Route Advisor =====
                   Positioned(
@@ -631,7 +700,9 @@ class MapScreenState extends State<MapScreen> {
                           const SizedBox(width: 2),
                         ],
                         const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 20),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
+                        Icon(GameConstants.weatherIcon, color: GameConstants.weatherColor, size: 16),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             company?.name ?? '...',
@@ -726,27 +797,37 @@ class MapScreenState extends State<MapScreen> {
                         _ets2Divider(),
                         _ets2Stat('${game.myGarages.length}', 'Гаражей', const Color(0xFFFF9800)),
                         _ets2Divider(),
+                        _ets2Stat(GameConstants.weatherLabel, 'Погода', GameConstants.weatherColor),
+                        _ets2Divider(),
                         _ets2Stat('€${GameConstants.currentFuelPricePerLiter.toStringAsFixed(2)}/л', 'Топливо',
                           GameConstants.currentFuelPricePerLiter > 1.8 ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)),
-                      ]),
+                      ])),
                     ),
                   ),
 
-                  // ===== Real-time clock =====
+                  // ===== Real-time clock + time of day =====
                   Positioned(
                     bottom: 50, left: 10,
                     child: Container(
-                      width: 58, height: 36,
+                      width: 58, height: 50,
                       decoration: BoxDecoration(
                         color: const Color(0xFF2C2C2C),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0xFF444444), width: 0.5),
                       ),
                       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const Icon(Icons.access_time, color: Color(0xFFF5C542), size: 12),
+                        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(GameConstants.timeOfDayIcon, color: GameConstants.timeOfDayColor, size: 10),
+                          const SizedBox(width: 3),
+                          Text(
+                            GameConstants.isNightTime ? 'Ночь' : 'День',
+                            style: TextStyle(color: GameConstants.timeOfDayColor, fontSize: 8, fontWeight: FontWeight.w600),
+                          ),
+                        ]),
+                        const SizedBox(height: 2),
                         Text(
                           '${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-                          style: const TextStyle(color: Color(0xFF999999), fontSize: 9, fontWeight: FontWeight.w700, fontFamily: 'monospace'),
+                          style: const TextStyle(color: Color(0xFF999999), fontSize: 11, fontWeight: FontWeight.w700, fontFamily: 'monospace'),
                         ),
                       ]),
                     ),
@@ -804,3 +885,242 @@ class MapScreenState extends State<MapScreen> {
     ),
   );
 }
+
+// ===== TRUCK INFO POPUP =====
+class _TruckInfoPopup extends StatelessWidget {
+  final Truck truck;
+  final GameProvider game;
+  final VoidCallback onClose;
+
+  const _TruckInfoPopup({required this.truck, required this.game, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    final truckType = GameConstants.findTruckType(truck.truckType);
+    final typeLabel = truckType?.name ?? truck.truckType;
+    final origin = truck.originCityId != null ? game.getCityById(truck.originCityId!) : null;
+    final dest = truck.destinationCityId != null ? game.getCityById(truck.destinationCityId!) : null;
+    final currentCity = truck.currentCityId != null ? game.getCityById(truck.currentCityId!) : null;
+    final fuelPct = truck.maxFuel > 0 ? (truck.fuelLevel / truck.maxFuel * 100).round() : 0;
+    final progress = _calcProgress(truck);
+    final isDistressed = truck.fuelLevel < truck.maxFuel * 0.15 || truck.condition < 20;
+
+    String? etaText;
+    if (truck.estimatedArrival != null) {
+      final diff = truck.estimatedArrival!.difference(DateTime.now());
+      if (!diff.isNegative) {
+        etaText = '${diff.inHours}ч ${diff.inMinutes % 60}м';
+      } else {
+        etaText = 'Прибыл!';
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: isDistressed ? const Color(0xFFEF5350).withOpacity(0.5) : const Color(0xFF444444)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Row(children: [
+            Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(
+                color: (truck.isInTransit ? const Color(0xFFF5C542) : isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(Icons.local_shipping, size: 16, color: truck.isInTransit ? const Color(0xFFF5C542) : isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(truck.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w700)),
+              Text(typeLabel, style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
+            ])),
+            // Status badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: (truck.isInTransit ? const Color(0xFFF5C542) : isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: (truck.isInTransit ? const Color(0xFFF5C542) : isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)).withOpacity(0.3)),
+              ),
+              child: Text(truck.statusDisplay, style: TextStyle(color: truck.isInTransit ? const Color(0xFFF5C542) : isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A), fontSize: 11, fontWeight: FontWeight.w600)),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: onClose,
+              child: const Icon(Icons.close, color: Color(0xFF999999), size: 16),
+            ),
+          ]),
+
+          // Transit info
+          if (truck.isInTransit && origin != null && dest != null) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              const Icon(Icons.trip_origin, size: 14, color: Color(0xFF66BB6A)),
+              const SizedBox(width: 4),
+              Text(origin.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward, size: 12, color: Color(0xFF888888)),
+              const SizedBox(width: 8),
+              const Icon(Icons.location_on, size: 14, color: Color(0xFFEF5350)),
+              const SizedBox(width: 4),
+              Text(dest.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
+              if (etaText != null) ...[
+                const Spacer(),
+                Text('ETA: $etaText', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'monospace')),
+              ],
+            ]),
+            // Progress bar
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: SizedBox(
+                height: 6,
+                child: Stack(children: [
+                  Container(decoration: BoxDecoration(color: const Color(0xFF3A3A3A), borderRadius: BorderRadius.circular(3))),
+                  FractionallySizedBox(
+                    widthFactor: progress,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5C542),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            Text('${(progress * 100).round()}% пройдено', style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
+          ],
+
+          // Idle: current city
+          if (truck.isIdle && currentCity != null) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              const Icon(Icons.location_on, size: 14, color: Color(0xFF42A5F5)),
+              const SizedBox(width: 4),
+              Text('Город: ${currentCity.name}', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
+            ]),
+          ],
+
+          // Condition & Fuel bars
+          const SizedBox(height: 10),
+          Row(children: [
+            // Condition
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.build, size: 12, color: Color(0xFF888888)),
+                const SizedBox(width: 4),
+                Text('Состояние', style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
+                const Spacer(),
+                Text('${truck.condition}%', style: TextStyle(
+                  color: truck.condition < 20 ? const Color(0xFFEF5350) : truck.condition < 50 ? const Color(0xFFF5C542) : const Color(0xFF66BB6A),
+                  fontSize: 11, fontWeight: FontWeight.w700, fontFamily: 'monospace',
+                )),
+              ]),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: SizedBox(
+                  height: 4,
+                  child: Stack(children: [
+                    Container(decoration: BoxDecoration(color: const Color(0xFF3A3A3A), borderRadius: BorderRadius.circular(2))),
+                    FractionallySizedBox(
+                      widthFactor: (truck.condition / 100).clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: truck.condition < 20 ? const Color(0xFFEF5350) : truck.condition < 50 ? const Color(0xFFF5C542) : const Color(0xFF66BB6A),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ])),
+            const SizedBox(width: 16),
+            // Fuel
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.local_gas_station, size: 12, color: Color(0xFF888888)),
+                const SizedBox(width: 4),
+                Text('Топливо', style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
+                const Spacer(),
+                Text('$fuelPct%', style: TextStyle(
+                  color: fuelPct < 15 ? const Color(0xFFEF5350) : fuelPct < 30 ? const Color(0xFFF5C542) : const Color(0xFF42A5F5),
+                  fontSize: 11, fontWeight: FontWeight.w700, fontFamily: 'monospace',
+                )),
+              ]),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: SizedBox(
+                  height: 4,
+                  child: Stack(children: [
+                    Container(decoration: BoxDecoration(color: const Color(0xFF3A3A3A), borderRadius: BorderRadius.circular(2))),
+                    FractionallySizedBox(
+                      widthFactor: (fuelPct / 100).clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: fuelPct < 15 ? const Color(0xFFEF5350) : fuelPct < 30 ? const Color(0xFFF5C542) : const Color(0xFF42A5F5),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ])),
+          ]),
+
+          // Distressed warning
+          if (isDistressed) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF5350).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.25)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.warning, size: 14, color: Color(0xFFEF5350)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    truck.fuelLevel < truck.maxFuel * 0.15 && truck.condition < 20
+                        ? 'Низкое топливо и плохое состояние!'
+                        : truck.fuelLevel < truck.maxFuel * 0.15
+                            ? 'Мало топлива — заправьте грузовик!'
+                            : 'Плохое состояние — отремонтируйте!',
+                    style: const TextStyle(color: Color(0xFFEF5350), fontSize: 11, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ]),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  double _calcProgress(Truck truck) {
+    if (truck.estimatedArrival != null && truck.departureTime != null) {
+      final total = truck.estimatedArrival!.difference(truck.departureTime!).inSeconds;
+      if (total > 0) {
+        final elapsed = DateTime.now().difference(truck.departureTime!).inSeconds;
+        return (elapsed / total).clamp(0.0, 1.0);
+      }
+    }
+    return 0.0;
+  }
+}
+

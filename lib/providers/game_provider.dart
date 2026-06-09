@@ -14,6 +14,8 @@ import '../models/clan.dart';
 import '../utils/pathfinder.dart';
 import '../models/event_log.dart';
 import '../models/garage.dart';
+import '../models/clan_mission.dart';
+import '../models/chat_message.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371.0;
@@ -49,6 +51,8 @@ class GameProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _clanLeaderboard = [];
   List<EventLog> _eventLog = [];
   List<Garage> _myGarages = [];
+  List<ClanMission> _clanMissions = [];
+  List<ChatMessage> _clanMessages = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
@@ -79,6 +83,8 @@ class GameProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get clanLeaderboard => _clanLeaderboard;
   List<EventLog> get eventLog => _eventLog;
   List<Garage> get myGarages => _myGarages;
+  List<ClanMission> get clanMissions => _clanMissions;
+  List<ChatMessage> get clanMessages => _clanMessages;
   String? get myClanRole {
     for (final m in _clanMembers) {
       if (m.companyId == _currentCompanyId) return m.role;
@@ -267,10 +273,18 @@ class GameProvider extends ChangeNotifier {
           .eq('company_id', companyId)
           .maybeSingle();
       if (resp != null && resp['clan_id'] != null) {
-        await loadClanDetails(resp['clan_id'] as String);
+        final clanId = resp['clan_id'] as String;
+        await loadClanDetails(clanId);
+        // Load clan missions and chat in parallel
+        await Future.wait([
+          loadClanMissions(clanId),
+          loadClanMessages(clanId),
+        ]);
       } else {
         _myClan = null;
         _clanMembers = [];
+        _clanMissions = [];
+        _clanMessages = [];
       }
     } catch (e) {
       debugPrint('Load my clan error: $e');
@@ -292,6 +306,28 @@ class GameProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Load clan details error: $e');
+    }
+  }
+
+  Future<void> loadClanMissions(String clanId) async {
+    try {
+      final resp = await _supabase.rpc('get_clan_missions', params: {'p_clan_id': clanId});
+      _clanMissions = (resp as List?)
+          ?.map<ClanMission>((e) => ClanMission.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList() ?? [];
+    } catch (e) {
+      debugPrint('Load clan missions error: $e');
+    }
+  }
+
+  Future<void> loadClanMessages(String clanId) async {
+    try {
+      final resp = await _supabase.rpc('get_clan_messages', params: {'p_clan_id': clanId});
+      _clanMessages = (resp as List?)
+          ?.map<ChatMessage>((e) => ChatMessage.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList() ?? [];
+    } catch (e) {
+      debugPrint('Load clan messages error: $e');
     }
   }
 
@@ -362,12 +398,12 @@ class GameProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    // Update dynamic fuel price on load
-    GameConstants.updateFuelPrice();
-    // Start periodic fuel price update (every 60 seconds)
+    // Update dynamic prices and weather on load
+    GameConstants.updateAllDynamic();
+    // Start periodic price/weather update (every 60 seconds)
     _fuelPriceTimer?.cancel();
     _fuelPriceTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      GameConstants.updateFuelPrice();
+      GameConstants.updateAllDynamic();
       notifyListeners();
     });
     try {
@@ -1016,6 +1052,8 @@ class GameProvider extends ChangeNotifier {
       if (resp == true) {
         _myClan = null;
         _clanMembers = [];
+        _clanMissions = [];
+        _clanMessages = [];
         await loadClanLeaderboard();
         await logEvent(
           companyId: companyId,
@@ -1060,6 +1098,32 @@ class GameProvider extends ChangeNotifier {
   Future<void> refreshClan(String companyId) async {
     await loadMyClan(companyId);
     await loadClanLeaderboard();
+  }
+
+  Future<void> generateClanMissions() async {
+    try {
+      await _supabase.rpc('generate_clan_missions');
+      if (_myClan != null) await loadClanMissions(_myClan!.id);
+    } catch (e) {
+      debugPrint('Generate clan missions error: $e');
+    }
+  }
+
+  Future<bool> sendClanMessage(String companyId, String content) async {
+    try {
+      if (content.trim().isEmpty) return false;
+      final resp = await _supabase.rpc('send_clan_message', params: {
+        'p_company_id': companyId,
+        'p_content': content.trim(),
+      });
+      if (resp != null && _myClan != null) {
+        await loadClanMessages(_myClan!.id);
+      }
+      return resp != null;
+    } catch (e) {
+      _error = 'Ошибка отправки: $e';
+      return false;
+    }
   }
 
   @override

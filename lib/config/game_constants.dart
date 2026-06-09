@@ -33,6 +33,75 @@ class GameConstants {
   // Dynamic fuel price (changes with time)
   static double currentFuelPricePerLiter = 1.5;
 
+  // ===== WEATHER SYSTEM =====
+  static String currentWeather = 'clear'; // 'clear', 'rain', 'fog', 'snow'
+  static double weatherSpeedPenalty = 0; // 0-0.20 (up to 20% slower)
+
+  static void updateWeather() {
+    final hour = DateTime.now().hour;
+    final rand = (hour * 7 + DateTime.now().minute) % 100;
+    if (rand < 55) {
+      currentWeather = 'clear';
+      weatherSpeedPenalty = 0;
+    } else if (rand < 75) {
+      currentWeather = 'rain';
+      weatherSpeedPenalty = 0.10;
+    } else if (rand < 90) {
+      currentWeather = 'fog';
+      weatherSpeedPenalty = 0.15;
+    } else {
+      currentWeather = 'snow';
+      weatherSpeedPenalty = 0.20;
+    }
+  }
+
+  static IconData get weatherIcon => switch (currentWeather) {
+    'rain' => Icons.water_drop,
+    'fog' => Icons.cloud,
+    'snow' => Icons.ac_unit,
+    _ => Icons.wb_sunny,
+  };
+
+  static String get weatherLabel => switch (currentWeather) {
+    'rain' => 'Дождь -10%',
+    'fog' => 'Туман -15%',
+    'snow' => 'Снег -20%',
+    _ => 'Ясно',
+  };
+
+  static Color get weatherColor => switch (currentWeather) {
+    'rain' => const Color(0xFF42A5F5),
+    'fog' => const Color(0xFF90A4AE),
+    'snow' => const Color(0xFFB3E5FC),
+    _ => const Color(0xFFF5C542),
+  };
+
+  static Color get weatherOverlayColor => switch (currentWeather) {
+    'rain' => const Color(0xFF42A5F5).withOpacity(0.05),
+    'fog' => const Color(0xFFFFFFFF).withOpacity(0.08),
+    'snow' => const Color(0xFFB3E5FC).withOpacity(0.06),
+    _ => Colors.transparent,
+  };
+
+  // ===== DAY/NIGHT CYCLE =====
+  static bool get isNightTime {
+    final hour = DateTime.now().hour;
+    return hour < 6 || hour >= 21;
+  }
+
+  static double get nightBonus => isNightTime ? 0.20 : 0; // +20% reward at night
+  static double get nightFuelPenalty => isNightTime ? 0.10 : 0; // +10% fuel at night
+
+  static IconData get timeOfDayIcon => isNightTime ? Icons.dark_mode : Icons.light_mode;
+  static String get timeOfDayLabel => isNightTime ? 'Ночь (+20% награды)' : 'День';
+  static Color get timeOfDayColor => isNightTime ? const Color(0xFF7C4DFF) : const Color(0xFFF5C542);
+
+  /// Update weather conditions (call on init and periodically)
+  static void updateAllDynamic() {
+    updateFuelPrice();
+    updateWeather();
+  }
+
   /// Update fuel price based on time — simulates market fluctuations
   static void updateFuelPrice() {
     final hour = DateTime.now().hour;
