@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import '../config/world_boundaries.dart';
 import '../config/country_boundaries.dart';
-import 'game_map.dart' show GameMapCamera;
+import 'game_map.dart' show GameMapCamera, VisibleBounds;
 
 /// Data passed to the map painter each frame.
 class CityMarkerData {
@@ -70,7 +71,7 @@ class GameMapPainterData {
   final List<TruckMarkerData> truckMarkers;
   final List<RoadEdge> roads;
   final List<RouteSegment> routes;
-  final Set<String> countryNames; // unique country names from cities
+  final Set<String> countryNames;
 
   const GameMapPainterData({
     this.cityMarkers = const [],
@@ -81,10 +82,33 @@ class GameMapPainterData {
   });
 }
 
+/// The main map painter — renders a full world map with zoom-dependent detail.
+///
+/// Rendering layers (in order):
+///   1. Ocean background (dark blue-black)
+///   2. Latitude / longitude grid (zoom ≤ 2.5)
+///   3. World continent / country polygons
+///   4. Country shading polygons (game countries, zoom ≥ 3.5)
+///   5. Water bodies (seas, zoom ≥ 3)
+///   6. Road network (zoom ≥ 4)
+///   7. Truck routes (all zoom levels, only if trucks exist)
+///   8. City markers (game cities)
+///   9. Truck markers (all zoom levels)
+///  10. World city dots (zoom ≥ 3, non-game cities)
+///  11. World city labels (zoom ≥ 4.5)
+///  12. Region labels (zoom ≤ 2.5)
+///  13. City labels (game cities, zoom ≥ 4.5)
+///  14. Zoom indicator + coordinates display
 class GameMapPainter extends CustomPainter {
   final GameMapCamera camera;
   final GameMapPainterData data;
   final Size screenSize;
+
+  // Cached data to avoid recomputing every frame
+  List<LandmassPolygon>? _visibleLandmasses;
+  List<WorldCity>? _visibleWorldCities;
+  VisibleBounds? _bounds;
+  double? _lastZoom;
 
   GameMapPainter({
     required this.camera,
@@ -93,6 +117,7 @@ class GameMapPainter extends CustomPainter {
   });
 
   double get scale => camera.scale;
+  double get zoom => camera.zoom;
 
   /// Convert LatLng to screen pixel offset.
   Offset _toScreen(LatLng point) {
@@ -108,38 +133,212 @@ class GameMapPainter extends CustomPainter {
            p.dy > -margin && p.dy < screenSize.height + margin;
   }
 
+  /// Get or compute visible geographic bounds.
+  VisibleBounds _getBounds() {
+    return camera.getVisibleBounds(screenSize.width, screenSize.height);
+  }
+
+  /// Cache visible landmass and world city lookups.
+  void _ensureCached() {
+    if (_lastZoom == zoom) return;
+    _lastZoom = zoom;
+    _bounds = _getBounds();
+    final b = _bounds!;
+    _visibleLandmasses = WorldBoundaries.getVisibleLandmasses(
+      minLat: b.minLat, maxLat: b.maxLat,
+      minLng: b.minLng, maxLng: b.maxLng,
+    );
+    _visibleWorldCities = WorldBoundaries.getVisibleWorldCities(
+      minLat: b.minLat, maxLat: b.maxLat,
+      minLng: b.minLng, maxLng: b.maxLng,
+    );
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Dark background
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = const Color(0xFF1A1A1A),
-    );
+    _ensureCached();
 
-    // 2. Country shading polygons
-    _drawCountryShading(canvas);
+    // 1. Ocean background
+    _drawOcean(canvas, size);
 
-    // 3. Road network
-    _drawRoads(canvas);
+    // 2. Lat/lng grid
+    _drawGrid(canvas, size);
 
-    // 4. Truck routes
-    _drawRoutes(canvas);
+    // 3. World continent polygons
+    _drawContinents(canvas);
 
-    // 5. City markers
+    // 4. Game country shading (higher detail for known countries)
+    if (zoom >= 3.5) {
+      _drawCountryShading(canvas);
+    }
+
+    // 5. Water bodies
+    if (zoom >= 3.0) {
+      _drawWaterBodies(canvas);
+    }
+
+    // 6. Road network (only visible when zoomed into Europe)
+    if (zoom >= 4.0) {
+      _drawRoads(canvas);
+    }
+
+    // 7. Truck routes
+    if (data.routes.isNotEmpty) {
+      _drawRoutes(canvas);
+    }
+
+    // 8. Game city markers
     _drawCities(canvas);
 
-    // 6. Truck markers
-    _drawTrucks(canvas);
+    // 9. Truck markers
+    if (data.truckMarkers.isNotEmpty) {
+      _drawTrucks(canvas);
+    }
 
-    // 7. City labels
-    _drawCityLabels(canvas);
+    // 10. World city dots (non-game cities)
+    if (zoom >= 3.0) {
+      _drawWorldCityDots(canvas);
+    }
+
+    // 11. World city labels
+    if (zoom >= 4.5) {
+      _drawWorldCityLabels(canvas);
+    }
+
+    // 12. Region labels (very low zoom)
+    if (zoom <= 2.5) {
+      _drawRegionLabels(canvas);
+    }
+
+    // 13. Game city labels
+    if (zoom >= 4.5) {
+      _drawCityLabels(canvas);
+    }
+
+    // 14. Coordinates + zoom indicator
+    _drawCoordinates(canvas);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // LAYER IMPLEMENTATIONS
+  // ══════════════════════════════════════════════════════════════════════
+
+  void _drawOcean(Canvas canvas, Size size) {
+    // Dark ocean background
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = const Color(0xFF0D1117),
+    );
+  }
+
+  void _drawGrid(Canvas canvas, Size size) {
+    // Show grid at zoom ≤ 5, with adaptive spacing
+    double gridSpacing;
+    if (zoom <= 1.5) {
+      gridSpacing = 30.0; // Every 30°
+    } else if (zoom <= 2.5) {
+      gridSpacing = 15.0; // Every 15°
+    } else if (zoom <= 4.0) {
+      gridSpacing = 5.0; // Every 5°
+    } else {
+      return; // No grid at higher zooms
+    }
+
+    final gridPaint = Paint()
+      ..color = const Color(0xFF1A2030)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    final b = _bounds!;
+
+    // Longitude lines (vertical)
+    final startLng = (b.minLng / gridSpacing).floor() * gridSpacing;
+    for (var lng = startLng; lng <= b.maxLng + gridSpacing; lng += gridSpacing) {
+      final top = _toScreen(LatLng(b.maxLat + 5, lng));
+      final bottom = _toScreen(LatLng(b.minLat - 5, lng));
+      canvas.drawLine(top, bottom, gridPaint);
+    }
+
+    // Latitude lines (horizontal)
+    final startLat = (b.minLat / gridSpacing).floor() * gridSpacing;
+    for (var lat = startLat; lat <= b.maxLat + gridSpacing; lat += gridSpacing) {
+      final left = _toScreen(LatLng(lat, b.minLng - 5));
+      final right = _toScreen(LatLng(lat, b.maxLng + 5));
+      canvas.drawLine(left, right, gridPaint);
+    }
+
+    // Draw equator slightly brighter
+    if (b.minLat <= 0 && b.maxLat >= 0) {
+      final equatorPaint = Paint()
+        ..color = const Color(0xFF253040)
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke;
+      final left = _toScreen(const LatLng(0, -180));
+      final right = _toScreen(const LatLng(0, 180));
+      canvas.drawLine(left, right, equatorPaint);
+    }
+
+    // Prime meridian
+    if (b.minLng <= 0 && b.maxLng >= 0) {
+      final meridianPaint = Paint()
+        ..color = const Color(0xFF253040)
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke;
+      final top = _toScreen(const LatLng(85, 0));
+      final bottom = _toScreen(const LatLng(-85, 0));
+      canvas.drawLine(top, bottom, meridianPaint);
+    }
+  }
+
+  void _drawContinents(Canvas canvas) {
+    final landmasses = _visibleLandmasses!;
+    if (landmasses.isEmpty) return;
+
+    for (final poly in landmasses) {
+      final screenVerts = poly.vertices.map(_toScreen).toList();
+
+      // Quick visibility check
+      bool anyVisible = false;
+      for (final p in screenVerts) {
+        if (_isVisible(p, margin: 300)) {
+          anyVisible = true;
+          break;
+        }
+      }
+      if (!anyVisible) continue;
+
+      // Build path
+      final path = Path()..moveTo(screenVerts.first.dx, screenVerts.first.dy);
+      for (var i = 1; i < screenVerts.length; i++) {
+        path.lineTo(screenVerts[i].dx, screenVerts[i].dy);
+      }
+      path.close();
+
+      // Fill with continent color
+      final fillColor = Color(poly.color);
+      canvas.drawPath(path, Paint()..color = fillColor);
+
+      // Border stroke — slightly lighter than fill
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = Color.fromARGB(
+            fillColor.alpha,
+            (fillColor.red + 15).clamp(0, 255),
+            (fillColor.green + 10).clamp(0, 255),
+            (fillColor.blue + 10).clamp(0, 255),
+          )
+          ..strokeWidth = 0.8
+          ..style = PaintingStyle.stroke,
+      );
+    }
   }
 
   void _drawCountryShading(Canvas canvas) {
     final paint = Paint()..style = PaintingStyle.fill;
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.8;
 
     for (final countryName in data.countryNames) {
       final verts = CountryBoundaries.polygonFor(countryName);
@@ -155,10 +354,34 @@ class GameMapPainter extends CustomPainter {
       }
       path.close();
 
-      paint.color = color.withOpacity(0.35);
+      paint.color = color.withOpacity(0.5);
       canvas.drawPath(path, paint);
 
-      borderPaint.color = color.withOpacity(0.5);
+      borderPaint.color = color.withOpacity(0.7);
+      canvas.drawPath(path, borderPaint);
+    }
+  }
+
+  void _drawWaterBodies(Canvas canvas) {
+    final waterPaint = Paint()
+      ..color = const Color(0xFF0D1117)
+      ..style = PaintingStyle.fill;
+    final borderPaint = Paint()
+      ..color = const Color(0xFF1A2535)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    for (final body in WorldBoundaries.waterBodies) {
+      final screenVerts = body.vertices.map(_toScreen).toList();
+      if (screenVerts.every((p) => !_isVisible(p, margin: 200))) continue;
+
+      final path = Path()..moveTo(screenVerts.first.dx, screenVerts.first.dy);
+      for (var i = 1; i < screenVerts.length; i++) {
+        path.lineTo(screenVerts[i].dx, screenVerts[i].dy);
+      }
+      path.close();
+
+      canvas.drawPath(path, waterPaint);
       canvas.drawPath(path, borderPaint);
     }
   }
@@ -221,6 +444,11 @@ class GameMapPainter extends CustomPainter {
       final pos = _toScreen(city.position);
       if (!_isVisible(pos)) continue;
 
+      // Adapt dot size based on zoom
+      final dotRadius = city.isSelected
+          ? (8.0 + (zoom - 4).clamp(0, 6))
+          : (6.0 + (zoom - 4).clamp(0, 4));
+
       final dotColor = city.hasWarehouse
           ? const Color(0xFF66BB6A)
           : city.hasGarage
@@ -228,8 +456,6 @@ class GameMapPainter extends CustomPainter {
               : city.hasTruck
                   ? const Color(0xFFF5C542)
                   : const Color(0xFF8B9A46);
-
-      final dotRadius = city.isSelected ? 8.0 : 6.0;
 
       // Glow effect
       final glowPaint = Paint()
@@ -275,7 +501,7 @@ class GameMapPainter extends CustomPainter {
                   ? const Color(0xFF66BB6A)
                   : const Color(0xFFF5C542);
 
-      final s = 14.0; // half-size
+      final s = 14.0;
 
       // Glow ring for non-idle trucks
       if (!truck.isIdle || truck.isDistressed) {
@@ -291,14 +517,14 @@ class GameMapPainter extends CustomPainter {
       canvas.rotate(truck.heading * math.pi / 180);
 
       final path = Path()
-        ..moveTo(0, -s)              // nose
+        ..moveTo(0, -s)
         ..lineTo(s * 0.35, -s * 0.3)
-        ..lineTo(s * 0.5, s * 0.15)  // right mirror
-        ..lineTo(s * 0.45, s * 0.6)  // right body
-        ..lineTo(s * 0.3, s)         // right tail
-        ..lineTo(-s * 0.3, s)        // left tail
-        ..lineTo(-s * 0.45, s * 0.6) // left body
-        ..lineTo(-s * 0.5, s * 0.15) // left mirror
+        ..lineTo(s * 0.5, s * 0.15)
+        ..lineTo(s * 0.45, s * 0.6)
+        ..lineTo(s * 0.3, s)
+        ..lineTo(-s * 0.3, s)
+        ..lineTo(-s * 0.45, s * 0.6)
+        ..lineTo(-s * 0.5, s * 0.15)
         ..lineTo(-s * 0.35, -s * 0.3)
         ..close();
 
@@ -322,13 +548,101 @@ class GameMapPainter extends CustomPainter {
     }
   }
 
-  void _drawCityLabels(Canvas canvas) {
-    // Only show labels when zoomed in enough
-    if (camera.zoom < 4.5) return;
+  void _drawWorldCityDots(Canvas canvas) {
+    final cities = _visibleWorldCities!;
+    if (cities.isEmpty) return;
+
+    // Small neutral dots for non-game cities
+    final dotPaint = Paint()
+      ..color = const Color(0xFF4A5568)
+      ..style = PaintingStyle.fill;
+
+    final dotRadius = zoom >= 6.0 ? 3.0 : 2.0;
+
+    for (final city in cities) {
+      final pos = _toScreen(LatLng(city.lat, city.lng));
+      if (!_isVisible(pos, margin: 50)) continue;
+
+      canvas.drawCircle(pos, dotRadius, dotPaint);
+
+      // Subtle border
+      canvas.drawCircle(pos, dotRadius,
+        Paint()
+          ..color = const Color(0xFF5A6578)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5);
+    }
+  }
+
+  void _drawWorldCityLabels(Canvas canvas) {
+    final cities = _visibleWorldCities!;
+    if (cities.isEmpty) return;
 
     final textStyle = TextStyle(
+      color: const Color(0xFF7A8599),
+      fontSize: (9 + (zoom - 4.5) * 1.5).clamp(8.0, 11.0),
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+    );
+
+    for (final city in cities) {
+      final pos = _toScreen(LatLng(city.lat, city.lng));
+      if (!_isVisible(pos)) continue;
+
+      final tp = TextPainter(
+        text: TextSpan(text: city.name, style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      // Small background pill
+      final padding = 3.0;
+      final bgRect = Rect.fromLTWH(
+        pos.dx - tp.width / 2 - padding,
+        pos.dy + 5, // below the dot
+        tp.width + padding * 2,
+        tp.height + padding * 2,
+      );
+
+      final bgPaint = Paint()..color = const Color(0xFF0D1117).withOpacity(0.7);
+      canvas.drawRRect(RRect.fromRectAndRadius(bgRect, const Radius.circular(2)), bgPaint);
+
+      // Text
+      tp.paint(canvas, Offset(bgRect.left + padding, bgRect.top + padding));
+    }
+  }
+
+  void _drawRegionLabels(Canvas canvas) {
+    final labels = WorldBoundaries.regionLabels;
+
+    final textStyle = TextStyle(
+      color: const Color(0xFF3A4558),
+      fontSize: (16 + (2.5 - zoom) * 6).clamp(14.0, 28.0),
+      fontWeight: FontWeight.w800,
+      letterSpacing: 3.0,
+    );
+
+    for (final label in labels) {
+      if (zoom < label.minZoom || zoom > label.maxZoom) continue;
+
+      final pos = _toScreen(LatLng(label.lat, label.lng));
+      if (!_isVisible(pos, margin: 200)) continue;
+
+      final tp = TextPainter(
+        text: TextSpan(text: label.name, style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      tp.paint(canvas, Offset(
+        pos.dx - tp.width / 2,
+        pos.dy - tp.height / 2,
+      ));
+    }
+  }
+
+  void _drawCityLabels(Canvas canvas) {
+    final textStyle = TextStyle(
       color: const Color(0xFFD0D0D0),
-      fontSize: (10 + (camera.zoom - 4.5) * 2).clamp(8.0, 14.0),
+      fontSize: (10 + (zoom - 4.5) * 2).clamp(8.0, 14.0),
       fontWeight: FontWeight.w600,
       letterSpacing: 0.8,
     );
@@ -345,17 +659,16 @@ class GameMapPainter extends CustomPainter {
       // Background pill
       final padding = 4.0;
       final bgRect = Rect.fromLTWH(
-        pos.dx - tp.width / 2 - padding - 8, // offset for flag indicator
-        pos.dy - tp.height / 2 - padding - 14,  // offset above the dot
+        pos.dx - tp.width / 2 - padding - 8,
+        pos.dy - tp.height / 2 - padding - 14,
         tp.width + padding * 2 + 8,
         tp.height + padding * 2,
       );
 
-      final bgPaint = Paint()..color = const Color(0xFF1A1A1A).withOpacity(0.75);
-      final radius = Radius.circular(3);
-      canvas.drawRRect(RRect.fromRectAndRadius(bgRect, radius), bgPaint);
+      final bgPaint = Paint()..color = const Color(0xFF0D1117).withOpacity(0.8);
+      canvas.drawRRect(RRect.fromRectAndRadius(bgRect, const Radius.circular(3)), bgPaint);
 
-      // Country flag indicator — small colored square before name
+      // Country flag indicator
       final flagPaint = Paint()..color = const Color(0xFF666666)..style = PaintingStyle.fill;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -368,6 +681,43 @@ class GameMapPainter extends CustomPainter {
       // Text
       tp.paint(canvas, Offset(bgRect.left + 16, bgRect.top + padding));
     }
+  }
+
+  void _drawCoordinates(Canvas canvas) {
+    // Bottom-right corner: coordinates + zoom level
+    final lat = camera.center.latitude;
+    final lng = camera.center.longitude;
+    final latDir = lat >= 0 ? 'N' : 'S';
+    final lngDir = lng >= 0 ? 'E' : 'W';
+
+    final coordText = '${lat.abs().toStringAsFixed(1)}°$latDir ${lng.abs().toStringAsFixed(1)}°$lngDir  z${zoom.toStringAsFixed(1)}';
+
+    final textStyle = TextStyle(
+      color: const Color(0xFF4A5568),
+      fontSize: 10,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.3,
+    );
+
+    final tp = TextPainter(
+      text: TextSpan(text: coordText, style: textStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final x = screenSize.width - tp.width - 12;
+    final y = screenSize.height - tp.height - 46;
+
+    // Background
+    final bgPaint = Paint()..color = const Color(0xFF0D1117).withOpacity(0.7);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(x - 4, y - 2, tp.width + 8, tp.height + 4),
+        const Radius.circular(3),
+      ),
+      bgPaint,
+    );
+
+    tp.paint(canvas, Offset(x, y));
   }
 
   @override

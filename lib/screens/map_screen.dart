@@ -132,6 +132,7 @@ class MapScreenState extends State<MapScreen> {
   }
 
   void _openNotificationPanel(BuildContext context) {
+    final game = context.read<GameProvider>();
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -267,7 +268,7 @@ class MapScreenState extends State<MapScreen> {
     final dest = game.getCityById(truck.destinationCityId!);
     if (origin == null || dest == null) return 0;
     final dx = dest.longitude - origin.longitude;
-    final dy = dest.latitude - dest.latitude;
+    final dy = dest.latitude - origin.latitude;
     var deg = math.atan2(dx, -dy) * 180 / math.pi;
     if (deg < 0) deg += 360;
     return deg;
@@ -590,7 +591,7 @@ class MapScreenState extends State<MapScreen> {
                             }
                           },
                           onMapTap: (_, __) => setState(() { _selectedCityId = null; _selectedTruck = null; }),
-                          minZoom: 3,
+                          minZoom: 1.2,
                           maxZoom: 18,
                         ),
                       );
@@ -756,6 +757,8 @@ class MapScreenState extends State<MapScreen> {
                       const SizedBox(height: 2),
                       _ets2MapBtn(AppIcons.zoomOut, 'Отдалить (-)', () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
                       const SizedBox(height: 2),
+                      _ets2MapBtn(AppIcons.public, 'Обзор мира', () => _mapController.move(const LatLng(25, 15), 1.8)),
+                      const SizedBox(height: 2),
                       _ets2MapBtn(AppIcons.cropFree, 'Обзор Европы', () => _mapController.move(const LatLng(50, 10), 4)),
                       const SizedBox(height: 2),
                       _ets2MapBtn(AppIcons.myLocation, 'К первому грузовику', () {
@@ -888,6 +891,79 @@ class MapScreenState extends State<MapScreen> {
       ),
     ),
   );
+}
+
+  void _showEventDetailsDialog(SeasonalEvent event) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.6),
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: const Color(0xFFF5C542).withOpacity(0.3)),
+        ),
+        title: Text(event.name, style: const TextStyle(color: Color(0xFFF5C542), fontWeight: FontWeight.w700)),
+        content: Text(
+          event.description,
+          style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Закрыть', style: TextStyle(color: Color(0xFF999999))),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ===== SEASONAL EVENT BANNER =====
+class _SeasonalEventBanner extends StatelessWidget {
+  final List<SeasonalEvent> events;
+  final VoidCallback onDismiss;
+  final void Function(SeasonalEvent) onShowDetails;
+
+  const _SeasonalEventBanner({
+    required this.events,
+    required this.onDismiss,
+    required this.onShowDetails,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final event = events.first;
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        border: Border(bottom: BorderSide(color: const Color(0xFFF5C542).withOpacity(0.3))),
+      ),
+      child: Row(
+        children: [
+          const Icon(AppIcons.emojiEvents, color: Color(0xFFF5C542), size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onShowDetails(event),
+              child: Text(
+                '${event.name}: ${event.description}',
+                style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12, fontWeight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onDismiss,
+            child: const Icon(AppIcons.close, color: Color(0xFF666666), size: 14),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ===== TRUCK INFO POPUP =====

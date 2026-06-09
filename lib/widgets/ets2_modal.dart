@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_icons.dart';
 import '../services/sound_manager.dart';
+import '../config/world_boundaries.dart';
 
 /// Shared ETS2-style modal dialog wrapper.
 /// All modal screens use this as their root widget instead of Scaffold.
@@ -92,21 +93,21 @@ class ETS2Modal extends StatelessWidget {
                 ),
               ],
             ),
-            // Mini-map inset — simple static canvas rendering
+            // Mini-map inset — world outline mini map
             Positioned(
               top: 56,
               right: 8,
               child: Container(
-                width: 120,
-                height: 80,
+                width: 160,
+                height: 90,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0xFF333333)),
-                  color: const Color(0xFF1A1A1A),
+                  color: const Color(0xFF0D1117),
                 ),
                 child: CustomPaint(
-                  painter: _MiniMapPainter(),
-                  size: const Size(120, 80),
+                  painter: _MiniWorldMapPainter(),
+                  size: const Size(160, 90),
                 ),
               ),
             ),
@@ -117,35 +118,74 @@ class ETS2Modal extends StatelessWidget {
   }
 }
 
-class _MiniMapPainter extends CustomPainter {
+/// Mini world map painter for the ETS2 modal inset.
+/// Draws simplified world continents as filled polygons.
+class _MiniWorldMapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Dark background
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()..color = const Color(0xFF1A1A1A));
+    // Dark ocean background
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = const Color(0xFF0D1117),
+    );
 
-    // Simple Europe outline
-    final paint = Paint()
-      ..color = const Color(0xFF8B9A46).withOpacity(0.3)
-      ..strokeWidth = 1
-      ..strokeCap = StrokeCap.round;
-
-    final points = [
-      Offset(0.15, 0.2), Offset(0.3, 0.15), Offset(0.5, 0.1),
-      Offset(0.7, 0.15), Offset(0.85, 0.3), Offset(0.8, 0.5),
-      Offset(0.7, 0.7), Offset(0.5, 0.8), Offset(0.3, 0.7),
-      Offset(0.15, 0.5),
-    ];
-    final path = Path()..moveTo(
-      points.first.dx * size.width, points.first.dy * size.height);
-    for (var i = 1; i < points.length; i++) {
-      path.lineTo(points[i].dx * size.width, points[i].dy * size.height);
+    // Equirectangular projection for mini map
+    // x = (lng + 180) / 360 * width
+    // y = (90 - lat) / 180 * height
+    Offset _project(double lat, double lng) {
+      return Offset(
+        (lng + 180) / 360 * size.width,
+        (90 - lat) / 180 * size.height,
+      );
     }
-    path.close();
-    canvas.drawPath(path, Paint()..color = const Color(0xFF1E2A3A).withOpacity(0.5));
-    canvas.drawPath(path, paint);
+
+    final landPaint = Paint()
+      ..color = const Color(0xFF1E2A3A)
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = const Color(0xFF2A3A4A)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    // Draw all world landmasses as mini polygons
+    for (final poly in WorldBoundaries.allLandmasses) {
+      final points = poly.vertices.map((v) => _project(v.latitude, v.longitude)).toList();
+      if (points.isEmpty) continue;
+
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (var i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      path.close();
+
+      canvas.drawPath(path, landPaint);
+      canvas.drawPath(path, borderPaint);
+    }
+
+    // Highlight Europe area slightly
+    final euPaint = Paint()
+      ..color = const Color(0xFF8B9A46).withOpacity(0.15)
+      ..style = PaintingStyle.fill;
+
+    final euOutline = Paint()
+      ..color = const Color(0xFF8B9A46).withOpacity(0.3)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    final europePoints = [
+      _project(70, -10), _project(70, 40), _project(35, 40),
+      _project(35, -10),
+    ];
+    final euPath = Path()..moveTo(europePoints[0].dx, europePoints[0].dy);
+    for (var i = 1; i < europePoints.length; i++) {
+      euPath.lineTo(europePoints[i].dx, europePoints[i].dy);
+    }
+    euPath.close();
+    canvas.drawPath(euPath, euPaint);
+    canvas.drawPath(euPath, euOutline);
   }
 
   @override
-  bool shouldRepaint(covariant _MiniMapPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MiniWorldMapPainter oldDelegate) => false;
 }
