@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class Truck {
   final String id;
   final String companyId;
@@ -15,6 +17,12 @@ class Truck {
   final DateTime? departureTime;
   final DateTime? estimatedArrival;
 
+  // Upgrade fields
+  final int engineLevel;    // 0-3
+  final int tankLevel;      // 0-3
+  final int cabinLevel;     // 0-3
+  final String paintColor;  // 'default', 'red', 'blue', 'green', 'gold', 'black', 'white', 'purple'
+
   const Truck({
     required this.id,
     required this.companyId,
@@ -31,6 +39,10 @@ class Truck {
     this.contractId,
     this.departureTime,
     this.estimatedArrival,
+    this.engineLevel = 0,
+    this.tankLevel = 0,
+    this.cabinLevel = 0,
+    this.paintColor = 'default',
   });
 
   factory Truck.fromJson(Map<String, dynamic> json) => Truck(
@@ -49,6 +61,10 @@ class Truck {
     contractId: json['contract_id'] as String?,
     departureTime: json['departure_time'] != null ? DateTime.tryParse(json['departure_time'] as String) : null,
     estimatedArrival: json['estimated_arrival'] != null ? DateTime.tryParse(json['estimated_arrival'] as String) : null,
+    engineLevel: (json['engine_level'] as num?)?.toInt() ?? 0,
+    tankLevel: (json['tank_level'] as num?)?.toInt() ?? 0,
+    cabinLevel: (json['cabin_level'] as num?)?.toInt() ?? 0,
+    paintColor: json['paint_color'] as String? ?? 'default',
   );
 
   bool get isInTransit => status == 'in_transit' || status == 'loading';
@@ -59,5 +75,22 @@ class Truck {
     'in_transit' => 'В пути',
     'maintenance' => 'Ремонт',
     _ => status,
+  };
+
+  // Upgrade computed getters
+  double get speedBonus => engineLevel * 0.10; // +10% per level
+  double get fuelCapacityBonus => tankLevel * 0.20; // +20% per level (already applied to max_fuel in DB)
+  double get reliabilityBonus => cabinLevel * 0.25; // -25% condition loss per level
+  Color get paintColorValue => _colorFromName(paintColor);
+
+  static Color _colorFromName(String name) => switch (name) {
+    'red' => const Color(0xFFEF5350),
+    'blue' => const Color(0xFF42A5F5),
+    'green' => const Color(0xFF66BB6A),
+    'gold' => const Color(0xFFF5C542),
+    'black' => const Color(0xFF212121),
+    'white' => const Color(0xFFEEEEEE),
+    'purple' => const Color(0xFFCE93D8),
+    _ => const Color(0xFF90A4AE), // default silver
   };
 }

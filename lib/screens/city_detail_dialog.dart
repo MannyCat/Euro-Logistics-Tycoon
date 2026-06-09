@@ -4,6 +4,7 @@ import '../config/app_theme.dart';
 import '../config/game_constants.dart';
 import '../models/city.dart';
 import '../models/contract.dart';
+import '../models/garage.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../utils/pathfinder.dart';
@@ -22,6 +23,7 @@ class CityDetailDialog extends StatelessWidget {
     final contracts = game.availableContracts.where((c) =>
         c.originCityId == city.id || c.destinationCityId == city.id).toList();
     final hasWarehouse = game.myWarehouses.any((w) => w.cityId == city.id);
+    final garage = game.garageInCity(city.id);
     final trucksHere = game.myTrucks.where((t) => t.currentCityId == city.id && t.isIdle).length;
 
     return Dialog(
@@ -52,6 +54,12 @@ class CityDetailDialog extends StatelessWidget {
                   decoration: BoxDecoration(color: const Color(0xFF66BB6A).withOpacity(0.15), borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFF66BB6A).withOpacity(0.3))),
                   child: const Text('Склад', style: TextStyle(color: Color(0xFF66BB6A), fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
+              if (garage != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: const Color(0xFFFF9800).withOpacity(0.15), borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.3))),
+                  child: Text('Гараж $trucksHere/${garage.slots}', style: const TextStyle(color: Color(0xFFFF9800), fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
               const SizedBox(width: 6),
               IconButton(
                 icon: const Icon(Icons.close, color: Color(0xFF999999), size: 18),
@@ -74,6 +82,43 @@ class CityDetailDialog extends StatelessWidget {
                 _miniStat(Icons.local_shipping, '$trucksHere', 'Грузовиков'),
                 _miniStat(Icons.description, '${contracts.length}', 'Контрактов'),
               ]),
+
+              // ===== GARAGE SECTION =====
+              if (garage != null) ...[
+                const SizedBox(height: 10),
+                _GarageSection(garage: garage, cityId: city.id, companyId: companyId, trucksHere: trucksHere),
+              ] else ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final game = context.read<GameProvider>();
+                      final ok = await game.buyGarage(companyId, city.id);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(ok ? 'Гараж в ${city.name} куплен!' : game.error ?? 'Ошибка'),
+                          backgroundColor: ok ? const Color(0xFFFF9800) : const Color(0xFFEF5350),
+                          behavior: SnackBarBehavior.floating,
+                        ));
+                      }
+                    },
+                    icon: const Icon(Icons.garage, size: 16),
+                    label: const Text('Купить гараж — €20K'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFFF9800),
+                      side: const BorderSide(color: Color(0xFFFF9800)),
+                      minimumSize: const Size(double.infinity, 36),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                if (!game.canParkAtCity(city.id))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('Без гаража нельзя покупать грузовики', style: TextStyle(color: const Color(0xFFEF5350).withOpacity(0.7), fontSize: 10)),
+                  ),
+              ],
+
               // Buy warehouse button
               if (!hasWarehouse) ...[
                 const SizedBox(height: 8),
@@ -151,6 +196,163 @@ class CityDetailDialog extends StatelessWidget {
     const SizedBox(width: 4),
     Text(label, style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
   ]);
+}
+
+/// Garage info section shown when player owns a garage in the city.
+class _GarageSection extends StatelessWidget {
+  final Garage garage;
+  final int cityId;
+  final String companyId;
+  final int trucksHere;
+
+  const _GarageSection({
+    required this.garage,
+    required this.cityId,
+    required this.companyId,
+    required this.trucksHere,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final game = context.watch<GameProvider>();
+    final isFull = garage.isFull(trucksHere);
+    final freeSlots = garage.freeSlots(trucksHere);
+    final pct = garage.slots > 0 ? trucksHere / garage.slots : 0.0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isFull
+              ? const Color(0xFFEF5350).withOpacity(0.4)
+              : const Color(0xFFFF9800).withOpacity(0.3),
+        ),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Title row
+        Row(children: [
+          const Icon(Icons.garage, size: 18, color: Color(0xFFFF9800)),
+          const SizedBox(width: 6),
+          const Text('Гараж', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w700)),
+          const Spacer(),
+          Text(
+            '$trucksHere / ${garage.slots}',
+            style: TextStyle(
+              color: isFull ? const Color(0xFFEF5350) : const Color(0xFFD0D0D0),
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            freeSlots > 0 ? '$freeSlots свободно' : 'Полон',
+            style: TextStyle(
+              color: isFull ? const Color(0xFFEF5350) : const Color(0xFF66BB6A),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ]),
+
+        // Slot usage bar
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: SizedBox(
+            height: 6,
+            child: Stack(children: [
+              Container(decoration: BoxDecoration(color: const Color(0xFF3A3A3A), borderRadius: BorderRadius.circular(3))),
+              FractionallySizedBox(
+                widthFactor: pct.clamp(0.0, 1.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isFull ? const Color(0xFFEF5350) : const Color(0xFFFF9800),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+
+        // Parked trucks list
+        if (trucksHere > 0) ...[
+          const SizedBox(height: 8),
+          ...game.myTrucks
+              .where((t) => t.currentCityId == cityId && t.isIdle)
+              .take(4)
+              .map((t) => Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(children: [
+                      const Icon(Icons.local_shipping, size: 13, color: Color(0xFF66BB6A)),
+                      const SizedBox(width: 4),
+                      Text(t.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 11, fontWeight: FontWeight.w500)),
+                      const Spacer(),
+                      Text(
+                        '${t.condition}% • ${t.fuelLevel.toInt()}L',
+                        style: const TextStyle(color: Color(0xFF888888), fontSize: 10, fontFamily: 'monospace'),
+                      ),
+                    ]),
+                  )),
+          if (game.myTrucks.where((t) => t.currentCityId == cityId && t.isIdle).length > 4)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text(
+                '+ ещё ${game.myTrucks.where((t) => t.currentCityId == cityId && t.isIdle).length - 4}',
+                style: const TextStyle(color: Color(0xFF888888), fontSize: 10),
+              ),
+            ),
+        ],
+
+        // Expand button
+        if (!garage.isMaxLevel) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: game.isLoading
+                  ? null
+                  : () async {
+                      final game = context.read<GameProvider>();
+                      final ok = await game.expandGarage(companyId, cityId);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(ok
+                              ? 'Гараж расширен (+2 слота)!'
+                              : game.error ?? 'Ошибка'),
+                          backgroundColor: ok
+                              ? const Color(0xFFFF9800)
+                              : const Color(0xFFEF5350),
+                          behavior: SnackBarBehavior.floating,
+                        ));
+                      }
+                    },
+              icon: const Icon(Icons.expand, size: 14),
+              label: Text(
+                'Расширить (+2 слота) — ${GameConstants.formatMoney(garage.expansionCost)}',
+                style: const TextStyle(fontSize: 11),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFFF9800),
+                side: const BorderSide(color: Color(0xFFFF9800).withOpacity(0.5)),
+                minimumSize: const Size(double.infinity, 32),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+            ),
+          ),
+        ] else
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text('Максимальный размер гаража',
+                style: TextStyle(color: const Color(0xFF888888).withOpacity(0.6), fontSize: 10)),
+          ),
+      ]),
+    );
+  }
 }
 
 class _ContractCard extends StatefulWidget {

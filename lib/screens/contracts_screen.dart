@@ -277,13 +277,23 @@ class _ContractCard extends StatelessWidget {
 
     // Calculate road distance via pathfinding
     double distKm = 0;
+    List<int> pathIds = [];
     final route = game.findRoute(contract.originCityId, contract.destinationCityId);
     if (route != null) {
       distKm = route.totalDistanceKm;
+      pathIds = PathFinder.findPath(contract.originCityId, contract.destinationCityId);
     } else if (origin != null && dest != null) {
       distKm = gp.haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude);
     }
     final rewardPerKm = distKm > 0 ? (contract.reward / distKm).round() : 0;
+
+    // Dynamic economy calculations
+    final tollCost = pathIds.length >= 2 ? GameConstants.getTollCost(pathIds) : 0;
+    final demandMultiplier = GameConstants.getCargoDemandMultiplier(contract.destinationCityId, contract.cargoType);
+    final companyLevel = game.company?.level ?? 1;
+    final effectiveFuel = GameConstants.effectiveFuelPrice(companyLevel);
+    final estimatedFuelCost = (distKm / 100 * GameConstants.fuelCostPer100km * (effectiveFuel / GameConstants.baseFuelPrice)).round();
+    final netProfit = contract.reward - estimatedFuelCost - tollCost;
 
     Color statusColor;
     String statusText;
@@ -426,9 +436,38 @@ class _ContractCard extends StatelessWidget {
               const SizedBox(width: 12),
               Text('${GameConstants.formatMoney(rewardPerKm)}/km', style: const TextStyle(color: Color(0xFF42A5F5), fontSize: 11, fontFamily: 'monospace')),
               const Spacer(),
+              if (tollCost > 0) ...[
+                Text('🛣️ ${GameConstants.formatMoney(tollCost)}', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 11)),
+                const SizedBox(width: 8),
+              ],
+              if (demandMultiplier > 1.0) ...[
+                Text('📈 +${((demandMultiplier - 1) * 100).round()}%', style: const TextStyle(color: Color(0xFF66BB6A), fontSize: 11)),
+                const SizedBox(width: 8),
+              ],
               Text('${contract.deadlineHours}ч', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
             ],
           ),
+          // Economy details row
+          if (!isOwn && contract.isAvailable) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text('⛽ ${effectiveFuel.toStringAsFixed(2)}€/л', style: TextStyle(
+                  color: effectiveFuel > GameConstants.baseFuelPrice * 1.1 ? const Color(0xFFEF5350)
+                      : effectiveFuel < GameConstants.baseFuelPrice * 0.9 ? const Color(0xFF66BB6A)
+                      : const Color(0xFF888888),
+                  fontSize: 10, fontFamily: 'monospace',
+                )),
+                const SizedBox(width: 8),
+                Text('💰 ~${GameConstants.formatMoney(estimatedFuelCost)} топл.', style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
+                const Spacer(),
+                Text('Чистая: ${GameConstants.formatMoney(netProfit)}', style: TextStyle(
+                  color: netProfit > 0 ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
+                  fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'monospace',
+                )),
+              ],
+            ),
+          ],
           // Deadline progress bar for available/accepted contracts
           if (contract.isAvailable || contract.isAccepted) ...[
             const SizedBox(height: 6),

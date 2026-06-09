@@ -419,10 +419,13 @@ class MapScreenState extends State<MapScreen> {
                           markers: game.cities.map((city) {
                             final isSelected = _selectedCityId == city.id;
                             final hasWarehouse = game.myWarehouses.any((w) => w.cityId == city.id);
+                            final hasGarage = game.hasGarageInCity(city.id);
                             final hasTruck = game.myTrucks.any((t) => t.currentCityId == city.id && t.isIdle);
                             Color dotColor;
                             if (hasWarehouse) {
                               dotColor = const Color(0xFF66BB6A);
+                            } else if (hasGarage) {
+                              dotColor = const Color(0xFFFF9800);
                             } else if (hasTruck) {
                               dotColor = const Color(0xFFF5C542);
                             } else {
@@ -458,6 +461,20 @@ class MapScreenState extends State<MapScreen> {
                                         ],
                                       ),
                                     ),
+                                    // Garage indicator badge
+                                    if (hasGarage && !hasWarehouse)
+                                      Positioned(
+                                        right: 0, bottom: 0,
+                                        child: Container(
+                                          width: 12, height: 12,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFFF9800),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: const Color(0xFF1A1A1A), width: 1.5),
+                                          ),
+                                          child: const Icon(Icons.garage, size: 7, color: Color(0xFF1A1A1A)),
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -707,7 +724,10 @@ class MapScreenState extends State<MapScreen> {
                         _ets2Divider(),
                         _ets2Stat('${game.myDrivers.length}', 'Водителей', const Color(0xFF90CAF9)),
                         _ets2Divider(),
-                        _ets2Stat('${game.myWarehouses.length}', 'Складов', const Color(0xFFCE93D8)),
+                        _ets2Stat('${game.myGarages.length}', 'Гаражей', const Color(0xFFFF9800)),
+                        _ets2Divider(),
+                        _ets2Stat('€${GameConstants.currentFuelPricePerLiter.toStringAsFixed(2)}/л', 'Топливо',
+                          GameConstants.currentFuelPricePerLiter > 1.8 ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)),
                       ]),
                     ),
                   ),

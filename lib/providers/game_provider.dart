@@ -13,6 +13,7 @@ import '../models/achievement.dart';
 import '../models/clan.dart';
 import '../utils/pathfinder.dart';
 import '../models/event_log.dart';
+import '../models/garage.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371.0;
@@ -28,6 +29,7 @@ class GameProvider extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   StreamSubscription<List<Map<String, dynamic>>>? _contractSub;
   StreamSubscription<List<Map<String, dynamic>>>? _truckSub;
+  Timer? _fuelPriceTimer;
 
   // Current company ID (cached for realtime filters)
   String? _currentCompanyId;
@@ -46,6 +48,7 @@ class GameProvider extends ChangeNotifier {
   List<ClanMember> _clanMembers = [];
   List<Map<String, dynamic>> _clanLeaderboard = [];
   List<EventLog> _eventLog = [];
+  List<Garage> _myGarages = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
@@ -75,6 +78,7 @@ class GameProvider extends ChangeNotifier {
   List<ClanMember> get clanMembers => _clanMembers;
   List<Map<String, dynamic>> get clanLeaderboard => _clanLeaderboard;
   List<EventLog> get eventLog => _eventLog;
+  List<Garage> get myGarages => _myGarages;
   String? get myClanRole {
     for (final m in _clanMembers) {
       if (m.companyId == _currentCompanyId) return m.role;
@@ -88,6 +92,34 @@ class GameProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get error => _error;
+
+  /// Total garage slots in a specific city (0 if no garage owned there).
+  int truckSlotsInCity(int cityId) {
+    final garage = _myGarages.where((g) => g.cityId == cityId).firstOrNull;
+    return garage?.slots ?? 0;
+  }
+
+  /// Number of idle trucks parked at a specific city.
+  int parkedTrucksInCity(int cityId) {
+    return _myTrucks.where((t) => t.currentCityId == cityId && t.isIdle).length;
+  }
+
+  /// Whether there is a free slot to park another truck in the city.
+  bool canParkAtCity(int cityId) {
+    final slots = truckSlotsInCity(cityId);
+    if (slots == 0) return false;
+    return parkedTrucksInCity(cityId) < slots;
+  }
+
+  /// Whether player owns a garage in the given city.
+  bool hasGarageInCity(int cityId) {
+    return _myGarages.any((g) => g.cityId == cityId);
+  }
+
+  /// Get garage in a specific city, or null.
+  Garage? garageInCity(int cityId) {
+    return _myGarages.where((g) => g.cityId == cityId).firstOrNull;
+  }
 
   void clearError() { _error = null; notifyListeners(); }
 
@@ -263,6 +295,15 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadMyGarages(String companyId) async {
+    try {
+      final resp = await _supabase.from('garages').select().eq('company_id', companyId);
+      _myGarages = resp.map<Garage>((e) => Garage.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint('Load garages error: $e'); // non-critical
+    }
+  }
+
   Future<void> loadEventLog(String companyId) async {
     try {
       final resp = await _supabase
@@ -321,6 +362,14 @@ class GameProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+    // Update dynamic fuel price on load
+    GameConstants.updateFuelPrice();
+    // Start periodic fuel price update (every 60 seconds)
+    _fuelPriceTimer?.cancel();
+    _fuelPriceTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      GameConstants.updateFuelPrice();
+      notifyListeners();
+    });
     try {
       await Future.wait([
         loadCities(),
@@ -335,6 +384,7 @@ class GameProvider extends ChangeNotifier {
         loadMyClan(companyId),
         loadClanLeaderboard(),
         loadEventLog(companyId),
+        loadMyGarages(companyId),
       ]);
       // Try to complete expired contracts server-side
       await _supabase.rpc('complete_expired_contracts');
@@ -429,11 +479,83 @@ class GameProvider extends ChangeNotifier {
   }
 
   // ===== ACTIONS =====
+  Future<bool> buyGarage(String companyId, int cityId) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final city = getCityById(cityId);
+      if (city == null) { _error = 'Город не найден'; return false; }
+      if (hasGarageInCity(cityId)) { _error = 'Гараж уже куплен'; return false; }
+
+      final resp = await _supabase.rpc('buy_garage', params: {
+        'p_company_id': companyId,
+        'p_city_id': cityId,
+      });
+      if (resp == true) {
+        await Future.wait([loadMyGarages(companyId), loadCompany(companyId)]);
+        await logEvent(
+          companyId: companyId,
+          eventType: 'garage_bought',
+          title: 'Гараж куплен',
+          description: 'Гараж открыт в городе ${city.name}',
+          iconName: 'garage',
+          colorHex: 'FF9800',
+          metadata: {'city_name': city.name},
+        );
+        return true;
+      }
+      _error = 'Не удалось купить гараж';
+      return false;
+    } catch (e) { _error = 'Ошибка покупки гаража: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
+  Future<bool> expandGarage(String companyId, int cityId) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final garage = garageInCity(cityId);
+      if (garage == null) { _error = 'Гараж не найден'; return false; }
+      if (garage.isMaxLevel) { _error = 'Максимальный размер гаража'; return false; }
+
+      final resp = await _supabase.rpc('expand_garage', params: {
+        'p_company_id': companyId,
+        'p_city_id': cityId,
+      });
+      if (resp == true) {
+        await Future.wait([loadMyGarages(companyId), loadCompany(companyId)]);
+        final city = getCityById(cityId);
+        await logEvent(
+          companyId: companyId,
+          eventType: 'garage_expanded',
+          title: 'Гараж расширен',
+          description: 'Гараж в городе ${city?.name ?? "#$cityId"} увеличен до ${garage.slots + 2} слотов',
+          iconName: 'garage',
+          colorHex: 'FF9800',
+          metadata: {'city_id': cityId, 'new_slots': garage.slots + 2},
+        );
+        return true;
+      }
+      _error = 'Не удалось расширить гараж';
+      return false;
+    } catch (e) { _error = 'Ошибка расширения: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
   Future<bool> buyTruck(String companyId, String truckType, String name, int startCityId) async {
     try {
       _isLoading = true; _error = null; notifyListeners();
       final info = GameConstants.findTruckType(truckType);
       if (info == null) { _error = 'Тип грузовика не найден'; return false; }
+
+      // Garage check: must have a garage in the city with free slots
+      if (!hasGarageInCity(startCityId)) {
+        _error = 'Нужен гараж в этом городе';
+        return false;
+      }
+      if (!canParkAtCity(startCityId)) {
+        _error = 'Гараж полон — нет свободных мест';
+        return false;
+      }
+
       // Check money server-side
       final comp = await _supabase.from('companies').select('money').eq('id', companyId).maybeSingle();
       final money = (comp?['money'] as num?)?.toInt() ?? 0;
@@ -650,7 +772,9 @@ class GameProvider extends ChangeNotifier {
       if (truck == null) { _error = 'Грузовик не найден'; notifyListeners(); return false; }
       final missingFuel = truck.maxFuel - truck.fuelLevel;
       if (missingFuel <= 0) return true; // already full
-      final cost = (missingFuel * GameConstants.fuelCostPerLiter).round();
+      final companyLevel = _company?.level ?? 1;
+      final effectivePrice = GameConstants.effectiveFuelPrice(companyLevel);
+      final cost = (missingFuel * effectivePrice).round();
 
       final comp = await _supabase.from('companies').select('money').eq('id', companyId).maybeSingle();
       final money = (comp?['money'] as num?)?.toInt() ?? 0;
@@ -705,6 +829,43 @@ class GameProvider extends ChangeNotifier {
       return true;
     } catch (e) { _error = 'Ошибка ремонта: $e'; notifyListeners(); return false; }
   }
+
+  Future<bool> upgradeTruck(String truckId, String companyId, String upgradeType, String value) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final resp = await _supabase.rpc('upgrade_truck', params: {
+        'p_truck_id': truckId,
+        'p_company_id': companyId,
+        'p_upgrade_type': upgradeType,
+        'p_value': value,
+      });
+      await Future.wait([loadMyTrucks(companyId), loadCompany(companyId)]);
+      final truck = _myTrucks.where((t) => t.id == truckId).firstOrNull;
+      final truckName = truck?.name ?? 'Грузовик';
+      await logEvent(
+        companyId: companyId,
+        eventType: 'truck_upgrade',
+        title: 'Улучшение грузовика',
+        description: '$truckName: ${_upgradeTypeLabel(upgradeType)} → $value',
+        iconName: 'upgrade',
+        colorHex: '42A5F5',
+        metadata: {'truck_name': truckName, 'upgrade_type': upgradeType, 'value': value},
+      );
+      return resp == true;
+    } catch (e) {
+      _error = 'Ошибка улучшения: $e';
+      return false;
+    }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
+  String _upgradeTypeLabel(String type) => switch (type) {
+    'engine' => 'Двигатель',
+    'tank' => 'Топливный бак',
+    'cabin' => 'Кабина',
+    'paint' => 'Покраска',
+    _ => type,
+  };
 
   Future<bool> sellTruck(String truckId, String companyId, int sellPrice) async {
     try {
@@ -903,6 +1064,7 @@ class GameProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _fuelPriceTimer?.cancel();
     stopRealtime();
     super.dispose();
   }

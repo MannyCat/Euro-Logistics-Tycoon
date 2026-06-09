@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class AchievementDef {
@@ -27,6 +28,29 @@ class GameConstants {
 
   static const int startingMoney = 1000000;
   static const double fuelCostPerLiter = 1.5;
+  static const double baseFuelPrice = 1.5;
+
+  // Dynamic fuel price (changes with time)
+  static double currentFuelPricePerLiter = 1.5;
+
+  /// Update fuel price based on time — simulates market fluctuations
+  static void updateFuelPrice() {
+    final hour = DateTime.now().hour;
+    final dayOfWeek = DateTime.now().weekday;
+    // Base fluctuation: ±15% based on hour of day
+    double hourFactor = 1.0 + 0.15 * math.sin(hour * 0.26); // smooth sine wave
+    // Weekend surge: +10% on Saturday/Sunday
+    double weekendFactor = (dayOfWeek == 6 || dayOfWeek == 7) ? 1.10 : 1.0;
+    currentFuelPricePerLiter = baseFuelPrice * hourFactor * weekendFactor;
+    // Clamp between 1.0 and 2.5
+    currentFuelPricePerLiter = currentFuelPricePerLiter.clamp(1.0, 2.5);
+  }
+
+  /// Effective fuel price after level discount
+  static double effectiveFuelPrice(int companyLevel) {
+    return currentFuelPricePerLiter * (1.0 - fuelDiscountAtLevel(companyLevel));
+  }
+
   static const double sellBackRatio = 0.6;
   static const int maxTrucks = 20;
   static const int xpPerLevel = 1000;
@@ -68,6 +92,51 @@ class GameConstants {
       };
     }
     return 1;
+  }
+
+  // ===== TOLL ROADS =====
+  static const Map<String, int> tollRoads = {
+    '2-6': 500,   // Hamburg → Berlin
+    '6-12': 800,  // Berlin → Prague
+    '1-5': 600,   // Amsterdam → Brussels
+    '5-4': 400,   // Brussels → Paris
+    '7-11': 700,  // Munich → Vienna
+    '11-13': 600, // Vienna → Budapest
+    '8-9': 300,   // Zurich → Milan
+    '9-7': 500,   // Milan → Munich
+  };
+
+  /// Get toll cost for a route (sum of tolls on path)
+  static int getTollCost(List<int> path) {
+    int total = 0;
+    for (int i = 0; i < path.length - 1; i++) {
+      final a = path[i];
+      final b = path[i + 1];
+      final key1 = '${math.min(a, b)}-${math.max(a, b)}';
+      total += tollRoads[key1] ?? 0;
+    }
+    return total;
+  }
+
+  // ===== SUPPLY / DEMAND =====
+  static const Map<int, Map<String, double>> cityCargoDemand = {
+    2: {'Electronics': 1.3, 'Machinery': 1.2},
+    6: {'Building Materials': 1.25, 'Machinery': 1.2},
+    1: {'FMCG': 1.2, 'Electronics': 1.15},
+    4: {'Food': 1.3, 'FMCG': 1.2},
+    3: {'Chemicals': 1.3, 'Machinery': 1.2},
+    9: {'Fashion': 1.2},
+    7: {'Building Materials': 1.2, 'Food': 1.15},
+    11: {'Food': 1.2, 'FMCG': 1.15},
+    12: {'Machinery': 1.25},
+    13: {'Food': 1.3, 'Building Materials': 1.15},
+  };
+
+  /// Get demand multiplier for cargo type at destination city
+  static double getCargoDemandMultiplier(int destinationCityId, String cargoType) {
+    final demand = cityCargoDemand[destinationCityId];
+    if (demand == null) return 1.0;
+    return demand[cargoType] ?? 1.0;
   }
 
   /// Fuel discount percentage at level (0-20)
