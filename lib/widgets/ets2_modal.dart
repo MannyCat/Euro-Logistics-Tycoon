@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import '../config/app_icons.dart';
-import '../config/map_config.dart';
 import '../services/sound_manager.dart';
 
 /// Shared ETS2-style modal dialog wrapper.
@@ -95,7 +92,7 @@ class ETS2Modal extends StatelessWidget {
                 ),
               ],
             ),
-            // Mini-map inset
+            // Mini-map inset — simple static canvas rendering
             Positioned(
               top: 56,
               right: 8,
@@ -105,22 +102,11 @@ class ETS2Modal extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0xFF333333)),
+                  color: const Color(0xFF1A1A1A),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: FlutterMap(
-                    options: MapOptions(
-                      initialCenter: const LatLng(50, 10),
-                      initialZoom: 3,
-                      interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate: MapConfig.baseTileUrl,
-                        userAgentPackageName: MapConfig.userAgent,
-                      ),
-                    ],
-                  ),
+                child: CustomPaint(
+                  painter: _MiniMapPainter(),
+                  size: const Size(120, 80),
                 ),
               ),
             ),
@@ -129,4 +115,37 @@ class ETS2Modal extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MiniMapPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Dark background
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()..color = const Color(0xFF1A1A1A));
+
+    // Simple Europe outline
+    final paint = Paint()
+      ..color = const Color(0xFF8B9A46).withOpacity(0.3)
+      ..strokeWidth = 1
+      ..strokeCap = StrokeCap.round;
+
+    final points = [
+      Offset(0.15, 0.2), Offset(0.3, 0.15), Offset(0.5, 0.1),
+      Offset(0.7, 0.15), Offset(0.85, 0.3), Offset(0.8, 0.5),
+      Offset(0.7, 0.7), Offset(0.5, 0.8), Offset(0.3, 0.7),
+      Offset(0.15, 0.5),
+    ];
+    final path = Path()..moveTo(
+      points.first.dx * size.width, points.first.dy * size.height);
+    for (var i = 1; i < points.length; i++) {
+      path.lineTo(points[i].dx * size.width, points[i].dy * size.height);
+    }
+    path.close();
+    canvas.drawPath(path, Paint()..color = const Color(0xFF1E2A3A).withOpacity(0.5));
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MiniMapPainter oldDelegate) => false;
 }
