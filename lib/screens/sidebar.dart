@@ -54,8 +54,8 @@ class Sidebar extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 6),
               children: [
-                _navItem(Icons.description_outlined, 'Контракты', 'C', () => onOpenModal(const ContractsScreen())),
-                _navItem(Icons.local_shipping_outlined, 'Автопарк', 'F', () => onOpenModal(const FleetScreen())),
+                _navItem(Icons.description_outlined, 'Контракты', 'C', () => onOpenModal(const ContractsScreen()), badge: game.myContracts.isNotEmpty ? game.myContracts.length : null),
+                _navItem(Icons.local_shipping_outlined, 'Автопарк', 'F', () => onOpenModal(const FleetScreen()), badge: game.idleTrucks.isNotEmpty ? game.idleTrucks.length : null),
                 _navItem(Icons.people_outlined, 'Водители', 'D', () => onOpenModal(const DriversScreen())),
                 _navItem(Icons.warehouse_outlined, 'Филиалы', 'W', () => onOpenModal(const WarehousesScreen())),
                 _navItem(Icons.receipt_long_outlined, 'Финансы', 'T', () => onOpenModal(const TransactionsScreen())),
@@ -114,7 +114,7 @@ class Sidebar extends StatelessWidget {
     );
   }
 
-  Widget _navItem(IconData icon, String label, String? shortcut, VoidCallback onTap) {
+  Widget _navItem(IconData icon, String label, String? shortcut, VoidCallback onTap, {int? badge}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
@@ -139,6 +139,16 @@ class Sidebar extends StatelessWidget {
                   fontWeight: FontWeight.w400,
                 )),
                 const Spacer(),
+                if (badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5C542).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.4), width: 0.5),
+                    ),
+                    child: Text('$badge', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 10, fontWeight: FontWeight.w700)),
+                  ),
                 if (shortcut != null)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),

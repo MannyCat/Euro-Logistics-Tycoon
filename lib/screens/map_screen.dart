@@ -23,6 +23,7 @@ import '../config/game_constants.dart';
 import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
 import 'clan_screen.dart';
+import '../widgets/achievement_toast.dart';
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
@@ -47,6 +48,8 @@ class MapScreenState extends State<MapScreen> {
   int? _selectedCityId;
   bool _isDesktop = true;
   final FocusNode _mapFocus = FocusNode();
+  final GlobalKey<AchievementToastOverlayState> _achievementToastKey =
+      GlobalKey<AchievementToastOverlayState>();
 
   @override
   void initState() {
@@ -89,7 +92,14 @@ class MapScreenState extends State<MapScreen> {
     final game = context.read<GameProvider>();
     final companyId = auth.companyId;
     if (companyId == null || companyId.isEmpty) return;
-    game.refreshAll(companyId);
+    game.refreshAll(companyId).then((_) {
+      // After refresh, check for newly unlocked achievements and show toasts.
+      game.checkAchievements(companyId).then((newIds) {
+        if (newIds.isNotEmpty) {
+          _achievementToastKey.currentState?.enqueue(newIds);
+        }
+      });
+    });
   }
 
   void _generateContracts() {
@@ -298,7 +308,9 @@ class MapScreenState extends State<MapScreen> {
             return KeyEventResult.ignored;
         }
       },
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
+      child: AchievementToastOverlay(
+        key: _achievementToastKey,
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: Scaffold(
         backgroundColor: const Color(0xFF1A1A1A),
@@ -659,6 +671,7 @@ class MapScreenState extends State<MapScreen> {
             ),
           ],
         ),
+      ),
       ),
       ),
     );
