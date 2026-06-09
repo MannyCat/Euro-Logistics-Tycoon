@@ -14,6 +14,8 @@ import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
 import 'clan_screen.dart';
 import 'event_log_screen.dart';
+import 'market_screen.dart';
+import 'analytics_screen.dart';
 
 class MobileDrawer extends StatelessWidget {
   final void Function(Widget modal) onOpenModal;
@@ -112,6 +114,14 @@ class MobileDrawer extends StatelessWidget {
                   _navItem(context, Icons.shield_outlined, 'Кланы', () {
                     Navigator.pop(context);
                     onOpenModal(const ClanScreen());
+                  }),
+                  _navItem(context, Icons.bar_chart, 'Аналитика', () {
+                    Navigator.pop(context);
+                    onOpenModal(const AnalyticsScreen());
+                  }),
+                  _navItem(context, Icons.store, 'Рынок', () {
+                    Navigator.pop(context);
+                    onOpenModal(const MarketScreen());
                   }),
                   const Divider(height: 1, color: AppTheme.divider, indent: 16, endIndent: 16),
                   _navItem(context, Icons.settings_outlined, 'Настройки', () {

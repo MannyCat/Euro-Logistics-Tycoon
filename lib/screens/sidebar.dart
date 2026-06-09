@@ -13,6 +13,8 @@ import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
 import 'clan_screen.dart';
 import 'event_log_screen.dart';
+import 'market_screen.dart';
+import 'analytics_screen.dart';
 
 class Sidebar extends StatelessWidget {
   final VoidCallback onRefresh;
@@ -61,10 +63,12 @@ class Sidebar extends StatelessWidget {
                 _navItem(Icons.warehouse_outlined, 'Филиалы', 'W', () => onOpenModal(const WarehousesScreen())),
                 _navItem(Icons.receipt_long_outlined, 'Финансы', 'T', () => onOpenModal(const TransactionsScreen())),
                 _navItem(Icons.history_outlined, 'Журнал', 'H', () => onOpenModal(const EventLogScreen())),
+                _navItem(Icons.store, 'Рынок', 'M', () => onOpenModal(const MarketScreen())),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
                 _navItem(Icons.emoji_events_outlined, 'Рейтинг', 'L', () => onOpenModal(const LeaderboardScreen())),
                 _navItem(Icons.military_tech_outlined, 'Достижения', 'A', () => onOpenModal(const AchievementsScreen())),
                 _navItem(Icons.shield_outlined, 'Кланы', 'G', () => onOpenModal(const ClanScreen())),
+                _navItem(Icons.bar_chart, 'Аналитика', 'B', () => onOpenModal(const AnalyticsScreen())),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
                 _navItem(Icons.settings_outlined, 'Настройки', null, () => onOpenModal(const SettingsScreen())),
               ],
@@ -77,6 +81,17 @@ class Sidebar extends StatelessWidget {
             decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppTheme.divider))),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
+                Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(
+                    color: Color(int.parse('FF${game.companyColorHex}', radix: 16)).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(_iconDataFromName(game.companyIcon),
+                    size: 15,
+                    color: Color(int.parse('FF${game.companyColorHex}', radix: 16))),
+                ),
+                const SizedBox(width: 8),
                 Expanded(child: Text(company.name, style: AppTheme.labelSm, overflow: TextOverflow.ellipsis, maxLines: 1)),
                 IconButton(
                   icon: const Icon(Icons.refresh, color: AppTheme.textMuted, size: 16),
@@ -167,4 +182,23 @@ class Sidebar extends StatelessWidget {
       ),
     );
   }
+
+  static IconData _iconDataFromName(String name) => switch (name) {
+    'local_shipping' => Icons.local_shipping,
+    'star' => Icons.star,
+    'lightning' => Icons.lightning,
+    'shield' => Icons.shield,
+    'rocket' => Icons.rocket,
+    'crown' => Icons.crown,
+    'diamond' => Icons.diamond,
+    'public' => Icons.public,
+    'anchor' => Icons.anchor,
+    'eco' => Icons.eco,
+    'local_fire_department' => Icons.local_fire_department,
+    'bolt' => Icons.bolt,
+    'settings' => Icons.settings,
+    'flag' => Icons.flag,
+    'favorite' => Icons.favorite,
+    _ => Icons.local_shipping,
+  };
 }

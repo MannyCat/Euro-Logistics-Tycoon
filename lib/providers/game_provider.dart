@@ -16,6 +16,8 @@ import '../models/event_log.dart';
 import '../models/garage.dart';
 import '../models/clan_mission.dart';
 import '../models/chat_message.dart';
+import '../models/market_listing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371.0;
@@ -53,6 +55,7 @@ class GameProvider extends ChangeNotifier {
   List<Garage> _myGarages = [];
   List<ClanMission> _clanMissions = [];
   List<ChatMessage> _clanMessages = [];
+  List<MarketListing> _marketListings = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
@@ -85,6 +88,7 @@ class GameProvider extends ChangeNotifier {
   List<Garage> get myGarages => _myGarages;
   List<ClanMission> get clanMissions => _clanMissions;
   List<ChatMessage> get clanMessages => _clanMessages;
+  List<MarketListing> get marketListings => _marketListings;
   String? get myClanRole {
     for (final m in _clanMembers) {
       if (m.companyId == _currentCompanyId) return m.role;
@@ -128,6 +132,31 @@ class GameProvider extends ChangeNotifier {
   }
 
   void clearError() { _error = null; notifyListeners(); }
+
+  // ===== COMPANY CUSTOMIZATION (stored locally) =====
+  String companyIcon = 'local_shipping';
+  String companyColorHex = 'F5C542';
+
+  Future<void> loadCompanyCustomization() async {
+    final prefs = await SharedPreferences.getInstance();
+    companyIcon = prefs.getString('company_icon') ?? 'local_shipping';
+    companyColorHex = prefs.getString('company_color_hex') ?? 'F5C542';
+    notifyListeners();
+  }
+
+  Future<void> setCompanyIcon(String icon) async {
+    companyIcon = icon;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('company_icon', icon);
+    notifyListeners();
+  }
+
+  Future<void> setCompanyColor(String colorHex) async {
+    companyColorHex = colorHex;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('company_color_hex', colorHex);
+    notifyListeners();
+  }
 
   // ===== REALTIME SUBSCRIPTIONS =====
   void startRealtime() {
@@ -363,6 +392,20 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadMarketListings() async {
+    try {
+      final resp = await _supabase
+          .from('market_listings')
+          .select()
+          .gte('expires_at', DateTime.now().toUtc().toIso8601String())
+          .order('created_at', ascending: false)
+          .limit(50);
+      _marketListings = resp.map<MarketListing>((e) => MarketListing.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint('Load market listings error: $e');
+    }
+  }
+
   Future<void> loadLeaderboard() async {
     try {
       final resp = await _supabase.from('leaderboard').select().limit(20);
@@ -421,6 +464,8 @@ class GameProvider extends ChangeNotifier {
         loadClanLeaderboard(),
         loadEventLog(companyId),
         loadMyGarages(companyId),
+        loadMarketListings(),
+        loadCompanyCustomization(),
       ]);
       // Try to complete expired contracts server-side
       await _supabase.rpc('complete_expired_contracts');
@@ -929,6 +974,51 @@ class GameProvider extends ChangeNotifier {
       );
       return true;
     } catch (e) { _error = 'Ошибка продажи: $e'; return false; }
+  }
+
+  /// List a truck on the player market (removes it from company)
+  Future<bool> listTruckOnMarket(String truckId, String companyId, int price) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final truck = _myTrucks.where((t) => t.id == truckId).firstOrNull;
+      if (truck == null || !truck.isIdle) { _error = 'Можно продать только свободный грузовик'; return false; }
+
+      final resp = await _supabase.rpc('list_truck_on_market', params: {
+        'p_truck_id': truckId,
+        'p_company_id': companyId,
+        'p_price': price,
+      });
+      await Future.wait([loadMyTrucks(companyId), loadMarketListings()]);
+      await logEvent(
+        companyId: companyId,
+        eventType: 'market_list',
+        title: 'Грузовик выставлен на рынок',
+        description: '${truck.name} — ${GameConstants.formatMoney(price)}',
+        iconName: 'store',
+        colorHex: 'F5C542',
+        metadata: {'truck_name': truck.name, 'amount': price},
+      );
+      return resp != null;
+    } catch (e) { _error = 'Ошибка выставления: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
+  /// Buy an item from the player market
+  Future<bool> buyFromMarket(String listingId, String companyId) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final resp = await _supabase.rpc('buy_from_market', params: {
+        'p_listing_id': listingId,
+        'p_buyer_id': companyId,
+      });
+      if (resp == true) {
+        await Future.wait([loadMyTrucks(companyId), loadCompany(companyId), loadMarketListings()]);
+        return true;
+      }
+      _error = 'Не удалось купить лот';
+      return false;
+    } catch (e) { _error = 'Ошибка покупки: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
   }
 
   Future<void> generateNewContracts() async {

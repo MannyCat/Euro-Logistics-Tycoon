@@ -127,6 +127,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 10),
 
+          // Company customization section
+          _CompanyCustomizationSection(game: game),
+
+          const SizedBox(height: 10),
+
           // User info
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -228,4 +233,178 @@ class _SettingsScreenState extends State<SettingsScreen> {
       Expanded(child: Text(text, style: const TextStyle(color: Color(0xFF888888), fontSize: 12))),
     ],
   );
+}
+
+/// Company customization section — logo icon and color
+class _CompanyCustomizationSection extends StatelessWidget {
+  final GameProvider game;
+  const _CompanyCustomizationSection({required this.game});
+
+  static const _iconNames = [
+    'local_shipping', 'star', 'lightning', 'shield', 'rocket',
+    'crown', 'diamond', 'public', 'anchor', 'eco',
+    'local_fire_department', 'bolt', 'settings', 'flag', 'favorite',
+  ];
+
+  static const _iconLabels = [
+    'Грузовик', 'Звезда', 'Молния', 'Щит', 'Ракета',
+    'Корона', 'Бриллиант', 'Глобус', 'Якорь', 'Лист',
+    'Пламя', 'Болт', 'Шестерня', 'Флаг', 'Сердце',
+  ];
+
+  static const _colorHexes = [
+    'F5C542', // Gold
+    '42A5F5', // Blue
+    '66BB6A', // Green
+    'EF5350', // Red
+    'CE93D8', // Purple
+    'FF9800', // Orange
+    '26C6DA', // Cyan
+    '78909C', // Blue Grey
+  ];
+
+  static const _colorLabels = [
+    'Золото', 'Синий', 'Зелёный', 'Красный', 'Фиолетовый', 'Оранжевый', 'Голубой', 'Серый',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF252525), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF3A3A3A))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Компания', style: TextStyle(color: Color(0xFF888888), fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+
+          // Logo icon grid
+          const Text('Логотип:', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 11)),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: List.generate(_iconNames.length, (i) {
+              final isSelected = game.companyIcon == _iconNames[i];
+              return InkWell(
+                onTap: () => game.setCompanyIcon(_iconNames[i]),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Color(int.parse('FF${game.companyColorHex}', radix: 16)).withOpacity(0.15)
+                        : const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isSelected
+                          ? Color(int.parse('FF${game.companyColorHex}', radix: 16))
+                          : const Color(0xFF3A3A3A),
+                      width: isSelected ? 1.5 : 0.5,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(_iconDataFromName(_iconNames[i]),
+                        size: 16,
+                        color: isSelected
+                            ? Color(int.parse('FF${game.companyColorHex}', radix: 16))
+                            : const Color(0xFF888888)),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Color picker
+          const Text('Цвет компании:', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 11)),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(_colorHexes.length, (i) {
+              final isSelected = game.companyColorHex == _colorHexes[i];
+              final color = Color(int.parse('FF${_colorHexes[i]}', radix: 16));
+              return InkWell(
+                onTap: () => game.setCompanyColor(_colorHexes[i]),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFFD0D0D0) : const Color(0xFF555555),
+                      width: isSelected ? 2.5 : 1,
+                    ),
+                    boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1)] : null,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 16, color: Color(0xFF1A1A1A))
+                      : null,
+                ),
+              );
+            }),
+          ),
+
+          const SizedBox(height: 10),
+
+          // Preview
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF3A3A3A)),
+            ),
+            child: Row(
+              children: [
+                const Text('Превью: ', style: TextStyle(color: Color(0xFF666666), fontSize: 11)),
+                Container(
+                  width: 24, height: 24,
+                  decoration: BoxDecoration(
+                    color: Color(int.parse('FF${game.companyColorHex}', radix: 16)).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(_iconDataFromName(game.companyIcon),
+                    size: 14,
+                    color: Color(int.parse('FF${game.companyColorHex}', radix: 16))),
+                ),
+                const SizedBox(width: 8),
+                Text(game.company?.name ?? 'Company',
+                  style: TextStyle(
+                    color: Color(int.parse('FF${game.companyColorHex}', radix: 16)),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static IconData _iconDataFromName(String name) => switch (name) {
+    'local_shipping' => Icons.local_shipping,
+    'star' => Icons.star,
+    'lightning' => Icons.lightning,
+    'shield' => Icons.shield,
+    'rocket' => Icons.rocket,
+    'crown' => Icons.crown,
+    'diamond' => Icons.diamond,
+    'public' => Icons.public,
+    'anchor' => Icons.anchor,
+    'eco' => Icons.eco,
+    'local_fire_department' => Icons.local_fire_department,
+    'bolt' => Icons.bolt,
+    'settings' => Icons.settings,
+    'flag' => Icons.flag,
+    'favorite' => Icons.favorite,
+    _ => Icons.local_shipping,
+  };
 }

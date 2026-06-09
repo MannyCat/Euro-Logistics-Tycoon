@@ -26,6 +26,9 @@ import 'leaderboard_screen.dart';
 import 'clan_screen.dart';
 import 'event_log_screen.dart';
 import '../widgets/achievement_toast.dart';
+import '../widgets/tutorial_overlay.dart';
+import 'market_screen.dart';
+import 'analytics_screen.dart';
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
@@ -374,6 +377,12 @@ class MapScreenState extends State<MapScreen> {
           case LogicalKeyboardKey.keyG:
             _openModal(const ClanScreen());
             return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyM:
+            _openModal(const MarketScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyB:
+            _openModal(const AnalyticsScreen());
+            return KeyEventResult.handled;
           case LogicalKeyboardKey.escape:
             Navigator.of(context).popUntil((route) => route is PopupRoute && Navigator.of(context).canPop() ? false : true);
             return KeyEventResult.handled;
@@ -386,7 +395,9 @@ class MapScreenState extends State<MapScreen> {
       },
       child: AchievementToastOverlay(
         key: _achievementToastKey,
-        child: AnnotatedRegion<SystemUiOverlayStyle>(
+        child: TutorialOverlay(
+          onComplete: () { /* tutorial done */ },
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: Scaffold(
         backgroundColor: const Color(0xFF1A1A1A),
@@ -837,6 +848,8 @@ class MapScreenState extends State<MapScreen> {
             ),
           ],
         ),
+      ),
+      ),
       ),
       ),
       ),

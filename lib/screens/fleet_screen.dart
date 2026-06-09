@@ -528,29 +528,34 @@ class _TruckCardState extends State<_TruckCard> {
   Future<void> _sell(BuildContext context) async {
     final typeInfo = GameConstants.findTruckType(truck.truckType);
     final sellPrice = typeInfo != null ? (typeInfo.price * GameConstants.sellBackRatio).round() : 0;
-    final confirm = await showDialog<bool>(
+    final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
-        title: Text('Продать ${truck.name}?', style: const TextStyle(color: Color(0xFFD0D0D0))),
-        content: Text('Вы получите ${GameConstants.formatMoney(sellPrice)} (${(GameConstants.sellBackRatio * 100).toInt()}% от стоимости)', style: const TextStyle(color: Color(0xFF888888))),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Продать', style: TextStyle(color: Color(0xFFEF5350)))),
-        ],
-      ),
+      builder: (ctx) => _SellDialog(truck: truck, sellPrice: sellPrice, game: game),
     );
-    if (confirm != true) return;
+    if (result == null || result == 'cancel') return;
     setState(() => _isSelling = true);
-    final ok = await game.sellTruck(truck.id, companyId, sellPrice);
-    if (mounted) setState(() => _isSelling = false);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? '${truck.name} продан!' : game.error ?? 'Ошибка'),
-        backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
-        behavior: SnackBarBehavior.floating,
-      ));
+
+    if (result == 'instant') {
+      final ok = await game.sellTruck(truck.id, companyId, sellPrice);
+      if (mounted) setState(() => _isSelling = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ok ? '${truck.name} продан!' : game.error ?? 'Ошибка'),
+          backgroundColor: ok ? const Color(0xFF66BB6A) : const Color(0xFFEF5350),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } else if (result == 'market') {
+      final marketPrice = (typeInfo?.price ?? 0) * 2 ~/ 3;
+      final ok = await game.listTruckOnMarket(truck.id, companyId, marketPrice);
+      if (mounted) setState(() => _isSelling = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(ok ? '${truck.name} выставлен на рынок!' : game.error ?? 'Ошибка'),
+          backgroundColor: ok ? const Color(0xFFF5C542) : const Color(0xFFEF5350),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
     }
   }
 
@@ -1151,6 +1156,139 @@ class _UpgradeSection extends StatelessWidget {
   static String _formatK(int amount) {
     if (amount >= 1000) return '${amount ~/ 1000}K';
     return '$amount';
+  }
+}
+
+/// Enhanced sell dialog — choose between instant sell or listing on market
+class _SellDialog extends StatelessWidget {
+  final Truck truck;
+  final int sellPrice;
+  final GameProvider game;
+
+  const _SellDialog({required this.truck, required this.sellPrice, required this.game});
+
+  @override
+  Widget build(BuildContext context) {
+    final typeInfo = GameConstants.findTruckType(truck.truckType);
+    final marketPrice = (typeInfo?.price ?? 0) * 2 ~/ 3;
+    final money = game.company?.money ?? 0;
+
+    return Dialog(
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
+      child: Container(
+        width: 380,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.sell, color: Color(0xFFEF5350), size: 22),
+                const SizedBox(width: 10),
+                Text('Продать ${truck.name}?', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 15, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Instant sell option
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252525),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF3A3A3A)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    const Icon(Icons.flash_on, size: 16, color: Color(0xFFEF5350)),
+                    const SizedBox(width: 8),
+                    const Text('Моментальная продажа', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
+                    const Spacer(),
+                    Text(GameConstants.formatMoney(sellPrice), style: const TextStyle(color: Color(0xFFEF5350), fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+                  ]),
+                  const SizedBox(height: 4),
+                  const Text('Мгновенно, ${(GameConstants.sellBackRatio * 100).toInt()}% от стоимости', style: TextStyle(color: Color(0xFF888888), fontSize: 11)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Market listing option
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF252525),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    const Icon(Icons.store, size: 16, color: Color(0xFFF5C542)),
+                    const SizedBox(width: 8),
+                    const Text('Выставить на рынок', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
+                    const Spacer(),
+                    Text(GameConstants.formatMoney(marketPrice), style: const TextStyle(color: Color(0xFFF5C542), fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+                  ]),
+                  const SizedBox(height: 4),
+                  const Text('~67% от стоимости, лот виден другим игрокам 72ч', style: TextStyle(color: Color(0xFF888888), fontSize: 11)),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context, 'cancel'),
+                    child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888))),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF3A3A3A)),
+                      minimumSize: const Size(double.infinity, 38),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, 'instant'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF5350),
+                      foregroundColor: const Color(0xFF1A1A1A),
+                      minimumSize: const Size(double.infinity, 38),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Продать'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, 'market'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF5C542),
+                      foregroundColor: const Color(0xFF1A1A1A),
+                      minimumSize: const Size(double.infinity, 38),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('На рынок'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
