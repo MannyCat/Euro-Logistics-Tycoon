@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'app_icons.dart';
+import 'ferry_routes.dart';
 
 class AchievementDef {
   final String id;
@@ -186,6 +187,23 @@ class GameConstants {
       total += tollRoads[key1] ?? 0;
     }
     return total;
+  }
+
+  // ===== FERRY CONSTANTS =====
+  /// Ferry crossing speed in km/h (much slower than trucks on roads).
+  static const int ferrySpeedKmh = 35;
+
+  /// Bad weather affects ferries more than trucks.
+  static const double ferryWeatherDelayMultiplier = 1.5;
+
+  /// Get total ferry cost for a given path.
+  static int getFerryCost(List<int> path) {
+    return FerryRoutes.getFerryCost(path);
+  }
+
+  /// Get total toll + ferry cost for a path.
+  static int getTotalTransportCost(List<int> path) {
+    return getTollCost(path) + getFerryCost(path);
   }
 
   // ===== SUPPLY / DEMAND =====

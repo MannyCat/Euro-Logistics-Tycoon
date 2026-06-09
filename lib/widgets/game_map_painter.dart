@@ -13,6 +13,7 @@ class CityMarkerData {
   final bool hasGarage;
   final bool hasTruck;
   final bool isSelected;
+  final bool hasFerryPort;
   final String cityName;
   final String countryCode;
 
@@ -23,6 +24,7 @@ class CityMarkerData {
     this.hasGarage = false,
     this.hasTruck = false,
     this.isSelected = false,
+    this.hasFerryPort = false,
     required this.cityName,
     required this.countryCode,
   });
@@ -66,10 +68,28 @@ class RouteSegment {
   });
 }
 
+/// Data for a ferry route edge, drawn as dashed cyan lines.
+class FerryEdgeData {
+  final LatLng from;
+  final LatLng to;
+  final List<LatLng> waypoints; // curved path across water
+  final String name;
+  final String seaName;
+
+  const FerryEdgeData({
+    required this.from,
+    required this.to,
+    required this.waypoints,
+    required this.name,
+    required this.seaName,
+  });
+}
+
 class GameMapPainterData {
   final List<CityMarkerData> cityMarkers;
   final List<TruckMarkerData> truckMarkers;
   final List<RoadEdge> roads;
+  final List<FerryEdgeData> ferryEdges;
   final List<RouteSegment> routes;
   final Set<String> countryNames;
 
@@ -77,6 +97,7 @@ class GameMapPainterData {
     this.cityMarkers = const [],
     this.truckMarkers = const [],
     this.roads = const [],
+    this.ferryEdges = const [],
     this.routes = const [],
     this.countryNames = const {},
   });
@@ -180,6 +201,8 @@ class GameMapPainter extends CustomPainter {
     // 6. Road network (only visible when zoomed into Europe)
     if (zoom >= 4.0) {
       _drawRoads(canvas);
+      // 6b. Ferry routes (drawn on top of roads, dashed cyan)
+      _drawFerryRoutes(canvas);
     }
 
     // 7. Truck routes
@@ -409,6 +432,104 @@ class GameMapPainter extends CustomPainter {
     }
   }
 
+  /// Draw ferry routes as dashed cyan lines with glow, port anchors, and ship icons.
+  void _drawFerryRoutes(Canvas canvas) {
+    if (data.ferryEdges.isEmpty) return;
+
+    const ferryColor = Color(0xFF29B6F6);
+
+    for (final ferry in data.ferryEdges) {
+      // Build screen-space polyline from waypoints
+      final screenPoints = ferry.waypoints.map(_toScreen).toList();
+      if (screenPoints.length < 2) continue;
+
+      // Quick visibility check
+      bool anyVisible = false;
+      for (final p in screenPoints) {
+        if (_isVisible(p, margin: 200)) {
+          anyVisible = true;
+          break;
+        }
+      }
+      if (!anyVisible) continue;
+
+      // Subtle glow along ferry route
+      final glowPaint = Paint()
+        ..color = ferryColor.withOpacity(0.12)
+        ..strokeWidth = 8.0
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+      final glowPath = Path()..moveTo(screenPoints.first.dx, screenPoints.first.dy);
+      for (var i = 1; i < screenPoints.length; i++) {
+        glowPath.lineTo(screenPoints[i].dx, screenPoints[i].dy);
+      }
+      canvas.drawPath(glowPath, glowPaint);
+
+      // Dashed cyan line for ferry
+      final dashPaint = Paint()
+        ..color = ferryColor.withOpacity(0.7)
+        ..strokeWidth = 3.0
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..setPathEffect(const DashPattern([10, 6]));
+      final dashPath = Path()..moveTo(screenPoints.first.dx, screenPoints.first.dy);
+      for (var i = 1; i < screenPoints.length; i++) {
+        dashPath.lineTo(screenPoints[i].dx, screenPoints[i].dy);
+      }
+      canvas.drawPath(dashPath, dashPaint);
+
+      // Draw anchor/port indicators at each end
+      _drawPortAnchor(canvas, screenPoints.first);
+      _drawPortAnchor(canvas, screenPoints.last);
+
+      // Draw small ship icon (▲) at midpoint of the route
+      final midIdx = screenPoints.length ~/ 2;
+      final mid = screenPoints[midIdx];
+      if (_isVisible(mid)) {
+        // Small upward-pointing triangle (ship)
+        final s = 6.0;
+        final shipPath = Path()
+          ..moveTo(mid.dx, mid.dy - s)
+          ..lineTo(mid.dx + s * 0.6, mid.dy + s * 0.4)
+          ..lineTo(mid.dx - s * 0.6, mid.dy + s * 0.4)
+          ..close();
+        canvas.drawPath(shipPath, Paint()..color = ferryColor.withOpacity(0.8));
+        // Small "wake" line below ship
+        canvas.drawLine(
+          Offset(mid.dx - s * 0.8, mid.dy + s * 0.5),
+          Offset(mid.dx + s * 0.8, mid.dy + s * 0.5),
+          Paint()..color = ferryColor.withOpacity(0.3)..strokeWidth = 1.5,
+        );
+      }
+    }
+  }
+
+  /// Draw a small anchor icon (circle + vertical line) at a ferry port location.
+  void _drawPortAnchor(Canvas canvas, Offset pos) {
+    const anchorColor = Color(0xFF29B6F6);
+    const r = 4.0;
+    // Outer circle
+    canvas.drawCircle(pos, r, Paint()
+      ..color = const Color(0xFF0D1117).withOpacity(0.8)
+      ..style = PaintingStyle.fill);
+    canvas.drawCircle(pos, r, Paint()
+      ..color = anchorColor.withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5);
+    // Vertical anchor line inside
+    canvas.drawLine(
+      Offset(pos.dx, pos.dy - r * 0.6),
+      Offset(pos.dx, pos.dy + r * 0.6),
+      Paint()..color = anchorColor.withOpacity(0.6)..strokeWidth = 1.2..style = PaintingStyle.stroke,
+    );
+    // Horizontal bar at top
+    canvas.drawLine(
+      Offset(pos.dx - r * 0.5, pos.dy - r * 0.4),
+      Offset(pos.dx + r * 0.5, pos.dy - r * 0.4),
+      Paint()..color = anchorColor.withOpacity(0.6)..strokeWidth = 1.0..style = PaintingStyle.stroke,
+    );
+  }
+
   void _drawRoutes(Canvas canvas) {
     for (final route in data.routes) {
       if (route.points.length < 2) continue;
@@ -484,6 +605,14 @@ class GameMapPainter extends CustomPainter {
             Paint()..color = const Color(0xFFFF9800)..style = PaintingStyle.fill);
         canvas.drawCircle(Offset(pos.dx + 8, pos.dy + 8), 6,
             Paint()..color = const Color(0xFF1A1A1A)..style = PaintingStyle.stroke..strokeWidth = 1.5);
+      }
+
+      // Ferry port badge (small cyan circle)
+      if (city.hasFerryPort && !city.hasGarage) {
+        canvas.drawCircle(Offset(pos.dx + 8, pos.dy + 8), 5,
+            Paint()..color = const Color(0xFF29B6F6)..style = PaintingStyle.fill);
+        canvas.drawCircle(Offset(pos.dx + 8, pos.dy + 8), 5,
+            Paint()..color = const Color(0xFF1A1A1A)..style = PaintingStyle.stroke..strokeWidth = 1.2);
       }
     }
   }

@@ -18,6 +18,7 @@ import 'drivers_screen.dart';
 import 'warehouses_screen.dart';
 import 'transactions_screen.dart';
 import '../config/game_constants.dart';
+import '../config/ferry_routes.dart';
 import '../utils/pathfinder.dart';
 import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
@@ -310,18 +311,40 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
-  /// Build road edges for the custom painter.
+  /// Build road edges for the custom painter (excluding ferry connections).
   List<RoadEdge> _buildRoadEdges(GameProvider game) {
     final edges = <RoadEdge>[];
     final cityMap = <int, City>{};
     for (final c in game.cities) { cityMap[c.id] = c; }
     for (final pair in _roadNetwork) {
+      // Skip ferry connections — they are drawn separately
+      if (FerryRoutes.isFerryRoute(pair[0], pair[1])) continue;
       final a = cityMap[pair[0]];
       final b = cityMap[pair[1]];
       if (a == null || b == null) continue;
       edges.add(RoadEdge(
         from: LatLng(a.latitude, a.longitude),
         to: LatLng(b.latitude, b.longitude),
+      ));
+    }
+    return edges;
+  }
+
+  /// Build ferry edges for the custom painter.
+  List<FerryEdgeData> _buildFerryEdges(GameProvider game) {
+    final edges = <FerryEdgeData>[];
+    final cityMap = <int, City>{};
+    for (final c in game.cities) { cityMap[c.id] = c; }
+    for (final route in FerryRoutes.all) {
+      final fromCity = cityMap[route.fromCityId];
+      final toCity = cityMap[route.toCityId];
+      if (fromCity == null || toCity == null) continue;
+      edges.add(FerryEdgeData(
+        from: LatLng(fromCity.latitude, fromCity.longitude),
+        to: LatLng(toCity.latitude, toCity.longitude),
+        waypoints: route.waypoints,
+        name: route.name,
+        seaName: route.seaName,
       ));
     }
     return edges;
@@ -567,6 +590,7 @@ class MapScreenState extends State<MapScreen> {
                             hasGarage: hasGarage,
                             hasTruck: hasTruck,
                             isSelected: _selectedCityId == city.id,
+                            hasFerryPort: FerryRoutes.portCityIds.contains(city.id),
                             cityName: city.name,
                             countryCode: city.countryCode,
                           );
@@ -586,6 +610,7 @@ class MapScreenState extends State<MapScreen> {
                           );
                         }).where((tm) => tm.position != const LatLng(0, 0)).toList(),
                         roads: _buildRoadEdges(game),
+                        ferryEdges: _buildFerryEdges(game),
                         routes: _buildRouteSegments(game),
                         countryNames: game.cities.map((c) => c.country).toSet(),
                       );
@@ -1094,6 +1119,44 @@ class _TruckInfoPopup extends StatelessWidget {
               ),
             ),
             Text('${(progress * 100).round()}% пройдено', style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
+
+            // Ferry segment info for in-transit trucks
+            if (truck.status == 'in_transit' && truck.originCityId != null && truck.destinationCityId != null)
+              Builder(builder: (context) {
+                final path = PathFinder.findPath(truck.originCityId!, truck.destinationCityId!);
+                final ferrySegs = FerryRoutes.ferrySegmentsInPath(path);
+                if (ferrySegs.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF29B6F6).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFF29B6F6).withOpacity(0.3)),
+                        ),
+                        child: Row(children: [
+                          const Icon(AppIcons.anchor, size: 14, color: Color(0xFF29B6F6)),
+                          const SizedBox(width: 4),
+                          Text('Паром: ${ferrySegs.first.name}', style: const TextStyle(color: Color(0xFF29B6F6), fontSize: 11, fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                      const SizedBox(height: 2),
+                      for (final seg in ferrySegs)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8, top: 1),
+                          child: Text(
+                            '${seg.operator} · ${seg.seaName} · €${seg.costEur} · ~${(seg.durationMinutes / 60).round()}ч',
+                            style: const TextStyle(color: Color(0xFF29B6F6).withOpacity(0.7), fontSize: 10),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
 
             // Delivery timeline for in-transit trucks
             if (truck.status == 'in_transit')

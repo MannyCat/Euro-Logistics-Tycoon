@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../config/app_icons.dart';
+import '../config/ferry_routes.dart';
 import '../models/city.dart';
 import '../widgets/country_flag.dart';
 
@@ -87,6 +88,33 @@ class ContextPane extends StatelessWidget {
                   ],
                 ),
                 const Divider(height: 20, color: Color(0xFF333333)),
+
+                // Ferry port info (if city has ferry connections)
+                if (FerryRoutes.portCityIds.contains(city.id)) ...[
+                  Row(
+                    children: [
+                      Icon(AppIcons.anchor, size: 14, color: const Color(0xFF29B6F6)),
+                      const SizedBox(width: 6),
+                      Text('Паромный порт', style: const TextStyle(color: Color(0xFF29B6F6), fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ...FerryRoutes.routesForCity(city.id).map((route) => Padding(
+                    padding: const EdgeInsets.only(left: 20, top: 3),
+                    child: Row(
+                      children: [
+                        Text('${route.name}', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 11)),
+                        const SizedBox(width: 4),
+                        Text('(${route.operator})', style: TextStyle(color: Color(0xFF888888), fontSize: 10)),
+                        const Spacer(),
+                        Text('€${route.costEur}', style: const TextStyle(color: Color(0xFF29B6F6), fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'monospace')),
+                      ],
+                    ),
+                  )),
+                  const SizedBox(height: 4),
+                  const Divider(height: 20, color: Color(0xFF333333)),
+                ],
+
                 // Custom content slot (contracts, warehouse actions, etc.)
                 if (content != null) ...[
                   content!,

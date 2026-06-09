@@ -924,6 +924,34 @@ class WorldBoundaries {
           LatLng(52.0, -80.0), LatLng(55.0, -78.0), LatLng(58.0, -78.0),
           LatLng(63.0, -82.0),
         ]),
+        // ── Ferry-relevant water bodies ──
+        WaterBody(name: 'Irish Sea', vertices: [
+          LatLng(55.5, -6.0), LatLng(54.5, -5.0), LatLng(53.0, -4.5),
+          LatLng(51.5, -5.5), LatLng(51.0, -6.5), LatLng(52.0, -7.0),
+          LatLng(53.5, -6.5), LatLng(55.0, -7.0),
+        ]),
+        WaterBody(name: 'Baltic Sea', vertices: [
+          LatLng(65.5, 23.0), LatLng(63.0, 22.0), LatLng(60.0, 24.0),
+          LatLng(57.0, 20.0), LatLng(55.5, 18.0), LatLng(54.0, 14.0),
+          LatLng(55.0, 12.0), LatLng(56.0, 11.0), LatLng(57.5, 11.5),
+          LatLng(59.0, 13.0), LatLng(60.0, 18.0), LatLng(62.0, 20.0),
+        ]),
+        WaterBody(name: 'North Sea', vertices: [
+          LatLng(62.0, -5.0), LatLng(60.0, 0.0), LatLng(58.5, 5.0),
+          LatLng(56.0, 7.0), LatLng(54.0, 8.0), LatLng(52.0, 4.0),
+          LatLng(51.0, 1.5), LatLng(50.5, -1.0), LatLng(52.0, -3.0),
+          LatLng(54.0, -5.0), LatLng(57.0, -6.0),
+        ]),
+        WaterBody(name: 'English Channel', vertices: [
+          LatLng(51.0, -5.0), LatLng(50.5, -1.5), LatLng(50.0, 1.0),
+          LatLng(50.5, 2.0), LatLng(51.0, 2.0), LatLng(51.5, 1.0),
+          LatLng(50.5, -1.0),
+        ]),
+        WaterBody(name: 'Aegean Sea', vertices: [
+          LatLng(40.5, 24.0), LatLng(39.0, 25.5), LatLng(37.5, 26.0),
+          LatLng(36.5, 27.0), LatLng(37.0, 28.5), LatLng(38.0, 26.5),
+          LatLng(39.5, 25.0), LatLng(40.0, 24.5),
+        ]),
       ];
 
   // ══════════════════════════════════════════════════════════════════════
