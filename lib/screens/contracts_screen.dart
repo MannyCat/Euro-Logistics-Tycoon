@@ -8,6 +8,9 @@ import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
 import '../providers/game_provider.dart' as gp show haversineKm;
 import '../utils/pathfinder.dart';
+import '../config/app_icons.dart';
+import '../widgets/skeleton_loader.dart';
+import '../config/cargo_colors.dart';
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -27,11 +30,11 @@ class _ContractsScreenState extends State<ContractsScreen> {
 
     return ETS2Modal(
       title: 'Контракты',
-      icon: Icons.description,
+      icon: AppIcons.description,
       actions: [
         if (_activeTab == 0)
           IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Color(0xFFF5C542), size: 20),
+            icon: const Icon(AppIcons.addCircleOutline, color: Color(0xFFF5C542), size: 20),
             tooltip: 'Сгенерировать',
             onPressed: () async {
               await game.generateNewContracts();
@@ -45,12 +48,23 @@ class _ContractsScreenState extends State<ContractsScreen> {
             },
           ),
         IconButton(
-          icon: const Icon(Icons.refresh, color: Color(0xFF999999), size: 18),
+          icon: const Icon(AppIcons.refreshCw, color: Color(0xFF999999), size: 18),
           tooltip: 'Обновить',
           onPressed: () => game.refreshAll(companyId),
         ),
       ],
-      child: Column(
+      child: game.isLoading
+          ? ListView(
+              padding: const EdgeInsets.all(8),
+              children: const [
+                SkeletonCard(),
+                SkeletonCard(),
+                SkeletonCard(),
+                SkeletonCard(),
+                SkeletonCard(),
+              ],
+            )
+          : Column(
         children: [
           // Custom tab bar (no Scaffold TabBar needed)
           Container(
@@ -70,9 +84,15 @@ class _ContractsScreenState extends State<ContractsScreen> {
           ),
           // Content
           Expanded(
-            child: _activeTab == 0
-                ? _AvailableTab(game: game, companyId: companyId)
-                : _MyContractsTab(game: game),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: KeyedSubtree(
+                key: ValueKey(_activeTab),
+                child: _activeTab == 0
+                    ? _AvailableTab(game: game, companyId: companyId)
+                    : _MyContractsTab(game: game),
+              ),
+            ),
           ),
         ],
       ),
@@ -128,7 +148,7 @@ class _AvailableTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.description_outlined, size: 48, color: Color(0xFF666666)),
+            const Icon(AppIcons.descriptionOutlined, size: 48, color: Color(0xFF666666)),
             const SizedBox(height: 12),
             Text('Нет доступных контрактов', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
             const SizedBox(height: 4),
@@ -136,7 +156,7 @@ class _AvailableTab extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () => game.generateNewContracts(),
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Сгенерировать'),
             ),
           ],
@@ -211,7 +231,7 @@ class _MyContractsTabState extends State<_MyContractsTab> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.assignment_outlined, size: 48, color: Color(0xFF666666)),
+                      const Icon(AppIcons.assignmentOutlined, size: 48, color: Color(0xFF666666)),
                       const SizedBox(height: 12),
                       Text(_filter == 0 ? 'Нет активных контрактов' : _filter == 1 ? 'Нет завершённых контрактов' : _filter == 2 ? 'Нет просроченных контрактов' : 'Нет контрактов', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                       const SizedBox(height: 4),
@@ -302,22 +322,22 @@ class _ContractCard extends StatelessWidget {
       case 'accepted':
         statusColor = const Color(0xFFF5C542);
         statusText = 'Активен';
-        statusIcon = Icons.local_shipping;
+        statusIcon = AppIcons.truck;
         break;
       case 'completed':
         statusColor = const Color(0xFF66BB6A);
         statusText = 'Завершён';
-        statusIcon = Icons.check_circle;
+        statusIcon = AppIcons.checkCircle;
         break;
       case 'expired':
         statusColor = const Color(0xFFEF5350);
         statusText = 'Истёк';
-        statusIcon = Icons.timer_off;
+        statusIcon = AppIcons.timerOff;
         break;
       default:
         statusColor = const Color(0xFF42A5F5);
         statusText = 'Доступен';
-        statusIcon = Icons.description;
+        statusIcon = AppIcons.description;
     }
 
     // Deadline progress
@@ -387,7 +407,7 @@ class _ContractCard extends StatelessWidget {
               const SizedBox(width: 8),
               _CargoIcon(cargoType: contract.cargoType),
               const SizedBox(width: 6),
-              Expanded(child: Text(contract.cargoType, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600))),
+              Expanded(child: Text(contract.cargoType, style: TextStyle(color: CargoColors.forType(contract.cargoType), fontSize: 13, fontWeight: FontWeight.w600))),
               Text(
                 GameConstants.formatMoney(contract.reward),
                 style: const TextStyle(color: Color(0xFF66BB6A), fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'monospace'),
@@ -402,7 +422,7 @@ class _ContractCard extends StatelessWidget {
                     border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.3)),
                   ),
                   child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.dark_mode, size: 10, color: Color(0xFF7C4DFF)),
+                    Icon(AppIcons.darkMode, size: 10, color: Color(0xFF7C4DFF)),
                     SizedBox(width: 2),
                     Text('+20%', style: TextStyle(color: Color(0xFF7C4DFF), fontSize: 10, fontWeight: FontWeight.w700)),
                   ]),
@@ -413,7 +433,7 @@ class _ContractCard extends StatelessWidget {
           if (assignedTruckName != null) ...[
             const SizedBox(height: 4),
             Row(children: [
-              Icon(Icons.local_shipping, size: 12, color: const Color(0xFFF5C542).withOpacity(0.7)),
+              Icon(AppIcons.truck, size: 12, color: const Color(0xFFF5C542).withOpacity(0.7)),
               const SizedBox(width: 4),
               Text(assignedTruckName, style: TextStyle(color: const Color(0xFFF5C542).withOpacity(0.9), fontSize: 11)),
             ]),
@@ -431,7 +451,7 @@ class _ContractCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(width: 40, height: 1, color: const Color(0xFF666666)),
-                    Icon(Icons.arrow_forward, size: 10, color: const Color(0xFF666666)),
+                    Icon(AppIcons.arrowForward, size: 10, color: const Color(0xFF666666)),
                     Container(width: 40, height: 1, color: const Color(0xFF666666)),
                   ],
                 ),
@@ -559,7 +579,7 @@ class _AcceptButtonState extends State<_AcceptButton> {
         ),
         icon: _isAccepting
             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Color(0xFF1A1A1A), strokeWidth: 2))
-            : const Icon(Icons.check, size: 16),
+            : const Icon(AppIcons.check, size: 16),
         label: Text(
           _isAccepting
               ? 'Принятие...'

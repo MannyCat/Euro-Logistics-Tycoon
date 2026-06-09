@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
+import '../../config/app_icons.dart';
 import '../../providers/auth_provider.dart';
 
 /// ETS2-style splash screen — shows while session is being restored.
@@ -32,7 +33,7 @@ class SplashScreen extends StatelessWidget {
                 ),
               ),
               child: const Icon(
-                Icons.local_shipping,
+                AppIcons.truck,
                 size: 44,
                 color: Color(0xFFF5C542),
               ),

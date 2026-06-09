@@ -20,19 +20,28 @@ class AppTheme {
   static const Color input = Color(0xFF0D1B30);
   static const Color mapOcean = Color(0xFF0A1628);
 
-  static final _mono = GoogleFonts.robotoMono();
+  // Typography — JetBrains Mono for data, Inter for UI
+  static final _mono = GoogleFonts.jetBrainsMono();
   static final _sans = GoogleFonts.inter();
   static final _sansBold = GoogleFonts.inter(fontWeight: FontWeight.w700);
   static final _sansSemi = GoogleFonts.inter(fontWeight: FontWeight.w600);
+  static final _sansMedium = GoogleFonts.inter(fontWeight: FontWeight.w500);
 
-  static TextStyle get mono => _mono.copyWith(color: text, fontSize: 14, letterSpacing: 0.5);
-  static TextStyle get monoSm => _mono.copyWith(color: textDim, fontSize: 12, letterSpacing: 0.3);
-  static TextStyle get h1 => _sansBold.copyWith(color: text, fontSize: 22);
-  static TextStyle get h2 => _sansBold.copyWith(color: text, fontSize: 16);
-  static TextStyle get body => _sans.copyWith(color: textDim, fontSize: 14);
-  static TextStyle get bodySm => _sans.copyWith(color: textMuted, fontSize: 12);
-  static TextStyle get label => _sansSemi.copyWith(color: text, fontSize: 14);
-  static TextStyle get labelSm => _sansSemi.copyWith(color: textDim, fontSize: 12);
+  // Data/numeric styles (JetBrains Mono)
+  static TextStyle get mono => _mono.copyWith(color: text, fontSize: 14, letterSpacing: 0.3);
+  static TextStyle get monoSm => _mono.copyWith(color: textDim, fontSize: 11, letterSpacing: 0.2);
+  static TextStyle get monoLg => _mono.copyWith(color: text, fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.2);
+  static TextStyle get monoBold => _mono.copyWith(color: text, fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.2);
+
+  // UI text styles (Inter)
+  static TextStyle get h1 => _sansBold.copyWith(color: text, fontSize: 22, letterSpacing: -0.3);
+  static TextStyle get h2 => _sansBold.copyWith(color: text, fontSize: 16, letterSpacing: -0.2);
+  static TextStyle get h3 => _sansSemi.copyWith(color: text, fontSize: 14, letterSpacing: -0.1);
+  static TextStyle get body => _sans.copyWith(color: textDim, fontSize: 14, letterSpacing: -0.1);
+  static TextStyle get bodySm => _sansMedium.copyWith(color: textMuted, fontSize: 12, letterSpacing: -0.1);
+  static TextStyle get label => _sansSemi.copyWith(color: text, fontSize: 14, letterSpacing: -0.1);
+  static TextStyle get labelSm => _sansSemi.copyWith(color: textDim, fontSize: 12, letterSpacing: -0.1);
+  static TextStyle get caption => _sansMedium.copyWith(color: textMuted, fontSize: 10, letterSpacing: 0.3);
 
   static ThemeData get dark => ThemeData(
     useMaterial3: true,

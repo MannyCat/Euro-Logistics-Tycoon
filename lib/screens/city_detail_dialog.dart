@@ -8,6 +8,8 @@ import '../models/garage.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../utils/pathfinder.dart';
+import '../config/app_icons.dart';
+import '../widgets/country_flag.dart';
 
 class CityDetailDialog extends StatelessWidget {
   final City city;
@@ -42,10 +44,14 @@ class CityDetailDialog extends StatelessWidget {
             ),
             child: Row(children: [
               Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFFF5C542).withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.location_city, color: Color(0xFFF5C542), size: 20)),
+                child: const Icon(AppIcons.locationCity, color: Color(0xFFF5C542), size: 20)),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(city.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 16, fontWeight: FontWeight.w700)),
+                Row(children: [
+                  CountryFlag(countryCode: city.countryCode, size: 18),
+                  const SizedBox(width: 8),
+                  Text(city.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 16, fontWeight: FontWeight.w700)),
+                ]),
                 Text(city.country, style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
               ])),
               if (hasWarehouse)
@@ -62,7 +68,7 @@ class CityDetailDialog extends StatelessWidget {
                 ),
               const SizedBox(width: 6),
               IconButton(
-                icon: const Icon(Icons.close, color: Color(0xFF999999), size: 18),
+                icon: const Icon(AppIcons.close, color: Color(0xFF999999), size: 18),
                 onPressed: () => Navigator.pop(context),
               ),
             ]),
@@ -79,8 +85,8 @@ class CityDetailDialog extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
               Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                _miniStat(Icons.local_shipping, '$trucksHere', 'Грузовиков'),
-                _miniStat(Icons.description, '${contracts.length}', 'Контрактов'),
+                _miniStat(AppIcons.truck, '$trucksHere', 'Грузовиков'),
+                _miniStat(AppIcons.description, '${contracts.length}', 'Контрактов'),
               ]),
 
               // ===== GARAGE SECTION =====
@@ -103,7 +109,7 @@ class CityDetailDialog extends StatelessWidget {
                         ));
                       }
                     },
-                    icon: const Icon(Icons.garage, size: 16),
+                    icon: const Icon(AppIcons.garage, size: 16),
                     label: const Text('Купить гараж — €20K'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFFF9800),
@@ -137,7 +143,7 @@ class CityDetailDialog extends StatelessWidget {
                         if (ok) Navigator.pop(context);
                       }
                     },
-                    icon: const Icon(Icons.warehouse, size: 16),
+                    icon: const Icon(AppIcons.warehouses, size: 16),
                     label: Text('Купить склад — ${GameConstants.formatMoney(city.warehouseCost)}'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF42A5F5),
@@ -164,7 +170,7 @@ class CityDetailDialog extends StatelessWidget {
                     padding: const EdgeInsets.all(24),
                     child: Center(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.description_outlined, size: 32, color: Color(0xFF666666)),
+                        const Icon(AppIcons.description, size: 32, color: Color(0xFF666666)),
                         const SizedBox(height: 8),
                         const Text('Нет контрактов', style: TextStyle(color: Color(0xFF666666), fontSize: 12)),
                       ]),
@@ -234,7 +240,7 @@ class _GarageSection extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Title row
         Row(children: [
-          const Icon(Icons.garage, size: 18, color: Color(0xFFFF9800)),
+          const Icon(AppIcons.garage, size: 18, color: Color(0xFFFF9800)),
           const SizedBox(width: 6),
           const Text('Гараж', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w700)),
           const Spacer(),
@@ -288,7 +294,7 @@ class _GarageSection extends StatelessWidget {
               .map((t) => Padding(
                     padding: const EdgeInsets.only(bottom: 3),
                     child: Row(children: [
-                      const Icon(Icons.local_shipping, size: 13, color: Color(0xFF66BB6A)),
+                      const Icon(AppIcons.truck, size: 13, color: Color(0xFF66BB6A)),
                       const SizedBox(width: 4),
                       Text(t.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 11, fontWeight: FontWeight.w500)),
                       const Spacer(),
@@ -331,7 +337,7 @@ class _GarageSection extends StatelessWidget {
                         ));
                       }
                     },
-              icon: const Icon(Icons.expand, size: 14),
+              icon: const Icon(AppIcons.arrowDown, size: 14),
               label: Text(
                 'Расширить (+2 слота) — ${GameConstants.formatMoney(garage.expansionCost)}',
                 style: const TextStyle(fontSize: 11),
@@ -425,7 +431,7 @@ class _ContractCardState extends State<_ContractCard> {
               onPressed: !_isAccepting ? () => _accept(context, game) : null,
               icon: _isAccepting
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Color(0xFF1A1A1A), strokeWidth: 2))
-                  : const Icon(Icons.check, size: 16),
+                  : const Icon(AppIcons.check, size: 16),
               label: Text(_isAccepting ? 'Принятие...' : 'Принять (${nearest.name})', style: const TextStyle(fontSize: 12)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF5C542),

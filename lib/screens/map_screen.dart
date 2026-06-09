@@ -27,9 +27,32 @@ import 'clan_screen.dart';
 import 'event_log_screen.dart';
 import '../widgets/achievement_toast.dart';
 import '../widgets/tutorial_overlay.dart';
+import '../widgets/map_markers.dart';
 import 'market_screen.dart';
 import 'analytics_screen.dart';
 import '../models/seasonal_event.dart';
+import '../config/app_icons.dart';
+import '../config/map_config.dart';
+import '../config/country_boundaries.dart';
+import '../widgets/country_flag.dart';
+import '../widgets/notification_panel.dart';
+import '../widgets/context_pane.dart';
+import '../widgets/skeleton_loader.dart';
+import '../widgets/keyboard_shortcuts_overlay.dart';
+import '../widgets/delivery_timeline.dart';
+
+/// Tile builder that darkens label tiles for subtler text overlay
+Widget darkLabelTileBuilder(BuildContext context, Widget tile, TileLayer layer) {
+  return ColorFiltered(
+    colorFilter: const ColorFilter.matrix([
+      0.5, 0, 0, 0, 0,
+      0, 0.5, 0, 0, 0,
+      0, 0, 0.5, 0, 0,
+      0, 0, 0, 0.7, 0,
+    ]),
+    child: tile,
+  );
+}
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
@@ -51,6 +74,7 @@ class MapScreenState extends State<MapScreen> {
   Timer? _refreshTimer;
   Timer? _contractGenTimer;
   Timer? _truckAnimTimer;
+  Timer? _clockTimer;
   int? _selectedCityId;
   bool _isDesktop = true;
   final FocusNode _mapFocus = FocusNode();
@@ -79,6 +103,9 @@ class MapScreenState extends State<MapScreen> {
     _truckAnimTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
     _mapFocus.requestFocus();
   }
   @override
@@ -86,6 +113,7 @@ class MapScreenState extends State<MapScreen> {
     _refreshTimer?.cancel();
     _contractGenTimer?.cancel();
     _truckAnimTimer?.cancel();
+    _clockTimer?.cancel();
     _eventBannerTimer?.cancel();
     _mapFocus.dispose();
     super.dispose();
@@ -119,6 +147,41 @@ class MapScreenState extends State<MapScreen> {
     });
   }
 
+  void _openNotificationPanel(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black.withOpacity(0.3),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: NotificationPanel(
+            notifications: game.eventLog.map((e) => NotificationItem(
+              id: e.id,
+              title: e.title,
+              body: e.description,
+              icon: e.icon,
+              color: e.color,
+              timestamp: e.createdAt,
+            )).toList().reversed.take(20).toList(),
+            onClose: () => Navigator.of(context).pop(),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        );
+      },
+    );
+  }
+
   void _generateContracts() {
     final auth = context.read<AuthProvider>();
     final game = context.read<GameProvider>();
@@ -140,9 +203,38 @@ class MapScreenState extends State<MapScreen> {
       _selectedTruck = null;
     });
     _mapController.move(LatLng(city.latitude, city.longitude), 7);
-    showDialog(context: context, builder: (_) => CityDetailDialog(city: city)).then((_) {
-      setState(() => _selectedCityId = null);
-    });
+    _showContextPane(context, city);
+  }
+
+  void _showContextPane(BuildContext context, City city) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: ContextPane(
+            city: city,
+            onClose: () {
+              Navigator.of(context).pop();
+              setState(() => _selectedCityId = null);
+            },
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        );
+      },
+    );
   }
 
   double _calcProgress(Truck truck) {
@@ -183,6 +275,18 @@ class MapScreenState extends State<MapScreen> {
       }
     }
     return null;
+  }
+
+  double _calcHeading(Truck truck, GameProvider game) {
+    if (truck.originCityId == null || truck.destinationCityId == null) return 0;
+    final origin = game.getCityById(truck.originCityId!);
+    final dest = game.getCityById(truck.destinationCityId!);
+    if (origin == null || dest == null) return 0;
+    final dx = dest.longitude - origin.longitude;
+    final dy = dest.latitude - dest.latitude;
+    var deg = math.atan2(dx, -dy) * 180 / math.pi;
+    if (deg < 0) deg += 360;
+    return deg;
   }
 
   LatLng _interpolate(LatLng start, LatLng end, double t) {
@@ -244,12 +348,13 @@ class MapScreenState extends State<MapScreen> {
           borderStrokeWidth: 2.0,
           borderColor: const Color(0xFFD4A017).withOpacity(0.7),
         ));
+        final pulse = 0.3 + 0.1 * math.sin(DateTime.now().millisecondsSinceEpoch / 500);
         routes.add(Polyline(
           points: [truckPos, LatLng(dest.latitude, dest.longitude)],
-          color: const Color(0xFFF5C542).withOpacity(0.35),
+          color: const Color(0xFFF5C542).withOpacity(pulse),
           strokeWidth: 3.0,
           borderStrokeWidth: 1.5,
-          borderColor: const Color(0xFFD4A017).withOpacity(0.25),
+          borderColor: const Color(0xFFD4A017).withOpacity(pulse * 0.7),
         ));
         continue;
       }
@@ -280,22 +385,47 @@ class MapScreenState extends State<MapScreen> {
         ));
       }
 
-      // Remaining portion: from truck position to end (dim)
+      // Remaining portion: from truck position to end (dim, pulsing)
       final remainingPoints = <LatLng>[
         truckPos,
         if (segIdx + 1 < pathPoints.length) ...pathPoints.skip(segIdx + 1),
       ];
       if (remainingPoints.length >= 2) {
+        final pulse = 0.3 + 0.1 * math.sin(DateTime.now().millisecondsSinceEpoch / 500);
         routes.add(Polyline(
           points: remainingPoints,
-          color: const Color(0xFFF5C542).withOpacity(0.35),
+          color: const Color(0xFFF5C542).withOpacity(pulse),
           strokeWidth: 3.0,
           borderStrokeWidth: 1.5,
-          borderColor: const Color(0xFFD4A017).withOpacity(0.25),
+          borderColor: const Color(0xFFD4A017).withOpacity(pulse * 0.7),
         ));
       }
     }
     return routes;
+  }
+
+  /// Builds subtle country shading polygons from CountryBoundaries data.
+  /// Each country occupied by an in-game city gets a semi-transparent fill.
+  List<Polygon> _buildCountryShading(GameProvider game) {
+    final polygons = <Polygon>[];
+    // Collect unique countries present in the game's city list.
+    final seenCountries = <String>{};
+    for (final city in game.cities) {
+      if (seenCountries.add(city.country.toLowerCase())) {
+        final verts = CountryBoundaries.polygonFor(city.country);
+        final color = CountryBoundaries.colorFor(city.country);
+        if (verts != null && color != null) {
+          polygons.add(Polygon(
+            points: verts,
+            color: color.withOpacity(0.35),
+            borderColor: color.withOpacity(0.5),
+            borderStrokeWidth: 1.0,
+            isFilled: true,
+          ));
+        }
+      }
+    }
+    return polygons;
   }
 
   @override
@@ -304,26 +434,55 @@ class MapScreenState extends State<MapScreen> {
     final game = context.watch<GameProvider>();
     final company = game.company;
 
-    // Loading
+    // Loading — skeleton placeholders
     if (game.isLoading && !game.isInitialized) {
       return Scaffold(
         backgroundColor: const Color(0xFF1A1A1A),
-        body: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              width: 60, height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.3), width: 3),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.all(12),
-                child: CircularProgressIndicator(color: Color(0xFFF5C542), strokeWidth: 3),
-              ),
+        body: SingleChildScrollView(
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Skeleton top bar
+                Container(
+                  height: 50,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2C2C2C),
+                    border: Border(bottom: BorderSide(color: Color(0xFF444444), width: 1)),
+                  ),
+                  child: Row(
+                    children: [
+                      const SkeletonBox(width: 20, height: 20, borderRadius: 4),
+                      const SizedBox(width: 6),
+                      const Expanded(child: SkeletonBox(height: 14, width: 200)),
+                      const SkeletonBox(width: 70, height: 20, borderRadius: 3),
+                      const SizedBox(width: 6),
+                      const SkeletonBox(width: 50, height: 20, borderRadius: 3),
+                    ],
+                  ),
+                ),
+                // Skeleton map placeholder
+                Container(
+                  height: 300,
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFF5C542), strokeWidth: 2),
+                  ),
+                ),
+                // Skeleton list items
+                const SkeletonCard(),
+                const SkeletonCard(),
+                const SkeletonCard(),
+                const SkeletonCard(),
+                const SizedBox(height: 38), // bottom bar space
+              ],
             ),
-            const SizedBox(height: 20),
-            Text('Загрузка карты...', style: AppTheme.body.copyWith(color: const Color(0xFF90A4AE), fontSize: 13)),
-          ]),
+          ),
         ),
       );
     }
@@ -334,7 +493,7 @@ class MapScreenState extends State<MapScreen> {
         backgroundColor: const Color(0xFF1A1A1A),
         body: Center(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, size: 48, color: Color(0xFFEF5350)),
+            const Icon(AppIcons.error, size: 48, color: Color(0xFFEF5350)),
             const SizedBox(height: 12),
             Text(game.error!, style: AppTheme.body.copyWith(color: const Color(0xFFEF5350))),
             const SizedBox(height: 16),
@@ -352,6 +511,11 @@ class MapScreenState extends State<MapScreen> {
       focusNode: _mapFocus,
       onKeyEvent: (node, event) {
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        // Handle Ctrl+/ for keyboard shortcuts overlay
+        if (HardwareKeyboard.instance.isControlPressed && event.logicalKey == LogicalKeyboardKey.slash) {
+          showDialog(context: context, barrierColor: Colors.black.withOpacity(0.6), builder: (_) => const KeyboardShortcutsOverlay());
+          return KeyEventResult.handled;
+        }
         if (HardwareKeyboard.instance.isControlPressed) return KeyEventResult.ignored;
         switch (event.logicalKey) {
           case LogicalKeyboardKey.keyC:
@@ -430,12 +594,22 @@ class MapScreenState extends State<MapScreen> {
                         onTap: (_, __) => setState(() { _selectedCityId = null; _selectedTruck = null; }),
                       ),
                       children: [
-                        // ETS2 dark map tiles
+                        // Dark map tiles (configurable via MapConfig)
                         TileLayer(
-                          urlTemplate:
-                              'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                          userAgentPackageName: 'com.elt.logistics',
-                          retinaMode: true,
+                          urlTemplate: MapConfig.baseTileUrl,
+                          userAgentPackageName: MapConfig.userAgent,
+                          retinaMode: MapConfig.retinaMode,
+                        ),
+                        if (MapConfig.useSeparateLabels)
+                          TileLayer(
+                            urlTemplate: MapConfig.labelTileUrl,
+                            userAgentPackageName: MapConfig.userAgent,
+                            retinaMode: MapConfig.retinaMode,
+                            tileBuilder: darkLabelTileBuilder,
+                          ),
+                        // Country shading polygons
+                        PolygonLayer(
+                          polygons: _buildCountryShading(game),
                         ),
                         PolylineLayer(polylines: _buildRoadNetwork(game)),
                         PolylineLayer(polylines: _buildTruckRoutes(game)),
@@ -443,97 +617,57 @@ class MapScreenState extends State<MapScreen> {
                         // City markers
                         MarkerLayer(
                           markers: game.cities.map((city) {
-                            final isSelected = _selectedCityId == city.id;
                             final hasWarehouse = game.myWarehouses.any((w) => w.cityId == city.id);
                             final hasGarage = game.hasGarageInCity(city.id);
                             final hasTruck = game.myTrucks.any((t) => t.currentCityId == city.id && t.isIdle);
-                            Color dotColor;
-                            if (hasWarehouse) {
-                              dotColor = const Color(0xFF66BB6A);
-                            } else if (hasGarage) {
-                              dotColor = const Color(0xFFFF9800);
-                            } else if (hasTruck) {
-                              dotColor = const Color(0xFFF5C542);
-                            } else {
-                              dotColor = const Color(0xFF8B9A46);
-                            }
                             return Marker(
                               point: LatLng(city.latitude, city.longitude),
-                              width: isSelected ? 48 : 36,
-                              height: isSelected ? 48 : 36,
-                              child: GestureDetector(
+                              width: 48,
+                              height: 48,
+                              child: CityMarker(
+                                hasWarehouse: hasWarehouse,
+                                hasGarage: hasGarage,
+                                hasTruck: hasTruck,
+                                isSelected: _selectedCityId == city.id,
                                 onTap: () => _onCityTap(city),
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    if (isSelected)
-                                      Container(
-                                        width: 44, height: 44,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: const Color(0xFFF5C542).withOpacity(0.15),
-                                          border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.5), width: 2),
-                                        ),
-                                      ),
-                                    Container(
-                                      width: isSelected ? 18 : 12,
-                                      height: isSelected ? 18 : 12,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: dotColor,
-                                        border: Border.all(color: Colors.white, width: 1.5),
-                                        boxShadow: [
-                                          BoxShadow(color: dotColor.withOpacity(0.6), blurRadius: isSelected ? 12 : 8, spreadRadius: isSelected ? 3 : 1),
-                                        ],
-                                      ),
-                                    ),
-                                    // Garage indicator badge
-                                    if (hasGarage && !hasWarehouse)
-                                      Positioned(
-                                        right: 0, bottom: 0,
-                                        child: Container(
-                                          width: 12, height: 12,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFFF9800),
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: const Color(0xFF1A1A1A), width: 1.5),
-                                          ),
-                                          child: const Icon(Icons.garage, size: 7, color: Color(0xFF1A1A1A)),
-                                        ),
-                                      ),
-                                  ],
-                                ),
                               ),
                             );
                           }).toList(),
                         ),
 
-                        // City labels
+                        // City labels with country flags
                         MarkerLayer(
                           markers: game.cities.map((city) {
                             return Marker(
                               point: LatLng(city.latitude, city.longitude),
-                              width: 110, height: 22,
+                              width: 130, height: 22,
                               child: Align(
                                 alignment: Alignment.bottomCenter,
                                 child: Transform.translate(
                                   offset: const Offset(0, -12),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF1A1A1A).withOpacity(0.75),
                                       borderRadius: BorderRadius.circular(3),
                                     ),
-                                    child: Text(
-                                      city.name,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Color(0xFFD0D0D0),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 0.8,
-                                        shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1))],
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CountryFlag(countryCode: city.countryCode, size: 12),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          city.name,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Color(0xFFD0D0D0),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.8,
+                                            shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1))],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -545,120 +679,23 @@ class MapScreenState extends State<MapScreen> {
                         // Truck markers
                         MarkerLayer(
                           markers: [
-                            // Idle trucks — green circles
-                            ...game.myTrucks.where((t) => t.isIdle).map((truck) {
+                            ...game.myTrucks.map((truck) {
                               final pos = _getTruckPosition(truck, game);
                               if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
                               final isDistressed = truck.fuelLevel < truck.maxFuel * 0.15 || truck.condition < 20;
+                              final heading = _calcHeading(truck, game);
                               return Marker(
-                                point: pos, width: 28, height: 28,
-                                child: Align(
-                                  alignment: Alignment.topCenter,
-                                  child: Transform.translate(
-                                    offset: const Offset(0, 6),
-                                    child: GestureDetector(
-                                      onTap: () => setState(() { _selectedTruck = null; _onCityTap(game.getCityById(truck.currentCityId!)!); }),
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          if (isDistressed)
-                                            Container(
-                                              width: 30, height: 30,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: const Color(0xFFEF5350).withOpacity(0.15),
-                                                border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.4), width: 1.5),
-                                              ),
-                                            ),
-                                          Container(
-                                            width: 20, height: 20,
-                                            decoration: BoxDecoration(
-                                              color: isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(color: Colors.white, width: 2),
-                                              boxShadow: [BoxShadow(color: (isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)).withOpacity(0.5), blurRadius: 8, spreadRadius: 1)],
-                                            ),
-                                            child: const Icon(Icons.local_shipping, size: 10, color: Colors.white),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                            // Loading trucks — blue pulsing
-                            ...game.myTrucks.where((t) => t.status == 'loading').map((truck) {
-                              final pos = _getTruckPosition(truck, game);
-                              if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
-                              return Marker(
-                                point: pos, width: 38, height: 38,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Container(
-                                      width: 34, height: 34,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: const Color(0xFF42A5F5).withOpacity(0.12),
-                                        border: Border.all(color: const Color(0xFF42A5F5).withOpacity(0.3), width: 1.5),
-                                      ),
-                                    ),
-                                    Container(
-                                      width: 22, height: 22,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF42A5F5),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                        boxShadow: [BoxShadow(color: const Color(0xFF42A5F5).withOpacity(0.6), blurRadius: 10, spreadRadius: 2)],
-                                      ),
-                                      child: const Icon(Icons.hourglass_top, size: 11, color: Colors.white),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                            // In-transit trucks — amber
-                            ...game.myTrucks.where((t) => t.status == 'in_transit').map((truck) {
-                              final pos = _getTruckPosition(truck, game);
-                              if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
-                              final isDistressed = truck.fuelLevel < truck.maxFuel * 0.15 || truck.condition < 20;
-                              return Marker(
-                                point: pos, width: 36, height: 36,
-                                child: GestureDetector(
-                                  onTap: () => setState(() { _selectedCityId = null; _selectedTruck = truck; }),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      if (isDistressed)
-                                        Container(
-                                          width: 42, height: 42,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: const Color(0xFFEF5350).withOpacity(0.12),
-                                            border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.35), width: 1.5),
-                                          ),
-                                        ),
-                                      Container(
-                                        width: 32, height: 32,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: (isDistressed ? const Color(0xFFEF5350) : const Color(0xFFF5C542)).withOpacity(0.15),
-                                          border: Border.all(color: (isDistressed ? const Color(0xFFEF5350) : const Color(0xFFF5C542)).withOpacity(0.4), width: 1.5),
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 22, height: 22,
-                                        decoration: BoxDecoration(
-                                          color: isDistressed ? const Color(0xFFEF5350) : const Color(0xFFF5C542),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 2),
-                                          boxShadow: [BoxShadow(color: (isDistressed ? const Color(0xFFEF5350) : const Color(0xFFF5C542)).withOpacity(0.7), blurRadius: 12, spreadRadius: 2)],
-                                        ),
-                                        child: const Icon(Icons.local_shipping, size: 11, color: Color(0xFF1A1A1A)),
-                                      ),
-                                    ],
-                                  ),
+                                point: pos,
+                                width: 36,
+                                height: 36,
+                                child: TruckMarker(
+                                  isIdle: truck.isIdle,
+                                  isDistressed: isDistressed,
+                                  isLoading: truck.status == 'loading',
+                                  heading: heading,
+                                  onTap: truck.isIdle
+                                      ? () => setState(() { _selectedTruck = null; _onCityTap(game.getCityById(truck.currentCityId!)!); })
+                                      : () => setState(() { _selectedCityId = null; _selectedTruck = truck; }),
                                 ),
                               );
                             }),
@@ -683,6 +720,24 @@ class MapScreenState extends State<MapScreen> {
                         child: Container(color: Colors.black.withOpacity(0.05)),
                       ),
                     ),
+
+                  // ===== VIGNETTE OVERLAY — premium edge darkening =====
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            center: Alignment.center,
+                            radius: 0.7,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.15),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
 
                   // ===== TRUCK INFO POPUP =====
                   if (_selectedTruck != null)
@@ -712,14 +767,12 @@ class MapScreenState extends State<MapScreen> {
                           child: Row(children: [
                             if (!_isDesktop) ...[
                               IconButton(
-                                icon: const Icon(Icons.menu, color: Color(0xFF999999)),
+                                icon: const Icon(AppIcons.menu, color: Color(0xFF999999)),
                                 onPressed: () => Scaffold.of(context).openDrawer(),
                               ),
                               const SizedBox(width: 2),
                             ],
-                            const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 20),
-                            const SizedBox(width: 6),
-                            Icon(GameConstants.weatherIcon, color: GameConstants.weatherColor, size: 16),
+                            const Icon(AppIcons.truck, color: Color(0xFFF5C542), size: 20),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -727,6 +780,19 @@ class MapScreenState extends State<MapScreen> {
                                 style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.4),
                                 overflow: TextOverflow.ellipsis,
                               ),
+                            ),
+                            // Clock + weather indicator
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  DateTime.now().toUtc().toString().substring(11, 16),
+                                  style: const TextStyle(color: Color(0xFF666666), fontSize: 11, fontFamily: 'JetBrains Mono'),
+                                ),
+                                const Text(' UTC', style: TextStyle(color: Color(0xFF444444), fontSize: 9)),
+                                const SizedBox(width: 8),
+                                Icon(GameConstants.weatherIcon, color: GameConstants.weatherColor, size: 14),
+                              ],
                             ),
                             const SizedBox(width: 8),
                             if (company != null) ...[
@@ -738,6 +804,13 @@ class MapScreenState extends State<MapScreen> {
                                 _ets2Badge('[${game.myClan!.tag}]', const Color(0xFFCE93D8)),
                               ],
                               const SizedBox(width: 6),
+                              IconButton(
+                                icon: const Icon(AppIcons.eventLog, color: Color(0xFF999999), size: 18),
+                                tooltip: 'Уведомления',
+                                onPressed: () => _openNotificationPanel(context),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                              ),
                               Container(
                                 width: 80, height: 18,
                                 padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -787,13 +860,13 @@ class MapScreenState extends State<MapScreen> {
                   Positioned(
                     top: 58 + (game.activeEvents.isNotEmpty && !_eventBannerDismissed ? 38 : 0), right: 10,
                     child: Column(children: [
-                      _ets2MapBtn(Icons.add, 'Приблизить (+)', () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
+                      _ets2MapBtn(AppIcons.add, 'Приблизить (+)', () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
                       const SizedBox(height: 2),
-                      _ets2MapBtn(Icons.remove, 'Отдалить (-)', () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
+                      _ets2MapBtn(AppIcons.zoomOut, 'Отдалить (-)', () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
                       const SizedBox(height: 2),
-                      _ets2MapBtn(Icons.crop_free, 'Обзор Европы', () => _mapController.move(const LatLng(50, 10), 4)),
+                      _ets2MapBtn(AppIcons.cropFree, 'Обзор Европы', () => _mapController.move(const LatLng(50, 10), 4)),
                       const SizedBox(height: 2),
-                      _ets2MapBtn(Icons.my_location, 'К первому грузовику', () {
+                      _ets2MapBtn(AppIcons.myLocation, 'К первому грузовику', () {
                         final firstTruck = game.myTrucks.where((t) => t.isIdle).firstOrNull;
                         if (firstTruck != null && firstTruck.currentCityId != null) {
                           final city = game.getCityById(firstTruck.currentCityId!);
@@ -801,37 +874,41 @@ class MapScreenState extends State<MapScreen> {
                         }
                       }),
                       const SizedBox(height: 2),
-                      _ets2MapBtn(Icons.refresh, 'Обновить (R)', _refresh),
+                      _ets2MapBtn(AppIcons.refreshCw, 'Обновить (R)', _refresh),
+                      const SizedBox(height: 2),
+                      _ets2MapBtn(AppIcons.info, 'Горячие клавиши (Ctrl+/)', () {
+                        showDialog(context: context, barrierColor: Colors.black.withOpacity(0.6), builder: (_) => const KeyboardShortcutsOverlay());
+                      }),
                     ]),
                   ),
 
-                  // ===== BOTTOM BAR — ETS2 Route Advisor =====
+                  // Bottom bar stats — compact HUD style
                   Positioned(
                     bottom: 0, left: 0, right: 0,
                     child: Container(
-                      height: 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2C2C2C),
-                        border: Border(top: BorderSide(color: Color(0xFF444444), width: 1)),
-                        boxShadow: [BoxShadow(color: Colors.black, blurRadius: 6, offset: Offset(0, -2))],
+                      height: 38,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E).withOpacity(0.85),
+                        border: Border(top: BorderSide(color: const Color(0xFF333333).withOpacity(0.8))),
                       ),
-                      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                        _ets2Stat('${game.idleTrucks.length}', 'Свободных', const Color(0xFF66BB6A)),
-                        _ets2Divider(),
-                        _ets2Stat('${game.transitTrucks.length}', 'В пути', const Color(0xFFF5C542)),
-                        _ets2Divider(),
-                        _ets2Stat('${game.availableContracts.length}', 'Контрактов', const Color(0xFF42A5F5)),
-                        _ets2Divider(),
-                        _ets2Stat('${game.myDrivers.length}', 'Водителей', const Color(0xFF90CAF9)),
-                        _ets2Divider(),
-                        _ets2Stat('${game.myGarages.length}', 'Гаражей', const Color(0xFFFF9800)),
-                        _ets2Divider(),
-                        _ets2Stat(GameConstants.weatherLabel, 'Погода', GameConstants.weatherColor),
-                        _ets2Divider(),
-                        _ets2Stat('€${GameConstants.currentFuelPricePerLiter.toStringAsFixed(2)}/л', 'Топливо',
-                          GameConstants.currentFuelPricePerLiter > 1.8 ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)),
-                      ])),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _hudItem(AppIcons.truck, '${game.idleTrucks.length}', const Color(0xFF66BB6A)),
+                          _hudDivider(),
+                          _hudItem(AppIcons.truck, '${game.transitTrucks.length}', const Color(0xFFF5C542)),
+                          _hudDivider(),
+                          _hudItem(AppIcons.description, '${game.availableContracts.length}', const Color(0xFF42A5F5)),
+                          _hudDivider(),
+                          _hudItem(AppIcons.users, '${game.myDrivers.length}', const Color(0xFF90CAF9)),
+                          _hudDivider(),
+                          _hudItem(AppIcons.weatherIcon, GameConstants.weatherLabel.split(' ').last, GameConstants.weatherColor),
+                          _hudDivider(),
+                          _hudItem(AppIcons.fuel, '${GameConstants.currentFuelPricePerLiter.toStringAsFixed(1)}', 
+                            GameConstants.currentFuelPricePerLiter > 1.8 ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -888,13 +965,16 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _ets2Stat(String val, String label, Color color) => Row(mainAxisSize: MainAxisSize.min, children: [
-    Text(val, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14, letterSpacing: 0.4)),
-    const SizedBox(width: 4),
-    Text(label, style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
-  ]);
+  Widget _hudItem(IconData icon, String value, Color color) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 12, color: color),
+      const SizedBox(width: 4),
+      Text(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'JetBrains Mono')),
+    ],
+  );
 
-  Widget _ets2Divider() => Container(width: 1, height: 20, decoration: BoxDecoration(color: const Color(0xFF444444), borderRadius: BorderRadius.circular(1)));
+  Widget _hudDivider() => Container(width: 1, height: 18, color: const Color(0xFF333333), margin: const EdgeInsets.symmetric(horizontal: 2));
 
   Widget _ets2MapBtn(IconData icon, String tooltip, VoidCallback onTap) => Material(
     color: Colors.transparent,
@@ -967,7 +1047,7 @@ class _TruckInfoPopup extends StatelessWidget {
                 color: (truck.isInTransit ? const Color(0xFFF5C542) : isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Icon(Icons.local_shipping, size: 16, color: truck.isInTransit ? const Color(0xFFF5C542) : isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)),
+              child: Icon(AppIcons.truck, size: 16, color: truck.isInTransit ? const Color(0xFFF5C542) : isDistressed ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)),
             ),
             const SizedBox(width: 8),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -987,7 +1067,7 @@ class _TruckInfoPopup extends StatelessWidget {
             const SizedBox(width: 6),
             GestureDetector(
               onTap: onClose,
-              child: const Icon(Icons.close, color: Color(0xFF999999), size: 16),
+              child: const Icon(AppIcons.close, color: Color(0xFF999999), size: 16),
             ),
           ]),
 
@@ -995,13 +1075,13 @@ class _TruckInfoPopup extends StatelessWidget {
           if (truck.isInTransit && origin != null && dest != null) ...[
             const SizedBox(height: 10),
             Row(children: [
-              const Icon(Icons.trip_origin, size: 14, color: Color(0xFF66BB6A)),
+              const Icon(AppIcons.tripOrigin, size: 14, color: Color(0xFF66BB6A)),
               const SizedBox(width: 4),
               Text(origin.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward, size: 12, color: Color(0xFF888888)),
+              const Icon(AppIcons.arrowForward, size: 12, color: Color(0xFF888888)),
               const SizedBox(width: 8),
-              const Icon(Icons.location_on, size: 14, color: Color(0xFFEF5350)),
+              const Icon(AppIcons.location, size: 14, color: Color(0xFFEF5350)),
               const SizedBox(width: 4),
               Text(dest.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
               if (etaText != null) ...[
@@ -1030,13 +1110,43 @@ class _TruckInfoPopup extends StatelessWidget {
               ),
             ),
             Text('${(progress * 100).round()}% пройдено', style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
+
+            // Delivery timeline for in-transit trucks
+            if (truck.status == 'in_transit')
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: DeliveryTimeline(
+                  steps: [
+                    TimelineStep(
+                      label: origin?.name ?? 'Отправление',
+                      timestamp: truck.departureTime != null ? '${truck.departureTime!.hour.toString().padLeft(2, '0')}:${truck.departureTime!.minute.toString().padLeft(2, '0')}' : null,
+                      icon: AppIcons.tripOrigin,
+                      color: const Color(0xFF66BB6A),
+                      isComplete: true,
+                    ),
+                    TimelineStep(
+                      label: 'В пути',
+                      timestamp: '${(progress * 100).round()}%',
+                      icon: AppIcons.truck,
+                      color: const Color(0xFFF5C542),
+                      isCurrent: true,
+                    ),
+                    TimelineStep(
+                      label: dest?.name ?? 'Назначение',
+                      timestamp: etaText,
+                      icon: AppIcons.location,
+                      color: const Color(0xFFEF5350),
+                    ),
+                  ],
+                ),
+              ),
           ],
 
           // Idle: current city
           if (truck.isIdle && currentCity != null) ...[
             const SizedBox(height: 10),
             Row(children: [
-              const Icon(Icons.location_on, size: 14, color: Color(0xFF42A5F5)),
+              const Icon(AppIcons.location, size: 14, color: Color(0xFF42A5F5)),
               const SizedBox(width: 4),
               Text('Город: ${currentCity.name}', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12)),
             ]),
@@ -1048,7 +1158,7 @@ class _TruckInfoPopup extends StatelessWidget {
             // Condition
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.build, size: 12, color: Color(0xFF888888)),
+                const Icon(AppIcons.wrench, size: 12, color: Color(0xFF888888)),
                 const SizedBox(width: 4),
                 Text('Состояние', style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
                 const Spacer(),
@@ -1081,7 +1191,7 @@ class _TruckInfoPopup extends StatelessWidget {
             // Fuel
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.local_gas_station, size: 12, color: Color(0xFF888888)),
+                const Icon(AppIcons.fuel, size: 12, color: Color(0xFF888888)),
                 const SizedBox(width: 4),
                 Text('Топливо', style: const TextStyle(color: Color(0xFF888888), fontSize: 10)),
                 const Spacer(),
@@ -1124,7 +1234,7 @@ class _TruckInfoPopup extends StatelessWidget {
                 border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.25)),
               ),
               child: Row(children: [
-                const Icon(Icons.warning, size: 14, color: Color(0xFFEF5350)),
+                const Icon(AppIcons.warning, size: 14, color: Color(0xFFEF5350)),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(

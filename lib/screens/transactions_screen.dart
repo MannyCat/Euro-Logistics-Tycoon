@@ -8,6 +8,7 @@ import '../models/transaction.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class TransactionsScreen extends StatefulWidget {
   const TransactionsScreen({super.key});
@@ -53,10 +54,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final game = context.watch<GameProvider>();
     return ETS2Modal(
       title: 'Финансы',
-      icon: Icons.receipt_long,
+      icon: AppIcons.finances,
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh, color: Color(0xFF999999), size: 18),
+          icon: const Icon(AppIcons.refreshCw, color: Color(0xFF999999), size: 18),
           tooltip: 'Обновить',
           onPressed: _loadTransactions,
         ),
@@ -91,7 +92,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.cloud_off, size: 48, color: Color(0xFFEF5350)),
+                              const Icon(AppIcons.warning, size: 48, color: Color(0xFFEF5350)),
                               const SizedBox(height: 12),
                               Text('Ошибка загрузки', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                               const SizedBox(height: 4),
@@ -99,7 +100,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
                                 onPressed: _loadTransactions,
-                                icon: const Icon(Icons.refresh),
+                                icon: const Icon(AppIcons.refreshCw),
                                 label: const Text('Повторить'),
                               ),
                             ],
@@ -110,7 +111,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.receipt_long_outlined, size: 48, color: Color(0xFF666666)),
+                                  const Icon(AppIcons.finances, size: 48, color: Color(0xFF666666)),
                                   const SizedBox(height: 12),
                                   Text('Нет транзакций', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                                   const SizedBox(height: 4),

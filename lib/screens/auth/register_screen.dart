@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
+import '../../config/app_icons.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../providers/auth_provider.dart';
 
 class RegisterScreen extends StatelessWidget {
@@ -39,14 +41,14 @@ class _RegisterFormState extends State<_RegisterForm> {
     final auth = context.watch<AuthProvider>();
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      TextField(controller: _emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined))),
+      TextField(controller: _emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(AppIcons.person))),
       const SizedBox(height: 12),
       TextField(controller: _passCtrl, obscureText: _obscure, decoration: InputDecoration(
-        labelText: 'Пароль (мин. 6 симв.)', prefixIcon: const Icon(Icons.lock_outline),
-        suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure)),
+        labelText: 'Пароль (мин. 6 симв.)', prefixIcon: const Icon(AppIcons.locked),
+        suffixIcon: IconButton(icon: Icon(_obscure ? LucideIcons.eyeOff : LucideIcons.eye), onPressed: () => setState(() => _obscure = !_obscure)),
       )),
       const SizedBox(height: 12),
-      TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Название компании', prefixIcon: Icon(Icons.business_outlined))),
+      TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Название компании', prefixIcon: Icon(AppIcons.addBusiness))),
       const SizedBox(height: 20),
 
       if (auth.error != null) Container(
@@ -60,7 +62,7 @@ class _RegisterFormState extends State<_RegisterForm> {
           final ok = await auth.register(_emailCtrl.text, _passCtrl.text, _nameCtrl.text);
           if (ok && context.mounted) context.go('/');
         },
-        icon: auth.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.business_center),
+        icon: auth.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(AppIcons.addBusiness),
         label: Text(auth.isLoading ? 'Создание...' : 'Создать компанию'),
       ),
       const SizedBox(height: 12),

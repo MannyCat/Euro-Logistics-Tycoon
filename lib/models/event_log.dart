@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_icons.dart';
 
 class EventLog {
   final String id;
@@ -70,21 +71,21 @@ class EventLog {
   bool get isWarning => eventType == 'warning';
 
   static IconData _iconFromName(String name) => switch (name) {
-    'contract_completed' => Icons.check_circle,
-    'contract_accepted' => Icons.local_shipping,
-    'truck_purchased' => Icons.add_circle,
-    'truck_sold' => Icons.sell,
-    'driver_hired' => Icons.person_add,
-    'driver_fired' => Icons.person_remove,
-    'money_earned' => Icons.euro,
-    'level_up' => Icons.arrow_upward,
-    'achievement' => Icons.military_tech,
-    'refuel' => Icons.local_gas_station,
-    'repair' => Icons.build,
-    'warehouse' => Icons.warehouse,
-    'clan' => Icons.shield,
-    'warning' => Icons.warning,
-    _ => Icons.info,
+    'contract_completed' => AppIcons.checkCircle,
+    'contract_accepted' => AppIcons.truck,
+    'truck_purchased' => AppIcons.addCircle,
+    'truck_sold' => AppIcons.sell,
+    'driver_hired' => AppIcons.personAdd,
+    'driver_fired' => AppIcons.personRemove,
+    'money_earned' => AppIcons.euro,
+    'level_up' => AppIcons.arrowUp,
+    'achievement' => AppIcons.militaryTech,
+    'refuel' => AppIcons.gasStation,
+    'repair' => AppIcons.wrench,
+    'warehouse' => AppIcons.warehouses,
+    'clan' => AppIcons.shield,
+    'warning' => AppIcons.warning,
+    _ => AppIcons.info,
   };
 
   static Color _colorFromHex(String hex) {

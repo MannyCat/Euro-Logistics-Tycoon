@@ -5,6 +5,7 @@ import '../config/game_constants.dart';
 import '../providers/game_provider.dart';
 import '../utils/pathfinder.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({super.key});
@@ -16,7 +17,7 @@ class AnalyticsScreen extends StatelessWidget {
 
     return ETS2Modal(
       title: 'Аналитика',
-      icon: Icons.bar_chart,
+      icon: AppIcons.analytics,
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -26,14 +27,14 @@ class AnalyticsScreen extends StatelessWidget {
           Row(
             children: [
               Expanded(child: _SummaryCard(
-                icon: Icons.euro,
+                icon: AppIcons.euro,
                 iconColor: const Color(0xFFF5C542),
                 label: 'Баланс',
                 value: company != null ? company.moneyFormatted : '—',
               )),
               const SizedBox(width: 8),
               Expanded(child: _SummaryCard(
-                icon: Icons.local_shipping,
+                icon: AppIcons.truck,
                 iconColor: const Color(0xFF42A5F5),
                 label: 'Грузовики',
                 value: '${game.myTrucks.length} / ${GameConstants.maxTrucksAtLevel(company?.level ?? 1)}',
@@ -41,7 +42,7 @@ class AnalyticsScreen extends StatelessWidget {
               )),
               const SizedBox(width: 8),
               Expanded(child: _SummaryCard(
-                icon: Icons.description,
+                icon: AppIcons.description,
                 iconColor: const Color(0xFF66BB6A),
                 label: 'Контрактов',
                 value: '${_completedContracts(game)}',
@@ -174,9 +175,9 @@ class _FinanceSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Income bar
-          _financeRow(Icons.arrow_upward, 'Доходы (контракты)', GameConstants.formatMoney(totalIncome), const Color(0xFF66BB6A)),
+          _financeRow(AppIcons.income, 'Доходы (контракты)', GameConstants.formatMoney(totalIncome), const Color(0xFF66BB6A)),
           // Expense bar
-          _financeRow(Icons.arrow_downward, 'Расходы (ремонт + топливо)', GameConstants.formatMoney(totalExpenses), const Color(0xFFEF5350)),
+          _financeRow(AppIcons.expense, 'Расходы (ремонт + топливо)', GameConstants.formatMoney(totalExpenses), const Color(0xFFEF5350)),
           const Divider(height: 16, color: Color(0xFF3A3A3A)),
           // Net profit
           Row(
@@ -364,13 +365,13 @@ class _CitiesSection extends StatelessWidget {
               child: Row(
                 children: [
                   if (info.hasWarehouse)
-                    const Icon(Icons.warehouse, size: 14, color: Color(0xFF66BB6A))
+                    const Icon(AppIcons.warehouses, size: 14, color: Color(0xFF66BB6A))
                   else
-                    const Icon(Icons.garage, size: 14, color: Color(0xFFFF9800)),
+                    const Icon(AppIcons.garage, size: 14, color: Color(0xFFFF9800)),
                   const SizedBox(width: 8),
                   Expanded(child: Text(name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12))),
                   if (info.truckCount > 0) ...[
-                    const Icon(Icons.local_shipping, size: 12, color: Color(0xFFF5C542)),
+                    const Icon(AppIcons.truck, size: 12, color: Color(0xFFF5C542)),
                     const SizedBox(width: 3),
                     Text('${info.truckCount}', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 11, fontFamily: 'monospace')),
                     const SizedBox(width: 8),

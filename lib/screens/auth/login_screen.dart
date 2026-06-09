@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
+import '../../config/app_icons.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -40,7 +42,7 @@ class _LoginFormState extends State<_LoginForm> {
       const SizedBox(height: 40),
       // Logo
       Center(child: Container(width: 80, height: 80, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.accent.withOpacity(0.12), border: Border.all(color: AppTheme.accent.withOpacity(0.3), width: 2)),
-        child: const Icon(Icons.local_shipping, size: 36, color: AppTheme.accent))),
+        child: const Icon(AppIcons.truck, size: 36, color: AppTheme.accent))),
       const SizedBox(height: 16),
       Center(child: Text('EURO LOGISTICS\nTYCOON', textAlign: TextAlign.center, style: AppTheme.h1.copyWith(letterSpacing: 3, fontSize: 24))),
       const SizedBox(height: 4),
@@ -54,11 +56,11 @@ class _LoginFormState extends State<_LoginForm> {
         child: Text(auth.error!, style: AppTheme.bodySm.copyWith(color: AppTheme.red), textAlign: TextAlign.center),
       ),
 
-      TextField(controller: _emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined))),
+      TextField(controller: _emailCtrl, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(AppIcons.person))),
       const SizedBox(height: 12),
       TextField(controller: _passCtrl, obscureText: _obscure, decoration: InputDecoration(
-        labelText: 'Пароль', prefixIcon: const Icon(Icons.lock_outline),
-        suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure)),
+        labelText: 'Пароль', prefixIcon: const Icon(AppIcons.locked),
+        suffixIcon: IconButton(icon: Icon(_obscure ? LucideIcons.eyeOff : LucideIcons.eye), onPressed: () => setState(() => _obscure = !_obscure)),
       )),
       const SizedBox(height: 20),
 
@@ -67,11 +69,11 @@ class _LoginFormState extends State<_LoginForm> {
           final ok = await auth.login(_emailCtrl.text, _passCtrl.text);
           if (ok && context.mounted) context.go('/');
         },
-        icon: auth.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.login),
+        icon: auth.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(AppIcons.arrowRight),
         label: Text(auth.isLoading ? 'Вход...' : 'Войти'),
       ),
       const SizedBox(height: 12),
-      TextButton.icon(onPressed: () => context.go('/register'), icon: const Icon(Icons.add_business_outlined, size: 18), label: const Text('Создать компанию')),
+      TextButton.icon(onPressed: () => context.go('/register'), icon: const Icon(AppIcons.addBusiness, size: 18), label: const Text('Создать компанию')),
       const SizedBox(height: 40),
     ]);
   }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../config/app_icons.dart';
 import '../config/game_constants.dart';
 import '../providers/game_provider.dart';
 
@@ -130,7 +131,7 @@ class _AchievementToastState extends State<_AchievementToast>
     final def = GameConstants.achievements.where((a) => a.id == widget.achievementId).firstOrNull;
     final name = def?.name ?? widget.achievementId;
     final description = def?.description ?? '';
-    final icon = def?.icon ?? Icons.military_tech;
+    final icon = def?.icon ?? AppIcons.militaryTech;
 
     return SlideTransition(
       position: _slideAnim,
@@ -188,7 +189,7 @@ class _AchievementToastState extends State<_AchievementToast>
                       Row(
                         children: [
                           const Icon(
-                            Icons.military_tech,
+                            AppIcons.militaryTech,
                             color: Color(0xFFF5C542),
                             size: 13,
                           ),
@@ -232,7 +233,7 @@ class _AchievementToastState extends State<_AchievementToast>
                 ),
                 const SizedBox(width: 4),
                 // Dismiss
-                Icon(Icons.close, color: const Color(0xFF666666), size: 14),
+                Icon(AppIcons.close, color: const Color(0xFF666666), size: 14),
               ],
             ),
           ),

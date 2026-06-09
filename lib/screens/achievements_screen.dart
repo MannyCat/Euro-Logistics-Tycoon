@@ -5,6 +5,7 @@ import '../config/game_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -26,12 +27,12 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   };
 
   static const _categoryIcons = {
-    'all': Icons.apps,
-    'fleet': Icons.local_shipping,
-    'logistics': Icons.check_circle,
-    'finance': Icons.euro,
-    'infra': Icons.warehouse,
-    'level': Icons.star,
+    'all': AppIcons.apps,
+    'fleet': AppIcons.truck,
+    'logistics': AppIcons.checkCircle,
+    'finance': AppIcons.euro,
+    'infra': AppIcons.warehouses,
+    'level': AppIcons.star,
   };
 
   @override
@@ -49,7 +50,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
     return ETS2Modal(
       title: 'Достижения',
-      icon: Icons.military_tech,
+      icon: AppIcons.militaryTech,
       child: game.isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFF5C542)))
           : Column(
@@ -70,7 +71,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.military_tech, color: Color(0xFFF5C542), size: 20),
+                              const Icon(AppIcons.militaryTech, color: Color(0xFFF5C542), size: 20),
                               const SizedBox(width: 10),
                               Text(
                                 '$unlockedCount / $totalCount достижений',
@@ -129,7 +130,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.military_tech_outlined, size: 48, color: Color(0xFF666666)),
+                              const Icon(AppIcons.militaryTech, size: 48, color: Color(0xFF666666)),
                               const SizedBox(height: 12),
                               Text('Нет достижений', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                               const SizedBox(height: 4),
@@ -164,7 +165,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
   Widget _filterChip(String key, String label) {
     final selected = _selectedCategory == key;
-    final icon = _categoryIcons[key] ?? Icons.apps;
+    final icon = _categoryIcons[key] ?? AppIcons.apps;
     return InkWell(
       onTap: () => setState(() => _selectedCategory = key),
       borderRadius: BorderRadius.circular(12),
@@ -333,7 +334,7 @@ class _AchievementCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Icon(Icons.check_circle, color: Color(0xFF66BB6A), size: 18),
+                  const Icon(AppIcons.checkCircle, color: Color(0xFF66BB6A), size: 18),
                   const SizedBox(height: 2),
                   Text(
                     unlockedAt != null ? _formatDate(unlockedAt!) : '',
@@ -350,7 +351,7 @@ class _AchievementCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Icon(Icons.lock_outline, color: Color(0xFF666666), size: 18),
+                  const Icon(AppIcons.locked, color: Color(0xFF666666), size: 18),
                   const SizedBox(height: 4),
                   Text(
                     '+${def.reward} XP',

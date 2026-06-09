@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_icons.dart';
 
 class Transaction {
   final String id;
@@ -20,17 +21,17 @@ class Transaction {
   bool get isIncome => amount > 0;
 
   IconData get typeIcon => switch (type) {
-    'contract_completed' => Icons.check_circle,
-    'contract_accepted' => Icons.description,
-    'truck_purchase' => Icons.local_shipping,
-    'truck_sale' => Icons.sell,
-    'driver_hire' => Icons.person_add,
-    'refuel' => Icons.local_gas_station,
-    'repair' => Icons.build,
-    'warehouse' => Icons.warehouse,
-    'salary' => Icons.account_balance_wallet,
-    'clan_create' => Icons.shield,
-    _ => Icons.receipt,
+    'contract_completed' => AppIcons.checkCircle,
+    'contract_accepted' => AppIcons.description,
+    'truck_purchase' => AppIcons.truck,
+    'truck_sale' => AppIcons.sell,
+    'driver_hire' => AppIcons.personAdd,
+    'refuel' => AppIcons.fuel,
+    'repair' => AppIcons.wrench,
+    'warehouse' => AppIcons.warehouses,
+    'salary' => AppIcons.accountBalance,
+    'clan_create' => AppIcons.shield,
+    _ => AppIcons.finances,
   };
 
   Color get typeColor => switch (type) {

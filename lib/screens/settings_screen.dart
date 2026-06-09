@@ -6,6 +6,7 @@ import '../config/game_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -48,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return ETS2Modal(
       title: 'Настройки',
-      icon: Icons.settings,
+      icon: AppIcons.settings,
       child: ListView(
         padding: const EdgeInsets.all(12),
         children: [
@@ -58,7 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(color: const Color(0xFF252525), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF3A3A3A))),
             child: Row(
               children: [
-                Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFFF5C542).withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 22)),
+                Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFFF5C542).withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: const Icon(AppIcons.truck, color: Color(0xFFF5C542), size: 22)),
                 const SizedBox(width: 12),
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Euro Logistics Tycoon', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 15, fontWeight: FontWeight.w700)),
@@ -115,10 +116,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _miniStat(Icons.local_shipping, '${game.myTrucks.length}', 'Грузовиков'),
-                    _miniStat(Icons.people, '${game.myDrivers.length}', 'Водителей'),
-                    _miniStat(Icons.warehouse, '${game.myWarehouses.length}', 'Складов'),
-                    _miniStat(Icons.description, '${game.availableContracts.length}', 'Контрактов'),
+                    _miniStat(AppIcons.truck, '${game.myTrucks.length}', 'Грузовиков'),
+                    _miniStat(AppIcons.users, '${game.myDrivers.length}', 'Водителей'),
+                    _miniStat(AppIcons.warehouses, '${game.myWarehouses.length}', 'Складов'),
+                    _miniStat(AppIcons.description, '${game.availableContracts.length}', 'Контрактов'),
                   ],
                 ),
               ],
@@ -138,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: BoxDecoration(color: const Color(0xFF252525), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF3A3A3A))),
             child: Row(
               children: [
-                const Icon(Icons.person_outline, color: Color(0xFFF5C542), size: 20),
+                const Icon(AppIcons.person, color: Color(0xFFF5C542), size: 20),
                 const SizedBox(width: 10),
                 const Text('Профиль', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
                 const Spacer(),
@@ -158,15 +159,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Text('Советы', style: TextStyle(color: Color(0xFF888888), fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                _tip(Icons.local_shipping, 'Купите грузовики — без них нет рейсов'),
+                _tip(AppIcons.truck, 'Купите грузовики — без них нет рейсов'),
                 const SizedBox(height: 6),
-                _tip(Icons.description, 'Примите контракт — грузовик сам поедет'),
+                _tip(AppIcons.description, 'Примите контракт — грузовик сам поедет'),
                 const SizedBox(height: 6),
-                _tip(Icons.build, 'Следите за топливом и состоянием'),
+                _tip(AppIcons.wrench, 'Следите за топливом и состоянием'),
                 const SizedBox(height: 6),
-                _tip(Icons.warehouse, 'Склады в городах расширяют сеть'),
+                _tip(AppIcons.warehouses, 'Склады в городах расширяют сеть'),
                 const SizedBox(height: 6),
-                _tip(Icons.star, 'Выполняйте рейсы для опыта и уровней'),
+                _tip(AppIcons.star, 'Выполняйте рейсы для опыта и уровней'),
               ],
             ),
           ),
@@ -199,7 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (mounted) await auth.logout();
               }
             },
-            icon: const Icon(Icons.logout, color: Color(0xFFEF5350)),
+            icon: const Icon(AppIcons.logOut, color: Color(0xFFEF5350)),
             label: const Text('Выйти из аккаунта', style: TextStyle(color: Color(0xFFEF5350))),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Color(0xFFEF5350)),
@@ -350,7 +351,7 @@ class _CompanyCustomizationSection extends StatelessWidget {
                     boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1)] : null,
                   ),
                   child: isSelected
-                      ? const Icon(Icons.check, size: 16, color: Color(0xFF1A1A1A))
+                      ? const Icon(AppIcons.check, size: 16, color: Color(0xFF1A1A1A))
                       : null,
                 ),
               );
@@ -396,22 +397,22 @@ class _CompanyCustomizationSection extends StatelessWidget {
   }
 
   static IconData _iconDataFromName(String name) => switch (name) {
-    'local_shipping' => Icons.local_shipping,
-    'star' => Icons.star,
-    'lightning' => Icons.lightning,
-    'shield' => Icons.shield,
-    'rocket' => Icons.rocket,
-    'crown' => Icons.crown,
-    'diamond' => Icons.diamond,
-    'public' => Icons.public,
-    'anchor' => Icons.anchor,
-    'eco' => Icons.eco,
-    'local_fire_department' => Icons.local_fire_department,
-    'bolt' => Icons.bolt,
-    'settings' => Icons.settings,
-    'flag' => Icons.flag,
-    'favorite' => Icons.favorite,
-    _ => Icons.local_shipping,
+    'local_shipping' => AppIcons.truck,
+    'star' => AppIcons.star,
+    'lightning' => AppIcons.lightning,
+    'shield' => AppIcons.shield,
+    'rocket' => AppIcons.rocket,
+    'crown' => AppIcons.crown,
+    'diamond' => AppIcons.diamond,
+    'public' => AppIcons.public,
+    'anchor' => AppIcons.anchor,
+    'eco' => AppIcons.eco,
+    'local_fire_department' => AppIcons.fire,
+    'bolt' => AppIcons.bolt,
+    'settings' => AppIcons.settings,
+    'flag' => AppIcons.flag,
+    'favorite' => AppIcons.heart,
+    _ => AppIcons.truck,
   };
 }
 
@@ -442,7 +443,7 @@ class _PrestigeSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.star, color: Color(0xFFF5C542), size: 16),
+              const Icon(AppIcons.star, color: Color(0xFFF5C542), size: 16),
               const SizedBox(width: 6),
               const Text('Престиж', style: TextStyle(color: Color(0xFF888888), fontSize: 12, fontWeight: FontWeight.w600)),
               const Spacer(),
@@ -518,7 +519,7 @@ class _PrestigeSection extends StatelessWidget {
               onPressed: company.canPrestige && !game.isLoading
                   ? () => _showPrestigeConfirmDialog(context, auth.companyId ?? '', game)
                   : null,
-              icon: const Icon(Icons.refresh, size: 18),
+              icon: const Icon(AppIcons.refreshCw, size: 18),
               label: const Text('Престиж-сброс', style: TextStyle(fontSize: 13)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: company.canPrestige ? const Color(0xFFEF5350) : const Color(0xFF444444),
@@ -555,7 +556,7 @@ class _PrestigeSection extends StatelessWidget {
         ),
         title: const Row(
           children: [
-            Icon(Icons.warning, color: Color(0xFFEF5350), size: 24),
+            Icon(AppIcons.warning, color: Color(0xFFEF5350), size: 24),
             SizedBox(width: 10),
             Text('ПРЕСТИЖ-СБРОС', style: TextStyle(color: Color(0xFFEF5350), fontWeight: FontWeight.w800)),
           ],

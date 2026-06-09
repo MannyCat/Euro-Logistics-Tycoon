@@ -5,6 +5,7 @@ import '../config/game_constants.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
@@ -17,10 +18,10 @@ class LeaderboardScreen extends StatelessWidget {
 
     return ETS2Modal(
       title: 'Рейтинг',
-      icon: Icons.emoji_events,
+      icon: AppIcons.leaderboard,
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh, color: Color(0xFF999999), size: 18),
+          icon: const Icon(AppIcons.refreshCw, color: Color(0xFF999999), size: 18),
           tooltip: 'Обновить',
           onPressed: () => game.loadLeaderboard(),
         ),
@@ -30,7 +31,7 @@ class LeaderboardScreen extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.emoji_events_outlined, size: 48, color: Color(0xFF666666)),
+                      const Icon(AppIcons.leaderboard, size: 48, color: Color(0xFF666666)),
                       const SizedBox(height: 12),
                       Text('Нет данных', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                       const SizedBox(height: 4),
@@ -41,7 +42,7 @@ class LeaderboardScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () => game.loadLeaderboard(),
-                        icon: const Icon(Icons.refresh, size: 16),
+                        icon: const Icon(AppIcons.refreshCw, size: 16),
                         label: const Text('Обновить'),
                       ),
                     ],
@@ -119,7 +120,7 @@ class _PodiumSection extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.emoji_events, color: Color(0xFFF5C542), size: 16),
+                Icon(AppIcons.leaderboard, color: Color(0xFFF5C542), size: 16),
                 SizedBox(width: 8),
                 Text(
                   'ТОП-3 ИГРОКОВ',
@@ -320,7 +321,7 @@ class _PodiumCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.local_shipping, size: 11, color: Color(0xFF888888)),
+                  const Icon(AppIcons.truck, size: 11, color: Color(0xFF888888)),
                   const SizedBox(width: 3),
                   Text(
                     '$truckCount',
@@ -438,28 +439,28 @@ class _PlayerRow extends StatelessWidget {
             children: [
               // Money
               _miniStat(
-                icon: Icons.euro,
+                icon: AppIcons.euro,
                 value: GameConstants.formatMoney(money),
                 color: const Color(0xFF66BB6A),
               ),
               const SizedBox(width: 12),
               // Trucks
               _miniStat(
-                icon: Icons.local_shipping,
+                icon: AppIcons.truck,
                 value: '$truckCount',
                 color: const Color(0xFF42A5F5),
               ),
               const SizedBox(width: 12),
               // Contracts
               _miniStat(
-                icon: Icons.check_circle_outline,
+                icon: AppIcons.checkCircle,
                 value: '$completedContracts',
                 color: const Color(0xFFCE93D8),
               ),
               const SizedBox(width: 12),
               // Achievements
               _miniStat(
-                icon: Icons.military_tech,
+                icon: AppIcons.militaryTech,
                 value: '$achievementCount',
                 color: const Color(0xFFF5C542),
               ),

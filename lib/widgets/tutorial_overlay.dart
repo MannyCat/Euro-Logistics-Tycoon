@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_icons.dart';
 
 /// A step-by-step tutorial overlay shown on first login.
 /// Wraps a child widget with tutorial tooltips pointing at relevant UI areas.
@@ -25,27 +26,27 @@ class TutorialOverlayState extends State<TutorialOverlay> {
     _TutorialStep(
       title: 'Добро пожаловать!',
       description: 'Это карта Европы. Города — точки маршрутов, дороги между ними — линии.',
-      icon: Icons.map,
+      icon: AppIcons.map,
     ),
     _TutorialStep(
       title: 'Города',
       description: 'Нажмите на город, чтобы увидеть доступные контракты и склады.',
-      icon: Icons.location_city,
+      icon: AppIcons.locationCity,
     ),
     _TutorialStep(
       title: 'Автопарк',
       description: 'Откройте автопарк в меню слева. Купите грузовик чтобы начать!',
-      icon: Icons.local_shipping,
+      icon: AppIcons.truck,
     ),
     _TutorialStep(
       title: 'Контракты',
       description: 'Примите контракт — грузовик автоматически отправится в рейс.',
-      icon: Icons.description,
+      icon: AppIcons.description,
     ),
     _TutorialStep(
       title: 'Журнал событий',
       description: 'Отслеживайте прогресс и уведомления в журнале событий.',
-      icon: Icons.history,
+      icon: AppIcons.history,
     ),
   ];
 
@@ -188,7 +189,7 @@ class TutorialOverlayState extends State<TutorialOverlay> {
                         child: ElevatedButton.icon(
                           onPressed: _next,
                           icon: Icon(
-                            _currentStep < _steps.length - 1 ? Icons.arrow_forward : Icons.check,
+                            _currentStep < _steps.length - 1 ? AppIcons.arrowForward : AppIcons.check,
                             size: 16,
                           ),
                           label: Text(_currentStep < _steps.length - 1 ? 'Далее' : 'Начать'),

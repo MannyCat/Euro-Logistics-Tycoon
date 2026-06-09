@@ -19,6 +19,7 @@ import '../models/chat_message.dart';
 import '../models/market_listing.dart';
 import '../models/seasonal_event.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/sound_manager.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371.0;
@@ -429,12 +430,15 @@ class GameProvider extends ChangeNotifier {
       final resp = await _supabase.rpc('prestige_reset', params: {'p_company_id': companyId});
       if (resp == true) {
         await loadAll(companyId);
+        SoundManager.instance.success();
         return true;
       }
       _error = 'Не удалось выполнить престиж-сброс';
+      SoundManager.instance.error();
       return false;
     } catch (e) {
       _error = 'Ошибка: $e';
+      SoundManager.instance.error();
       return false;
     } finally {
       _isLoading = false; notifyListeners();
@@ -707,8 +711,9 @@ class GameProvider extends ChangeNotifier {
         colorHex: '42A5F5',
         metadata: {'truck_name': name, 'truck_type': truckType, 'amount': -info.price},
       );
+      SoundManager.instance.success();
       return true;
-    } catch (e) { _error = 'Ошибка покупки: $e'; return false; }
+    } catch (e) { _error = 'Ошибка покупки: $e'; SoundManager.instance.error(); return false; }
     finally { _isLoading = false; notifyListeners(); }
   }
 
@@ -753,8 +758,9 @@ class GameProvider extends ChangeNotifier {
         colorHex: '64B5F6',
         metadata: {'driver_name': '$first $last', 'amount': -cost},
       );
+      SoundManager.instance.success();
       return true;
-    } catch (e) { _error = 'Ошибка найма: $e'; return false; }
+    } catch (e) { _error = 'Ошибка найма: $e'; SoundManager.instance.error(); return false; }
     finally { _isLoading = false; notifyListeners(); }
   }
 
@@ -821,13 +827,16 @@ class GameProvider extends ChangeNotifier {
             if (contract != null) 'amount': contract.reward,
           },
         );
+        SoundManager.instance.success();
         return (success: true, truckName: truckName);
       } else {
         _error = 'Не удалось принять контракт (возможно, уже занят или нет грузовика в городе отправления)';
+        SoundManager.instance.error();
         return (success: false, truckName: '');
       }
     } catch (e) {
       _error = 'Ошибка контракта: $e';
+      SoundManager.instance.error();
       return (success: false, truckName: '');
     } finally {
       _isLoading = false;

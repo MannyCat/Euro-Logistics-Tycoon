@@ -6,6 +6,7 @@ import '../models/warehouse.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class WarehousesScreen extends StatefulWidget {
   const WarehousesScreen({super.key});
@@ -24,11 +25,11 @@ class _WarehousesScreenState extends State<WarehousesScreen> {
 
     return ETS2Modal(
       title: 'Филиалы',
-      icon: Icons.warehouse,
+      icon: AppIcons.warehouses,
       actions: [
         TextButton.icon(
           onPressed: () => setState(() => _showBuyMode = !_showBuyMode),
-          icon: Icon(_showBuyMode ? Icons.close : Icons.add_business_outlined, color: const Color(0xFFF5C542), size: 18),
+          icon: Icon(_showBuyMode ? AppIcons.close : AppIcons.addBusiness, color: const Color(0xFFF5C542), size: 18),
           label: Text(_showBuyMode ? 'Готово' : 'Купить склад', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 12)),
         ),
       ],
@@ -52,7 +53,7 @@ class _WarehouseListView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warehouse_outlined, size: 48, color: Color(0xFF666666)),
+            const Icon(AppIcons.warehouses, size: 48, color: Color(0xFF666666)),
             const SizedBox(height: 12),
             Text('Нет филиалов', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
             const SizedBox(height: 4),
@@ -76,7 +77,7 @@ class _WarehouseListView extends StatelessWidget {
           decoration: BoxDecoration(color: const Color(0xFF252525), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF3A3A3A))),
           child: Row(
             children: [
-              Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFF42A5F5).withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.warehouse, color: Color(0xFF42A5F5), size: 22)),
+              Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFF42A5F5).withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: const Icon(AppIcons.warehouses, color: Color(0xFF42A5F5), size: 22)),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -133,7 +134,7 @@ class _BuyWarehouseView extends StatelessWidget {
           color: const Color(0xFF252525),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: Color(0xFF42A5F5), size: 18),
+              const Icon(AppIcons.info, color: Color(0xFF42A5F5), size: 18),
               const SizedBox(width: 8),
               const Expanded(child: Text('Выберите город для покупки склада', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 12))),
               Text(GameConstants.formatMoney(money), style: const TextStyle(color: Color(0xFF66BB6A), fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace')),
@@ -155,7 +156,7 @@ class _BuyWarehouseView extends StatelessWidget {
                 decoration: BoxDecoration(color: const Color(0xFF252525), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF3A3A3A))),
                 child: Row(
                   children: [
-                    Container(width: 36, height: 36, decoration: BoxDecoration(color: const Color(0xFF42A5F5).withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.location_city, color: Color(0xFF42A5F5), size: 18)),
+                    Container(width: 36, height: 36, decoration: BoxDecoration(color: const Color(0xFF42A5F5).withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: const Icon(AppIcons.locationCity, color: Color(0xFF42A5F5), size: 18)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(

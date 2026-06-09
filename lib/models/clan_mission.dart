@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_icons.dart';
 
 class ClanMission {
   final String id;
@@ -57,10 +58,10 @@ class ClanMission {
   bool get isExpired => DateTime.now().isAfter(expiresAt);
 
   IconData get missionIcon => switch (missionType) {
-    'deliver_cargo' => Icons.inventory_2,
-    'earn_money' => Icons.euro,
-    'deliver_cities' => Icons.location_city,
-    _ => Icons.assignment,
+    'deliver_cargo' => AppIcons.inventory2,
+    'earn_money' => AppIcons.euro,
+    'deliver_cities' => AppIcons.locationCity,
+    _ => AppIcons.assignmentOutlined,
   };
 
   Color get progressColor => completed ? const Color(0xFF66BB6A) : const Color(0xFFF5C542);

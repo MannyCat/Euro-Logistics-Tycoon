@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_icons.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
@@ -41,7 +42,7 @@ class MobileDrawer extends StatelessWidget {
                 Container(
                   width: 36, height: 36,
                   decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.local_shipping, color: AppTheme.accent, size: 20),
+                  child: const Icon(AppIcons.truck, color: AppTheme.accent, size: 20),
                 ),
                 const SizedBox(width: 10),
                 const Text('ELT', style: TextStyle(color: AppTheme.text, fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 2)),
@@ -59,11 +60,11 @@ class MobileDrawer extends StatelessWidget {
                   Text(company.name, style: AppTheme.label, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 6),
                   Row(children: [
-                    _miniStat(Icons.euro, company.moneyFormatted, AppTheme.green),
+                    _miniStat(AppIcons.euro, company.moneyFormatted, AppTheme.green),
                     const SizedBox(width: 16),
-                    _miniStat(Icons.star, 'Lv.${company.level}', AppTheme.accent),
+                    _miniStat(AppIcons.star, 'Lv.${company.level}', AppTheme.accent),
                     const SizedBox(width: 16),
-                    _miniStat(Icons.trending_up, 'Rep.${company.reputation}', AppTheme.accentLight),
+                    _miniStat(AppIcons.income, 'Rep.${company.reputation}', AppTheme.accentLight),
                   ]),
                 ]),
               ),
@@ -75,56 +76,56 @@ class MobileDrawer extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 children: [
-                  _navItem(context, Icons.map_outlined, 'Карта', () {
+                  _navItem(context, AppIcons.map, 'Карта', () {
                     Navigator.pop(context);
                   }),
-                  _navItem(context, Icons.description_outlined, 'Контракты', () {
+                  _navItem(context, AppIcons.description, 'Контракты', () {
                     Navigator.pop(context);
                     onOpenModal(const ContractsScreen());
                   }),
-                  _navItem(context, Icons.local_shipping_outlined, 'Автопарк', () {
+                  _navItem(context, AppIcons.truck, 'Автопарк', () {
                     Navigator.pop(context);
                     onOpenModal(const FleetScreen());
                   }),
-                  _navItem(context, Icons.people_outlined, 'Водители', () {
+                  _navItem(context, AppIcons.drivers, 'Водители', () {
                     Navigator.pop(context);
                     onOpenModal(const DriversScreen());
                   }),
-                  _navItem(context, Icons.warehouse_outlined, 'Филиалы', () {
+                  _navItem(context, AppIcons.warehouses, 'Филиалы', () {
                     Navigator.pop(context);
                     onOpenModal(const WarehousesScreen());
                   }),
-                  _navItem(context, Icons.receipt_long_outlined, 'Финансы', () {
+                  _navItem(context, AppIcons.finances, 'Финансы', () {
                     Navigator.pop(context);
                     onOpenModal(const TransactionsScreen());
                   }),
-                  _navItem(context, Icons.history_outlined, 'Журнал', () {
+                  _navItem(context, AppIcons.eventLog, 'Журнал', () {
                     Navigator.pop(context);
                     onOpenModal(const EventLogScreen());
                   }),
                   const Divider(height: 1, color: AppTheme.divider, indent: 16, endIndent: 16),
-                  _navItem(context, Icons.emoji_events_outlined, 'Рейтинг', () {
+                  _navItem(context, AppIcons.leaderboard, 'Рейтинг', () {
                     Navigator.pop(context);
                     onOpenModal(const LeaderboardScreen());
                   }),
-                  _navItem(context, Icons.military_tech_outlined, 'Достижения', () {
+                  _navItem(context, AppIcons.achievements, 'Достижения', () {
                     Navigator.pop(context);
                     onOpenModal(const AchievementsScreen());
                   }),
-                  _navItem(context, Icons.shield_outlined, 'Кланы', () {
+                  _navItem(context, AppIcons.clan, 'Кланы', () {
                     Navigator.pop(context);
                     onOpenModal(const ClanScreen());
                   }),
-                  _navItem(context, Icons.bar_chart, 'Аналитика', () {
+                  _navItem(context, AppIcons.analytics, 'Аналитика', () {
                     Navigator.pop(context);
                     onOpenModal(const AnalyticsScreen());
                   }),
-                  _navItem(context, Icons.store, 'Рынок', () {
+                  _navItem(context, AppIcons.market, 'Рынок', () {
                     Navigator.pop(context);
                     onOpenModal(const MarketScreen());
                   }),
                   const Divider(height: 1, color: AppTheme.divider, indent: 16, endIndent: 16),
-                  _navItem(context, Icons.settings_outlined, 'Настройки', () {
+                  _navItem(context, AppIcons.settings, 'Настройки', () {
                     Navigator.pop(context);
                     onOpenModal(const SettingsScreen());
                   }),
@@ -140,7 +141,7 @@ class MobileDrawer extends StatelessWidget {
                   Navigator.pop(context);
                   await auth.logout();
                 },
-                icon: const Icon(Icons.logout, color: AppTheme.red, size: 16),
+                icon: const Icon(AppIcons.logOut, color: AppTheme.red, size: 16),
                 label: const Text('Выйти', style: TextStyle(color: AppTheme.red)),
                 style: OutlinedButton.styleFrom(side: BorderSide(color: AppTheme.red.withOpacity(0.3))),
               ),

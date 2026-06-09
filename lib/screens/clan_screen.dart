@@ -8,6 +8,7 @@ import '../models/clan.dart';
 import '../models/clan_mission.dart';
 import '../models/chat_message.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class ClanScreen extends StatefulWidget {
   const ClanScreen({super.key});
@@ -27,10 +28,10 @@ class _ClanScreenState extends State<ClanScreen> {
 
     return ETS2Modal(
       title: 'Кланы',
-      icon: Icons.shield,
+      icon: AppIcons.shield,
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh, color: Color(0xFF999999), size: 18),
+          icon: const Icon(AppIcons.refreshCw, color: Color(0xFF999999), size: 18),
           tooltip: 'Обновить',
           onPressed: () => game.refreshClan(companyId),
         ),
@@ -56,11 +57,17 @@ class _ClanScreenState extends State<ClanScreen> {
             ),
           ),
           Expanded(
-            child: _activeTab == 0
-                ? _MyClanTab(game: game, companyId: companyId)
-                : _activeTab == 1
-                    ? _ClanMissionsTab(game: game, companyId: companyId)
-                    : _ClanLeaderboardTab(game: game),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: KeyedSubtree(
+                key: ValueKey(_activeTab),
+                child: _activeTab == 0
+                    ? _MyClanTab(game: game, companyId: companyId)
+                    : _activeTab == 1
+                        ? _ClanMissionsTab(game: game, companyId: companyId)
+                        : _ClanLeaderboardTab(game: game),
+              ),
+            ),
           ),
         ],
       ),
@@ -134,7 +141,7 @@ class _NoClanView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.3)),
               ),
-              child: const Icon(Icons.shield_outlined, color: Color(0xFFF5C542), size: 36),
+              child: const Icon(AppIcons.shield, color: Color(0xFFF5C542), size: 36),
             ),
             const SizedBox(height: 16),
             Text('Вы не состоите в клане', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
@@ -155,7 +162,7 @@ class _NoClanView extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.add_business, color: Color(0xFFF5C542), size: 18),
+                      const Icon(AppIcons.addBusiness, color: Color(0xFFF5C542), size: 18),
                       const SizedBox(width: 8),
                       const Text('Создать клан', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w600)),
                       const Spacer(),
@@ -169,7 +176,7 @@ class _NoClanView extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: canAfford ? () => _showCreateDialog(context) : null,
-                      icon: const Icon(Icons.gavel, size: 16),
+                      icon: const Icon(AppIcons.gavel, size: 16),
                       label: const Text('Создать клан'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF5C542),
@@ -233,7 +240,7 @@ class _ClanJoinCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFFCE93D8).withOpacity(0.3)),
             ),
-            child: const Icon(Icons.shield, color: Color(0xFFCE93D8), size: 22),
+            child: const Icon(AppIcons.shield, color: Color(0xFFCE93D8), size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -332,7 +339,7 @@ class _CreateClanDialogState extends State<_CreateClanDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(children: [
-                const Icon(Icons.shield, color: Color(0xFFF5C542), size: 22),
+                const Icon(AppIcons.shield, color: Color(0xFFF5C542), size: 22),
                 const SizedBox(width: 10),
                 Text('Создать клан', style: AppTheme.h2.copyWith(color: const Color(0xFFD0D0D0))),
                 const Spacer(),
@@ -447,7 +454,7 @@ class _ClanDetailView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.shield, color: Color(0xFFF5C542), size: 22),
+                    const Icon(AppIcons.shield, color: Color(0xFFF5C542), size: 22),
                     Text(clan.tag, style: const TextStyle(color: Color(0xFFF5C542), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1)),
                   ],
                 ),
@@ -481,9 +488,9 @@ class _ClanDetailView extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _miniStat(Icons.people, '${game.clanMembers.length}', 'Участников'),
-              _miniStat(Icons.star, '${clan.xp}', 'XP'),
-              _miniStat(Icons.shield, '${clan.maxMembers}', 'Макс.'),
+              _miniStat(AppIcons.users, '${game.clanMembers.length}', 'Участников'),
+              _miniStat(AppIcons.star, '${clan.xp}', 'XP'),
+              _miniStat(AppIcons.shield, '${clan.maxMembers}', 'Макс.'),
             ],
           ),
         ),
@@ -498,7 +505,7 @@ class _ClanDetailView extends StatelessWidget {
               if (game.canManageClan || game.isClanLeader)
                 TextButton.icon(
                   onPressed: () => _showLeaveConfirm(context),
-                  icon: const Icon(Icons.logout, color: Color(0xFFEF5350), size: 14),
+                  icon: const Icon(AppIcons.logOut, color: Color(0xFFEF5350), size: 14),
                   label: const Text('Покинуть', style: TextStyle(color: Color(0xFFEF5350), fontSize: 11)),
                 ),
             ],
@@ -619,7 +626,7 @@ class _ClanChatSectionState extends State<_ClanChatSection> {
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
           child: Row(
             children: [
-              const Icon(Icons.chat_bubble_outline, color: Color(0xFF42A5F5), size: 16),
+              const Icon(AppIcons.chatOutline, color: Color(0xFF42A5F5), size: 16),
               const SizedBox(width: 8),
               const Text('Чат клана', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
               const Spacer(),
@@ -658,7 +665,7 @@ class _ClanChatSectionState extends State<_ClanChatSection> {
                         CircleAvatar(
                           radius: 14,
                           backgroundColor: const Color(0xFF42A5F5).withOpacity(0.15),
-                          child: const Icon(Icons.person, color: Color(0xFF42A5F5), size: 14),
+                          child: const Icon(AppIcons.person, color: Color(0xFF42A5F5), size: 14),
                         ),
                         const SizedBox(width: 8),
                       ],
@@ -717,7 +724,7 @@ class _ClanChatSectionState extends State<_ClanChatSection> {
                         CircleAvatar(
                           radius: 14,
                           backgroundColor: const Color(0xFFF5C542).withOpacity(0.15),
-                          child: const Icon(Icons.person, color: Color(0xFFF5C542), size: 14),
+                          child: const Icon(AppIcons.person, color: Color(0xFFF5C542), size: 14),
                         ),
                       ],
                     ],
@@ -780,7 +787,7 @@ class _ClanChatSectionState extends State<_ClanChatSection> {
                   ),
                   child: _isSending
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Icon(Icons.send, size: 16),
+                      : const Icon(AppIcons.send, size: 16),
                 ),
               ),
             ],
@@ -817,7 +824,7 @@ class _MemberCard extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: roleColor.withOpacity(0.15),
-            child: Icon(Icons.person, color: roleColor, size: 18),
+            child: Icon(AppIcons.person, color: roleColor, size: 18),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -852,7 +859,7 @@ class _MemberCard extends StatelessWidget {
           // Actions (can't manage self or leader)
           if (!isMe && game.canManageClan && !member.isLeader)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Color(0xFF888888), size: 18),
+              icon: const Icon(AppIcons.more, color: Color(0xFF888888), size: 18),
               color: const Color(0xFF2C2C2C),
               onSelected: (value) => _handleAction(context, value),
               itemBuilder: (context) => [
@@ -912,7 +919,7 @@ class _ClanMissionsTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.shield_outlined, size: 48, color: Color(0xFF666666)),
+            const Icon(AppIcons.shield, size: 48, color: Color(0xFF666666)),
             const SizedBox(height: 12),
             Text('Вступите в клан', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
             const SizedBox(height: 4),
@@ -931,13 +938,13 @@ class _ClanMissionsTab extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
           child: Row(
             children: [
-              const Icon(Icons.assignment_outlined, color: Color(0xFFF5C542), size: 16),
+              const Icon(AppIcons.assignmentOutlined, color: Color(0xFFF5C542), size: 16),
               const SizedBox(width: 8),
               const Text('Клановые миссии', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
               const Spacer(),
               OutlinedButton.icon(
                 onPressed: () => game.generateClanMissions(),
-                icon: const Icon(Icons.casino, size: 14),
+                icon: const Icon(AppIcons.refreshCw, size: 14),
                 label: const Text('Сгенерировать', style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFF5C542),
@@ -958,7 +965,7 @@ class _ClanMissionsTab extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.inventory_2_outlined, size: 48, color: Color(0xFF666666)),
+                      const Icon(AppIcons.inventory2, size: 48, color: Color(0xFF666666)),
                       const SizedBox(height: 12),
                       const Text('Нет активных миссий', style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 14)),
                       const SizedBox(height: 4),
@@ -1105,14 +1112,14 @@ class _MissionCard extends StatelessWidget {
           Row(
             children: [
               if (mission.rewardXp > 0) ...[
-                const Icon(Icons.star, color: Color(0xFFF5C542), size: 13),
+                const Icon(AppIcons.star, color: Color(0xFFF5C542), size: 13),
                 const SizedBox(width: 3),
                 Text('+${mission.rewardXp} XP', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 11, fontWeight: FontWeight.w600)),
               ],
               if (mission.rewardXp > 0 && mission.rewardMoney > 0)
                 const SizedBox(width: 12),
               if (mission.rewardMoney > 0) ...[
-                const Icon(Icons.euro, color: Color(0xFF66BB6A), size: 13),
+                const Icon(AppIcons.euro, color: Color(0xFF66BB6A), size: 13),
                 const SizedBox(width: 3),
                 Text(GameConstants.formatMoney(mission.rewardMoney), style: const TextStyle(color: Color(0xFF66BB6A), fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'monospace')),
               ],
@@ -1138,7 +1145,7 @@ class _ClanLeaderboardTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.emoji_events_outlined, size: 48, color: Color(0xFF666666)),
+            const Icon(AppIcons.leaderboard, size: 48, color: Color(0xFF666666)),
             const SizedBox(height: 12),
             Text('Нет кланов', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
             const SizedBox(height: 4),
@@ -1185,7 +1192,7 @@ class _ClanLeaderboardTab extends StatelessWidget {
                   color: medalColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.shield, color: medalColor, size: 18),
+                child: Icon(AppIcons.shield, color: medalColor, size: 18),
               ),
               const SizedBox(width: 10),
               Expanded(

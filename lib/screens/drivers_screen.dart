@@ -6,6 +6,9 @@ import '../models/driver.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../widgets/segment_bar.dart';
+import '../config/app_icons.dart';
+import '../widgets/skeleton_loader.dart';
 
 class DriversScreen extends StatefulWidget {
   const DriversScreen({super.key});
@@ -32,22 +35,30 @@ class _DriversScreenState extends State<DriversScreen> {
 
     return ETS2Modal(
       title: 'Водители',
-      icon: Icons.people,
+      icon: AppIcons.users,
       actions: [
         TextButton.icon(
           onPressed: game.isLoading ? null : () => _hireDriver(context, game, companyId),
-          icon: const Icon(Icons.person_add, color: Color(0xFFF5C542), size: 18),
+          icon: const Icon(AppIcons.personAdd, color: Color(0xFFF5C542), size: 18),
           label: Text('Нанять (${GameConstants.formatMoney(GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier)})', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 12)),
         ),
       ],
       child: game.isLoading && game.myDrivers.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF5C542)))
+          ? ListView(
+              padding: const EdgeInsets.all(8),
+              children: const [
+                SkeletonCard(),
+                SkeletonCard(),
+                SkeletonCard(),
+                SkeletonCard(),
+              ],
+            )
           : game.myDrivers.isEmpty
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.people_outline, size: 48, color: Color(0xFF666666)),
+                      const Icon(AppIcons.users, size: 48, color: Color(0xFF666666)),
                       const SizedBox(height: 12),
                       Text('Нет водителей', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                       const SizedBox(height: 4),
@@ -55,7 +66,7 @@ class _DriversScreenState extends State<DriversScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () => _hireDriver(context, game, companyId),
-                        icon: const Icon(Icons.person_add),
+                        icon: const Icon(AppIcons.personAdd),
                         label: Text('Нанять за ${GameConstants.formatMoney(GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier)}'),
                       ),
                     ],
@@ -98,17 +109,23 @@ class _DriversScreenState extends State<DriversScreen> {
                     ),
                     const Divider(height: 1, color: Color(0xFF3A3A3A)),
                     Expanded(
-                      child: filteredDrivers.isEmpty
-                          ? Center(child: Text('Нет водителей в этой категории', style: AppTheme.bodySm))
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(8),
-                              itemCount: filteredDrivers.length,
-                              itemBuilder: (context, i) => _DriverCard(
-                                driver: filteredDrivers[i],
-                                game: game,
-                                companyId: companyId,
-                              ),
-                            ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: KeyedSubtree(
+                          key: ValueKey(_selectedFilter),
+                          child: filteredDrivers.isEmpty
+                              ? Center(child: Text('Нет водителей в этой категории', style: AppTheme.bodySm))
+                              : ListView.builder(
+                                  padding: const EdgeInsets.all(8),
+                                  itemCount: filteredDrivers.length,
+                                  itemBuilder: (context, i) => _DriverCard(
+                                    driver: filteredDrivers[i],
+                                    game: game,
+                                    companyId: companyId,
+                                  ),
+                                ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -293,11 +310,11 @@ class _DriverCardState extends State<_DriverCard> {
   };
 
   IconData get _statusIcon => switch (d.status) {
-    'available' => Icons.person,
-    'assigned' => Icons.person_pin,
-    'resting' => Icons.bedtime,
-    'in_transit' => Icons.local_shipping,
-    _ => Icons.person,
+    'available' => AppIcons.person,
+    'assigned' => AppIcons.personPin,
+    'resting' => AppIcons.bedtime,
+    'in_transit' => AppIcons.truck,
+    _ => AppIcons.person,
   };
 
   Widget get _xpBar {
@@ -307,17 +324,11 @@ class _DriverCardState extends State<_DriverCard> {
       children: [
         const Text('XP', style: TextStyle(color: Color(0xFF888888), fontSize: 11, fontWeight: FontWeight.w600)),
         const SizedBox(width: 8),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: xpPercent,
-              backgroundColor: const Color(0xFF1A1A1A),
-              valueColor: AlwaysStoppedAnimation<Color>(d.skillLevel >= 20 ? const Color(0xFFF5C542) : const Color(0xFF42A5F5)),
-              minHeight: 6,
-            ),
-          ),
-        ),
+        Expanded(child: SegmentBar(
+          value: (d.skillLevel >= 20 ? 100 : xpInLevel),
+          activeColor: d.skillLevel >= 20 ? const Color(0xFFF5C542) : const Color(0xFF42A5F5),
+          height: 6,
+        )),
         const SizedBox(width: 8),
         if (d.skillLevel < 20)
           Text('${d.xpToNextLevel} до след.', style: const TextStyle(color: Color(0xFF666666), fontSize: 10, fontFamily: 'monospace'))
@@ -335,17 +346,11 @@ class _DriverCardState extends State<_DriverCard> {
           child: Text(label, style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: value / 100.0,
-              backgroundColor: const Color(0xFF1A1A1A),
-              valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.8)),
-              minHeight: 5,
-            ),
-          ),
-        ),
+        Expanded(child: SegmentBar(
+          value: value,
+          activeColor: color,
+          height: 5,
+        )),
         const SizedBox(width: 8),
         SizedBox(
           width: 32,
@@ -368,17 +373,11 @@ class _DriverCardState extends State<_DriverCard> {
           child: Text('😴 Усталость', style: TextStyle(color: Color(0xFF888888), fontSize: 11)),
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: d.fatigue / 100.0,
-              backgroundColor: const Color(0xFF1A1A1A),
-              valueColor: AlwaysStoppedAnimation<Color>(fatigueColor),
-              minHeight: 5,
-            ),
-          ),
-        ),
+        Expanded(child: SegmentBar(
+          value: d.fatigue,
+          activeColor: fatigueColor,
+          height: 5,
+        )),
         const SizedBox(width: 8),
         SizedBox(
           width: 32,
@@ -396,7 +395,7 @@ class _DriverCardState extends State<_DriverCard> {
         if (d.isAvailable && idleTrucks.isNotEmpty) ...[
           Expanded(
             child: _actionBtn(
-              icon: Icons.directions_car,
+              icon: AppIcons.directionsCar,
               label: 'Назначить',
               color: const Color(0xFF42A5F5),
               isLoading: _isActionLoading,
@@ -409,7 +408,7 @@ class _DriverCardState extends State<_DriverCard> {
         if (d.isAssigned) ...[
           Expanded(
             child: _actionBtn(
-              icon: Icons.person_remove,
+              icon: AppIcons.personRemove,
               label: 'Снять',
               color: const Color(0xFFEF5350),
               isLoading: _isActionLoading,
@@ -422,7 +421,7 @@ class _DriverCardState extends State<_DriverCard> {
         if (d.isTired) ...[
           Expanded(
             child: _actionBtn(
-              icon: Icons.bedtime,
+              icon: AppIcons.bedtime,
               label: 'Отдых (-50%)',
               color: const Color(0xFFCE93D8),
               isLoading: _isActionLoading,
@@ -435,7 +434,7 @@ class _DriverCardState extends State<_DriverCard> {
         if (!d.isTired && d.fatigue > 0 && !d.isAssigned) ...[
           Expanded(
             child: _actionBtn(
-              icon: Icons.bedtime,
+              icon: AppIcons.bedtime,
               label: 'Отдых',
               color: const Color(0xFFCE93D8).withOpacity(0.6),
               isLoading: _isActionLoading,
@@ -488,7 +487,7 @@ class _DriverCardState extends State<_DriverCard> {
             },
             child: Row(
               children: [
-                const Icon(Icons.local_shipping, color: Color(0xFF42A5F5), size: 18),
+                const Icon(AppIcons.truck, color: Color(0xFF42A5F5), size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(

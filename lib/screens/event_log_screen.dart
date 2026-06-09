@@ -8,6 +8,7 @@ import '../models/event_log.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class EventLogScreen extends StatefulWidget {
   const EventLogScreen({super.key});
@@ -70,10 +71,10 @@ class _EventLogScreenState extends State<EventLogScreen> {
   Widget build(BuildContext context) {
     return ETS2Modal(
       title: 'Журнал событий',
-      icon: Icons.history,
+      icon: AppIcons.eventLog,
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh, color: Color(0xFF999999), size: 18),
+          icon: const Icon(AppIcons.refreshCw, color: Color(0xFF999999), size: 18),
           tooltip: 'Обновить',
           onPressed: _loadEvents,
         ),
@@ -123,7 +124,7 @@ class _EventLogScreenState extends State<EventLogScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.cloud_off, size: 48, color: Color(0xFFEF5350)),
+                            const Icon(AppIcons.warning, size: 48, color: Color(0xFFEF5350)),
                             const SizedBox(height: 12),
                             Text('Ошибка загрузки', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                             const SizedBox(height: 4),
@@ -131,7 +132,7 @@ class _EventLogScreenState extends State<EventLogScreen> {
                             const SizedBox(height: 16),
                             ElevatedButton.icon(
                               onPressed: _loadEvents,
-                              icon: const Icon(Icons.refresh),
+                              icon: const Icon(AppIcons.refreshCw),
                               label: const Text('Повторить'),
                             ),
                           ],
@@ -142,7 +143,7 @@ class _EventLogScreenState extends State<EventLogScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.history, size: 48, color: Color(0xFF666666)),
+                                const Icon(AppIcons.eventLog, size: 48, color: Color(0xFF666666)),
                                 const SizedBox(height: 12),
                                 Text('Пока нет событий', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                                 const SizedBox(height: 4),

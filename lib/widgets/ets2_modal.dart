@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import '../config/app_icons.dart';
+import '../config/map_config.dart';
+import '../services/sound_manager.dart';
 
 /// Shared ETS2-style modal dialog wrapper.
 /// All modal screens use this as their root widget instead of Scaffold.
@@ -42,48 +47,81 @@ class ETS2Modal extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
+        child: Stack(
           children: [
-            // Header
-            Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF2C2C2C),
-                border: Border(
-                  bottom: BorderSide(color: Color(0xFF444444), width: 1),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, color: const Color(0xFFF5C542), size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        color: Color(0xFFD0D0D0),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
+            Column(
+              children: [
+                // Header
+                Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2C2C2C),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFF444444), width: 1),
                     ),
                   ),
-                  if (actions != null) ...actions!,
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Color(0xFF999999), size: 20),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  child: Row(
+                    children: [
+                      Icon(icon, color: const Color(0xFFF5C542), size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            color: Color(0xFFD0D0D0),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                      if (actions != null) ...actions!,
+                      IconButton(
+                        icon: const Icon(AppIcons.close, color: Color(0xFF999999), size: 20),
+                        onPressed: () { SoundManager.instance.tap(); Navigator.pop(context); },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                // Body
+                Expanded(
+                  child: Container(
+                    color: const Color(0xFF1A1A1A),
+                    child: child,
+                  ),
+                ),
+              ],
             ),
-            // Body
-            Expanded(
+            // Mini-map inset
+            Positioned(
+              top: 56,
+              right: 8,
               child: Container(
-                color: const Color(0xFF1A1A1A),
-                child: child,
+                width: 120,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFF333333)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: FlutterMap(
+                    options: MapOptions(
+                      initialCenter: const LatLng(50, 10),
+                      initialZoom: 3,
+                      interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: MapConfig.baseTileUrl,
+                        userAgentPackageName: MapConfig.userAgent,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

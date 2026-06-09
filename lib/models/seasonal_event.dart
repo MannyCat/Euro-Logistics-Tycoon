@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_icons.dart';
 
 class SeasonalEvent {
   final String id;
@@ -76,10 +77,10 @@ class SeasonalEvent {
   };
 
   IconData get eventIcon => switch (eventType) {
-    'cargo_bonus' => Icons.card_giftcard,
-    'delivery_challenge' => Icons.emoji_events,
-    'xp_boost' => Icons.bolt,
-    _ => Icons.star,
+    'cargo_bonus' => AppIcons.inventory2,
+    'delivery_challenge' => AppIcons.leaderboard,
+    'xp_boost' => AppIcons.bolt,
+    _ => AppIcons.star,
   };
 
   Color get eventColor => switch (eventType) {

@@ -6,6 +6,7 @@ import '../models/market_listing.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -74,10 +75,10 @@ class _MarketScreenState extends State<MarketScreen> {
   Widget build(BuildContext context) {
     return ETS2Modal(
       title: 'Рынок',
-      icon: Icons.store,
+      icon: AppIcons.market,
       actions: [
         IconButton(
-          icon: const Icon(Icons.refresh, color: Color(0xFF999999), size: 20),
+          icon: const Icon(AppIcons.refreshCw, color: Color(0xFF999999), size: 20),
           tooltip: 'Обновить',
           onPressed: _isLoading ? null : _loadListings,
         ),
@@ -108,7 +109,7 @@ class _MarketScreenState extends State<MarketScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.store, size: 48, color: Color(0xFF666666)),
+                            const Icon(AppIcons.market, size: 48, color: Color(0xFF666666)),
                             const SizedBox(height: 12),
                             Text('Нет предложений', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                             const SizedBox(height: 4),
@@ -190,7 +191,7 @@ class _ListingCard extends StatelessWidget {
                     color: const Color(0xFFF5C542).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 18),
+                  child: const Icon(AppIcons.truck, color: Color(0xFFF5C542), size: 18),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -229,7 +230,7 @@ class _ListingCard extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.schedule, size: 11, color: Color(0xFF888888)),
+                        const Icon(AppIcons.schedule, size: 11, color: Color(0xFF888888)),
                         const SizedBox(width: 3),
                         Text(listing.timeLeft, style: TextStyle(
                           color: listing.isExpired ? const Color(0xFFEF5350) : const Color(0xFF888888),
@@ -250,7 +251,7 @@ class _ListingCard extends StatelessWidget {
                   onPressed: (canAfford && !isLoading) ? onBuy : null,
                   icon: isLoading
                       ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Color(0xFF66BB6A), strokeWidth: 2))
-                      : const Icon(Icons.shopping_cart, size: 16),
+                      : const Icon(AppIcons.buy, size: 16),
                   label: Text(canAfford ? 'Купить' : 'Недостаточно средств'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF66BB6A),

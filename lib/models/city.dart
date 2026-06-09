@@ -35,4 +35,34 @@ class City {
     depotFee: (json['depot_fee'] as num?)?.toInt() ?? 500,
     hasDepot: (json['has_depot'] as bool?) ?? true,
   );
+
+  /// Two-letter ISO country code derived from country name.
+  /// Used for flag CDN lookups (flagcdn.com).
+  String get countryCode => switch (country.toLowerCase()) {
+    'germany' => 'de',
+    'france' => 'fr',
+    'netherlands' => 'nl',
+    'belgium' => 'be',
+    'switzerland' => 'ch',
+    'austria' => 'at',
+    'italy' => 'it',
+    'czech republic' || 'czechia' => 'cz',
+    'poland' => 'pl',
+    'hungary' => 'hu',
+    'spain' => 'es',
+    'denmark' => 'dk',
+    'sweden' => 'se',
+    'norway' => 'no',
+    'finland' => 'fi',
+    'uk' || 'united kingdom' => 'gb',
+    'ireland' => 'ie',
+    'portugal' => 'pt',
+    'romania' => 'ro',
+    'slovakia' => 'sk',
+    'luxembourg' => 'lu',
+    _ => 'eu',
+  };
+
+  /// URL to country flag from flagcdn.com (20px width for compact display)
+  String get flagUrl => 'https://flagcdn.com/w20/$countryCode.png';
 }

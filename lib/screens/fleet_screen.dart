@@ -7,6 +7,10 @@ import '../models/truck.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
+import '../config/app_icons.dart';
+import '../widgets/skeleton_loader.dart';
+import '../widgets/truck_wear_widget.dart';
+import '../models/contract.dart';
 
 class FleetScreen extends StatefulWidget {
   const FleetScreen({super.key});
@@ -17,6 +21,8 @@ class FleetScreen extends StatefulWidget {
 
 class _FleetScreenState extends State<FleetScreen> {
   int _selectedFilter = 0; // 0=All, 1=Idle, 2=Transit
+  bool _isTableView = false;
+  bool _isAccepting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -32,23 +38,32 @@ class _FleetScreenState extends State<FleetScreen> {
 
     return ETS2Modal(
       title: 'Автопарк',
-      icon: Icons.local_shipping,
+      icon: AppIcons.truck,
       actions: [
         if (game.myTrucks.length < GameConstants.maxTrucks)
           IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Color(0xFFF5C542), size: 20),
+            icon: const Icon(AppIcons.addCircleOutline, color: Color(0xFFF5C542), size: 20),
             tooltip: 'Купить грузовик',
             onPressed: () => _showBuyDialog(context, game, companyId),
           ),
       ],
       child: game.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFF5C542)))
+          ? ListView(
+              padding: const EdgeInsets.all(8),
+              children: const [
+                SkeletonCard(),
+                SkeletonCard(),
+                SkeletonCard(),
+                SkeletonCard(),
+                SkeletonCard(),
+              ],
+            )
           : game.myTrucks.isEmpty
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.local_shipping, size: 48, color: Color(0xFF666666)),
+                      const Icon(AppIcons.truck, size: 48, color: Color(0xFF666666)),
                       const SizedBox(height: 12),
                       Text('Нет грузовиков', style: AppTheme.h2.copyWith(color: const Color(0xFFAAAAAA))),
                       const SizedBox(height: 4),
@@ -56,7 +71,7 @@ class _FleetScreenState extends State<FleetScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () => _showBuyDialog(context, game, companyId),
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(AppIcons.add),
                         label: const Text('Купить грузовик'),
                       ),
                     ],
@@ -64,6 +79,46 @@ class _FleetScreenState extends State<FleetScreen> {
                 )
               : Column(
                   children: [
+                    // Drag-and-drop contract assignment target
+                    DragTarget<String>(
+                      onWillAcceptWithDetails: (_) => true,
+                      onAcceptWithDetails: (details) => _showAssignContractDialog(context, details.data, game, companyId),
+                      builder: (context, candidateData, rejectedData) {
+                        final isOver = candidateData.isNotEmpty;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isOver ? const Color(0xFFF5C542).withOpacity(0.15) : const Color(0xFF1E1E1E),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isOver ? const Color(0xFFF5C542).withOpacity(0.5) : const Color(0xFF3A3A3A),
+                              width: isOver ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(AppIcons.assignmentOutlined, size: 16, color: isOver ? const Color(0xFFF5C542) : const Color(0xFF666666)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Перетащите грузовик сюда для назначения на контракт',
+                                  style: TextStyle(
+                                    color: isOver ? const Color(0xFFF5C542) : const Color(0xFF888888),
+                                    fontSize: 12,
+                                    fontWeight: isOver ? FontWeight.w600 : FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                              if (isOver)
+                                const Icon(AppIcons.arrowDown, size: 16, color: Color(0xFFF5C542)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       color: const Color(0xFF252525),
@@ -74,6 +129,27 @@ class _FleetScreenState extends State<FleetScreen> {
                           _filterChip('Свободных (${game.idleTrucks.length})', 1),
                           const SizedBox(width: 6),
                           _filterChip('В пути (${game.transitTrucks.length})', 2),
+                          const Spacer(),
+                          InkWell(
+                            onTap: () => setState(() => _isTableView = !_isTableView),
+                            borderRadius: BorderRadius.circular(4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _isTableView ? const Color(0xFFF5C542).withOpacity(0.15) : const Color(0xFF1A1A1A),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: _isTableView ? const Color(0xFFF5C542).withOpacity(0.4) : const Color(0xFF3A3A3A)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(_isTableView ? AppIcons.truck : AppIcons.truck, size: 12, color: _isTableView ? const Color(0xFFF5C542) : const Color(0xFF666666)),
+                                  const SizedBox(width: 4),
+                                  Text('Таблица', style: TextStyle(color: _isTableView ? const Color(0xFFF5C542) : const Color(0xFF666666), fontSize: 10)),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -83,11 +159,43 @@ class _FleetScreenState extends State<FleetScreen> {
                           ? Center(
                               child: Text('Нет грузовиков в этой категории', style: AppTheme.bodySm),
                             )
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(8),
-                              itemCount: filteredTrucks.length,
-                              itemBuilder: (context, i) => _TruckCard(truck: filteredTrucks[i], game: game, companyId: companyId),
-                            ),
+                          : _isTableView
+                              ? _FleetTable(trucks: filteredTrucks, game: game, companyId: companyId)
+                              : ListView.builder(
+                                  padding: const EdgeInsets.all(8),
+                                  itemCount: filteredTrucks.length,
+                                  itemBuilder: (context, i) {
+                                    final t = filteredTrucks[i];
+                                    if (t.isIdle) {
+                                      return LongPressDraggable<String>(
+                                        data: t.id,
+                                        feedback: Material(
+                                          color: Colors.transparent,
+                                          elevation: 4,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF5C542),
+                                              borderRadius: BorderRadius.circular(8),
+                                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8)],
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(AppIcons.truck, size: 16, color: Color(0xFF1A1A1A)),
+                                                const SizedBox(width: 6),
+                                                Text(t.name, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 13, fontWeight: FontWeight.w600)),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        childWhenDragging: Opacity(opacity: 0.35, child: _TruckCard(truck: t, game: game, companyId: companyId)),
+                                        child: _TruckCard(truck: t, game: game, companyId: companyId),
+                                      );
+                                    }
+                                    return _TruckCard(truck: t, game: game, companyId: companyId);
+                                  },
+                                ),
                     ),
                   ],
                 ),
@@ -117,6 +225,72 @@ class _FleetScreenState extends State<FleetScreen> {
 
   void _showBuyDialog(BuildContext context, GameProvider game, String companyId) {
     showDialog(context: context, builder: (ctx) => _BuyTruckDialog(game: game, companyId: companyId));
+  }
+
+  void _showAssignContractDialog(BuildContext context, String truckId, GameProvider game, String companyId) {
+    final contracts = game.availableContracts;
+    if (contracts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Нет доступных контрактов'),
+        backgroundColor: const Color(0xFFF5C542),
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    final truck = game.myTrucks.where((t) => t.id == truckId).firstOrNull;
+    if (truck == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
+        title: Text('Назначить ${truck.name} на контракт', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14)),
+        children: contracts.map((contract) {
+          final originCity = game.getCityById(contract.originCityId);
+          final destCity = game.getCityById(contract.destinationCityId);
+          return SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _acceptContract(context, contract.id, companyId, game);
+            },
+            child: Row(
+              children: [
+                const Icon(AppIcons.description, color: Color(0xFF42A5F5), size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${contract.cargoType} (${contract.cargoWeight}т)', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 13)),
+                      Text('${originCity?.name ?? '?'} → ${destCity?.name ?? '?'} • ${GameConstants.formatMoney(contract.reward)}', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Future<void> _acceptContract(BuildContext context, String contractId, String companyId, GameProvider game) async {
+    setState(() => _isAccepting = true);
+    final result = await game.acceptContract(contractId: contractId, companyId: companyId);
+    if (mounted) setState(() => _isAccepting = false);
+    if (mounted && !result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(game.error ?? 'Ошибка назначения'),
+        backgroundColor: const Color(0xFFEF5350),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } else if (mounted && result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Грузовик ${result.truckName} отправлен!'),
+        backgroundColor: const Color(0xFF66BB6A),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 }
 
@@ -151,19 +325,19 @@ class _TruckCardState extends State<_TruckCard> {
     switch (truck.status) {
       case 'in_transit':
         statusColor = const Color(0xFFF5C542);
-        statusIcon = Icons.local_shipping;
+        statusIcon = AppIcons.truck;
         break;
       case 'loading':
         statusColor = const Color(0xFF42A5F5);
-        statusIcon = Icons.hourglass_top;
+        statusIcon = AppIcons.hourglass;
         break;
       case 'maintenance':
         statusColor = const Color(0xFFEF5350);
-        statusIcon = Icons.build;
+        statusIcon = AppIcons.wrench;
         break;
       default:
         statusColor = const Color(0xFF66BB6A);
-        statusIcon = Icons.check_circle;
+        statusIcon = AppIcons.checkCircle;
     }
 
     return Container(
@@ -237,6 +411,37 @@ class _TruckCardState extends State<_TruckCard> {
                       ),
                   ],
                 ),
+                // Truck wear visualization (when condition < 100 or fuel < 100%)
+                if (truck.condition < 100 || truck.fuelLevel < truck.maxFuel) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      TruckWearWidget(
+                        size: 80,
+                        bodyCondition: truck.condition,
+                        engineCondition: (truck.fuelLevel / truck.maxFuel * 100).round().clamp(0, 100),
+                        cabinCondition: (truck.condition + 10).clamp(0, 100),
+                        tireCondition: (truck.condition - 15).clamp(0, 100),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _wearIndicator('Кузов', truck.condition),
+                            const SizedBox(height: 2),
+                            _wearIndicator('Двигатель', (truck.fuelLevel / truck.maxFuel * 100).round().clamp(0, 100)),
+                            const SizedBox(height: 2),
+                            _wearIndicator('Кабина', (truck.condition + 10).clamp(0, 100)),
+                            const SizedBox(height: 2),
+                            _wearIndicator('Шины', (truck.condition - 15).clamp(0, 100)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 // Assigned driver info
                 _assignedDriverRow(game),
                 // Route info for transit trucks
@@ -254,7 +459,7 @@ class _TruckCardState extends State<_TruckCard> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.trip_origin, size: 14, color: Color(0xFF66BB6A)),
+                            const Icon(AppIcons.tripOrigin, size: 14, color: Color(0xFF66BB6A)),
                             const SizedBox(width: 6),
                             Expanded(child: Text('${originCity.name}  \u2192  ${destCity.name}', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 12))),
                             if (truck.estimatedArrival != null) ...[
@@ -267,7 +472,7 @@ class _TruckCardState extends State<_TruckCard> {
                         if (truck.contractId != null) ...[
                           const SizedBox(height: 4),
                           Row(children: [
-                            const Icon(Icons.inventory_2_outlined, size: 12, color: Color(0xFF888888)),
+                            const Icon(AppIcons.inventory2, size: 12, color: Color(0xFF888888)),
                             const SizedBox(width: 4),
                             Text(_getCargoInfo(truck.contractId!, game), style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
                           ]),
@@ -296,7 +501,7 @@ class _TruckCardState extends State<_TruckCard> {
                     children: [
                       Expanded(
                         child: _ActionButton(
-                          icon: Icons.local_gas_station,
+                          icon: AppIcons.fuel,
                           label: '${GameConstants.formatMoney(((truck.maxFuel - truck.fuelLevel) * GameConstants.fuelCostPerLiter).round())}',
                           tooltip: 'Заправить',
                           isLoading: _isRefueling,
@@ -308,7 +513,7 @@ class _TruckCardState extends State<_TruckCard> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: _ActionButton(
-                          icon: Icons.build,
+                          icon: AppIcons.wrench,
                           label: '${GameConstants.formatMoney((100 - truck.condition) * GameConstants.repairCostPerPoint)}',
                           tooltip: 'Ремонт',
                           isLoading: _isRepairing,
@@ -320,7 +525,7 @@ class _TruckCardState extends State<_TruckCard> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: _ActionButton(
-                          icon: Icons.arrow_upward,
+                          icon: AppIcons.upgrade,
                           label: 'Улучшить',
                           isLoading: false,
                           enabled: true,
@@ -331,7 +536,7 @@ class _TruckCardState extends State<_TruckCard> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: _ActionButton(
-                          icon: Icons.sell,
+                          icon: AppIcons.sell,
                           label: 'Продать',
                           isLoading: _isSelling,
                           enabled: true,
@@ -371,7 +576,7 @@ class _TruckCardState extends State<_TruckCard> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.person, size: 14, color: Color(0xFF42A5F5)),
+            const Icon(AppIcons.person, size: 14, color: Color(0xFF42A5F5)),
             const SizedBox(width: 6),
             Text(assignedDriver.name, style: const TextStyle(color: Color(0xFF42A5F5), fontSize: 12, fontWeight: FontWeight.w600)),
             const Spacer(),
@@ -401,7 +606,7 @@ class _TruckCardState extends State<_TruckCard> {
         if (assignedDriver != null) ...[
           Expanded(
             child: _ActionButton(
-              icon: Icons.person_remove,
+              icon: AppIcons.personRemove,
               label: 'Снять водителя',
               isLoading: _isRefueling,
               enabled: true,
@@ -412,7 +617,7 @@ class _TruckCardState extends State<_TruckCard> {
         ] else if (availableDrivers.isNotEmpty) ...[
           Expanded(
             child: _ActionButton(
-              icon: Icons.person_add,
+              icon: AppIcons.personAdd,
               label: 'Назначить водителя',
               isLoading: _isRefueling,
               enabled: true,
@@ -440,7 +645,7 @@ class _TruckCardState extends State<_TruckCard> {
             },
             child: Row(
               children: [
-                const Icon(Icons.person, color: Color(0xFF66BB6A), size: 18),
+                const Icon(AppIcons.person, color: Color(0xFF66BB6A), size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -568,6 +773,40 @@ class _TruckCardState extends State<_TruckCard> {
     ],
   );
 
+  Widget _wearIndicator(String label, int condition) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SizedBox(width: 50, child: Text(label, style: const TextStyle(color: Color(0xFF888888), fontSize: 10))),
+      SizedBox(
+        width: 60,
+        height: 4,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: Stack(children: [
+            Container(decoration: BoxDecoration(color: const Color(0xFF3A3A3A), borderRadius: BorderRadius.circular(2))),
+            FractionallySizedBox(
+              widthFactor: (condition / 100).clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: condition >= 70 ? const Color(0xFF66BB6A) : condition >= 40 ? const Color(0xFFF5C542) : const Color(0xFFEF5350),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
+      const SizedBox(width: 4),
+      SizedBox(
+        width: 28,
+        child: Text('$condition%', style: TextStyle(
+          color: condition >= 70 ? const Color(0xFF66BB6A) : condition >= 40 ? const Color(0xFFF5C542) : const Color(0xFFEF5350),
+          fontSize: 9, fontWeight: FontWeight.w600, fontFamily: 'monospace',
+        )),
+      ),
+    ],
+  );
+
   String _timeLeft(DateTime eta) {
     final diff = eta.difference(DateTime.now());
     if (diff.isNegative) return 'Прибыл!';
@@ -675,7 +914,7 @@ class _BuyTruckDialogState extends State<_BuyTruckDialog> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 22),
+                  const Icon(AppIcons.truck, color: Color(0xFFF5C542), size: 22),
                   const SizedBox(width: 10),
                   Text('Купить грузовик', style: AppTheme.h2.copyWith(color: const Color(0xFFD0D0D0))),
                   const Spacer(),
@@ -718,7 +957,7 @@ class _BuyTruckDialogState extends State<_BuyTruckDialog> {
                       return DropdownMenuItem(
                         value: c.id,
                         child: Row(children: [
-                          Icon(hasW ? Icons.warehouse : Icons.location_city, size: 14, color: hasW ? const Color(0xFF66BB6A) : const Color(0xFF888888)),
+                          Icon(hasW ? AppIcons.warehouses : AppIcons.locationCity, size: 14, color: hasW ? const Color(0xFF66BB6A) : const Color(0xFF888888)),
                           const SizedBox(width: 8),
                           Expanded(child: Text(c.name, overflow: TextOverflow.ellipsis)),
                           Text(c.country, style: const TextStyle(color: Color(0xFF666666), fontSize: 11)),
@@ -795,19 +1034,19 @@ class _UpgradeIndicators extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (truck.engineLevel > 0) ...[
-          Icon(Icons.bolt, size: 11, color: const Color(0xFF42A5F5)),
+          Icon(AppIcons.bolt, size: 11, color: const Color(0xFF42A5F5)),
           const SizedBox(width: 2),
           Text('E$truck.engineLevel', style: const TextStyle(color: Color(0xFF42A5F5), fontSize: 9, fontWeight: FontWeight.w600)),
           const SizedBox(width: 6),
         ],
         if (truck.tankLevel > 0) ...[
-          Icon(Icons.local_gas_station, size: 11, color: const Color(0xFF66BB6A)),
+          Icon(AppIcons.fuel, size: 11, color: const Color(0xFF66BB6A)),
           const SizedBox(width: 2),
           Text('T$truck.tankLevel', style: const TextStyle(color: Color(0xFF66BB6A), fontSize: 9, fontWeight: FontWeight.w600)),
           const SizedBox(width: 6),
         ],
         if (truck.cabinLevel > 0) ...[
-          Icon(Icons.airline_seat_recline_normal, size: 11, color: const Color(0xFFCE93D8)),
+          Icon(AppIcons.seat, size: 11, color: const Color(0xFFCE93D8)),
           const SizedBox(width: 2),
           Text('C$truck.cabinLevel', style: const TextStyle(color: Color(0xFFCE93D8), fontSize: 9, fontWeight: FontWeight.w600)),
           const SizedBox(width: 6),
@@ -876,7 +1115,7 @@ class _UpgradeDialogState extends State<_UpgradeDialog> {
               // Header
               Row(
                 children: [
-                  const Icon(Icons.tune, color: Color(0xFFCE93D8), size: 22),
+                  const Icon(AppIcons.arrowUp, color: Color(0xFFCE93D8), size: 22),
                   const SizedBox(width: 10),
                   Text('Улучшения: ${_truck.name}', style: AppTheme.h2.copyWith(color: const Color(0xFFD0D0D0))),
                   const Spacer(),
@@ -887,7 +1126,7 @@ class _UpgradeDialogState extends State<_UpgradeDialog> {
 
               // Engine upgrade
               _UpgradeSection(
-                icon: Icons.bolt,
+                icon: AppIcons.bolt,
                 title: 'Двигатель',
                 color: const Color(0xFF42A5F5),
                 currentLevel: _truck.engineLevel,
@@ -902,7 +1141,7 @@ class _UpgradeDialogState extends State<_UpgradeDialog> {
 
               // Tank upgrade
               _UpgradeSection(
-                icon: Icons.local_gas_station,
+                icon: AppIcons.fuel,
                 title: 'Топливный бак',
                 color: const Color(0xFF66BB6A),
                 currentLevel: _truck.tankLevel,
@@ -917,7 +1156,7 @@ class _UpgradeDialogState extends State<_UpgradeDialog> {
 
               // Cabin upgrade
               _UpgradeSection(
-                icon: Icons.airline_seat_recline_normal,
+                icon: AppIcons.seat,
                 title: 'Кабина',
                 color: const Color(0xFFCE93D8),
                 currentLevel: _truck.cabinLevel,
@@ -1185,7 +1424,7 @@ class _SellDialog extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.sell, color: Color(0xFFEF5350), size: 22),
+                const Icon(AppIcons.sell, color: Color(0xFFEF5350), size: 22),
                 const SizedBox(width: 10),
                 Text('Продать ${truck.name}?', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 15, fontWeight: FontWeight.w700)),
               ],
@@ -1204,7 +1443,7 @@ class _SellDialog extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
-                    const Icon(Icons.flash_on, size: 16, color: Color(0xFFEF5350)),
+                    const Icon(AppIcons.lightning, size: 16, color: Color(0xFFEF5350)),
                     const SizedBox(width: 8),
                     const Text('Моментальная продажа', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
                     const Spacer(),
@@ -1229,7 +1468,7 @@ class _SellDialog extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
-                    const Icon(Icons.store, size: 16, color: Color(0xFFF5C542)),
+                    const Icon(AppIcons.market, size: 16, color: Color(0xFFF5C542)),
                     const SizedBox(width: 8),
                     const Text('Выставить на рынок', style: TextStyle(color: Color(0xFFD0D0D0), fontSize: 13, fontWeight: FontWeight.w600)),
                     const Spacer(),
@@ -1285,6 +1524,152 @@ class _SellDialog extends StatelessWidget {
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FleetTable extends StatelessWidget {
+  final List<Truck> trucks;
+  final GameProvider game;
+  final String companyId;
+  const _FleetTable({required this.trucks, required this.game, required this.companyId});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(8),
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columnSpacing: 12,
+          horizontalMargin: 8,
+          headingRowHeight: 32,
+          dataRowHeight: 36,
+          headingRowColor: MaterialStateProperty.all(const Color(0xFF252525)),
+          dataRowColor: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.selected)) return const Color(0xFF2A2A2A);
+            return const Color(0xFF1E1E1E);
+          }),
+          border: TableBorder(
+            horizontalInside: const BorderSide(color: Color(0xFF2A2A2A), width: 0.5),
+            verticalInside: const BorderSide(color: Color(0xFF2A2A2A), width: 0.5),
+            top: const BorderSide(color: Color(0xFF333333)),
+            bottom: const BorderSide(color: Color(0xFF333333)),
+            left: const BorderSide(color: Color(0xFF333333)),
+            right: const BorderSide(color: Color(0xFF333333)),
+          ),
+          columns: const [
+            DataColumn(label: Text('Грузовик', style: TextStyle(color: Color(0xFF888888), fontSize: 11, fontWeight: FontWeight.w600)), numeric: false),
+            DataColumn(label: Text('Тип', style: TextStyle(color: Color(0xFF888888), fontSize: 11, fontWeight: FontWeight.w600)), numeric: false),
+            DataColumn(label: Text('Статус', style: TextStyle(color: Color(0xFF888888), fontSize: 11, fontWeight: FontWeight.w600)), numeric: false),
+            DataColumn(label: Text('Сост.', style: TextStyle(color: Color(0xFF888888), fontSize: 11, fontWeight: FontWeight.w600)), numeric: true),
+            DataColumn(label: Text('Топл.', style: TextStyle(color: Color(0xFF888888), fontSize: 11, fontWeight: FontWeight.w600)), numeric: true),
+            DataColumn(label: Text('Город', style: TextStyle(color: Color(0xFF888888), fontSize: 11, fontWeight: FontWeight.w600)), numeric: false),
+            DataColumn(label: Text('Водитель', style: TextStyle(color: Color(0xFF888888), fontSize: 11, fontWeight: FontWeight.w600)), numeric: false),
+            DataColumn(label: Text('', style: TextStyle(color: Color(0xFF888888), fontSize: 11)), numeric: false),
+          ],
+          rows: trucks.map((truck) {
+            final typeInfo = GameConstants.findTruckType(truck.truckType);
+            final curCity = truck.currentCityId != null ? game.getCityById(truck.currentCityId!) : null;
+            final driver = truck.driverId != null ? game.myDrivers.where((d) => d.id == truck.driverId).firstOrNull : null;
+
+            Color statusColor;
+            String statusText;
+            switch (truck.status) {
+              case 'in_transit':
+                statusColor = const Color(0xFFF5C542);
+                statusText = 'В пути';
+                break;
+              case 'loading':
+                statusColor = const Color(0xFF42A5F5);
+                statusText = 'Загрузка';
+                break;
+              case 'maintenance':
+                statusColor = const Color(0xFFEF5350);
+                statusText = 'Ремонт';
+                break;
+              default:
+                statusColor = const Color(0xFF66BB6A);
+                statusText = 'Свободен';
+            }
+
+            final condColor = truck.condition < 30 ? const Color(0xFFEF5350) : truck.condition < 60 ? const Color(0xFFF5C542) : const Color(0xFF66BB6A);
+
+            return DataRow(cells: [
+              DataCell(Text(truck.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12, fontWeight: FontWeight.w500))),
+              DataCell(Text(typeInfo?.name.split(' ').first ?? '', style: const TextStyle(color: Color(0xFF888888), fontSize: 11))),
+              DataCell(Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+                child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w600)),
+              )),
+              DataCell(Text('${truck.condition}%', style: TextStyle(color: condColor, fontSize: 11, fontFamily: 'JetBrains Mono'))),
+              DataCell(Text('${truck.fuelLevel.toStringAsFixed(0)}%', style: TextStyle(color: truck.fuelLevel < 20 ? const Color(0xFFEF5350) : const Color(0xFF888888), fontSize: 11, fontFamily: 'JetBrains Mono'))),
+              DataCell(Text(curCity?.name ?? '-', style: const TextStyle(color: Color(0xFF888888), fontSize: 11))),
+              DataCell(Text(driver?.name ?? '-', style: TextStyle(color: driver != null ? const Color(0xFF42A5F5) : const Color(0xFF555555), fontSize: 11))),
+              DataCell(InkWell(
+                onTap: () => _showQuickActions(context, truck),
+                borderRadius: BorderRadius.circular(4),
+                child: const Icon(AppIcons.more, color: Color(0xFF666666), size: 14),
+              )),
+            ]);
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _showQuickActions(BuildContext context, Truck truck) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(truck.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _quickAction(AppIcons.fuel, 'Заправить', const Color(0xFF42A5F5)),
+                _quickAction(AppIcons.wrench, 'Ремонт', const Color(0xFFF5C542)),
+                _quickAction(AppIcons.upgrade, 'Улучшить', const Color(0xFFCE93D8)),
+                _quickAction(AppIcons.sell, 'Продать', const Color(0xFFEF5350)),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickAction(IconData icon, String label, Color color) {
+    return InkWell(
+      onTap: () { Navigator.pop(context); },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 16),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
           ],
         ),
       ),

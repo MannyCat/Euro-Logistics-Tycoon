@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'app_icons.dart';
 
 class AchievementDef {
   final String id;
@@ -56,10 +57,10 @@ class GameConstants {
   }
 
   static IconData get weatherIcon => switch (currentWeather) {
-    'rain' => Icons.water_drop,
-    'fog' => Icons.cloud,
-    'snow' => Icons.ac_unit,
-    _ => Icons.wb_sunny,
+    'rain' => AppIcons.waterDrop,
+    'fog' => AppIcons.cloud,
+    'snow' => AppIcons.acUnit,
+    _ => AppIcons.wbSunny,
   };
 
   static String get weatherLabel => switch (currentWeather) {
@@ -92,7 +93,7 @@ class GameConstants {
   static double get nightBonus => isNightTime ? 0.20 : 0; // +20% reward at night
   static double get nightFuelPenalty => isNightTime ? 0.10 : 0; // +10% fuel at night
 
-  static IconData get timeOfDayIcon => isNightTime ? Icons.dark_mode : Icons.light_mode;
+  static IconData get timeOfDayIcon => isNightTime ? AppIcons.darkMode : AppIcons.lightMode;
   static String get timeOfDayLabel => isNightTime ? 'Ночь (+20% награды)' : 'День';
   static Color get timeOfDayColor => isNightTime ? const Color(0xFF7C4DFF) : const Color(0xFFF5C542);
 
@@ -225,36 +226,36 @@ class GameConstants {
   // ===== ACHIEVEMENTS =====
   static const List<AchievementDef> achievements = [
     // Fleet
-    AchievementDef(id: 'first_truck', name: 'Первый грузовик', description: 'Купить первый грузовик', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 25),
-    AchievementDef(id: 'fleet_3', name: 'Малый автопарк', description: 'Владеть 3 грузовиками', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 50),
-    AchievementDef(id: 'fleet_5', name: 'Автопарк', description: 'Владеть 5 грузовиками', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 100, tier: 2),
-    AchievementDef(id: 'fleet_10', name: 'Транспортный магнат', description: 'Владеть 10 грузовиками', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 200, tier: 2),
-    AchievementDef(id: 'fleet_20', name: 'Логистическая империя', description: 'Владеть 20 грузовиками', category: 'fleet', icon: Icons.local_shipping, color: Color(0xFF42A5F5), reward: 500, tier: 3),
+    AchievementDef(id: 'first_truck', name: 'Первый грузовик', description: 'Купить первый грузовик', category: 'fleet', icon: AppIcons.truck, color: Color(0xFF42A5F5), reward: 25),
+    AchievementDef(id: 'fleet_3', name: 'Малый автопарк', description: 'Владеть 3 грузовиками', category: 'fleet', icon: AppIcons.truck, color: Color(0xFF42A5F5), reward: 50),
+    AchievementDef(id: 'fleet_5', name: 'Автопарк', description: 'Владеть 5 грузовиками', category: 'fleet', icon: AppIcons.truck, color: Color(0xFF42A5F5), reward: 100, tier: 2),
+    AchievementDef(id: 'fleet_10', name: 'Транспортный магнат', description: 'Владеть 10 грузовиками', category: 'fleet', icon: AppIcons.truck, color: Color(0xFF42A5F5), reward: 200, tier: 2),
+    AchievementDef(id: 'fleet_20', name: 'Логистическая империя', description: 'Владеть 20 грузовиками', category: 'fleet', icon: AppIcons.truck, color: Color(0xFF42A5F5), reward: 500, tier: 3),
 
     // Logistics
-    AchievementDef(id: 'first_delivery', name: 'Первый рейс', description: 'Выполнить первый контракт', category: 'logistics', icon: Icons.check_circle, color: Color(0xFF66BB6A), reward: 25),
-    AchievementDef(id: 'deliveries_10', name: 'Опытный перевозчик', description: 'Выполнить 10 контрактов', category: 'logistics', icon: Icons.check_circle, color: Color(0xFF66BB6A), reward: 75),
-    AchievementDef(id: 'deliveries_50', name: 'Мастер логистики', description: 'Выполнить 50 контрактов', category: 'logistics', icon: Icons.check_circle, color: Color(0xFF66BB6A), reward: 200, tier: 2),
-    AchievementDef(id: 'deliveries_100', name: 'Легенда дорог', description: 'Выполнить 100 контрактов', category: 'logistics', icon: Icons.check_circle, color: Color(0xFF66BB6A), reward: 500, tier: 3),
-    AchievementDef(id: 'cities_5', name: 'Междугородний', description: 'Доставить груз в 5 разных городов', category: 'logistics', icon: Icons.location_city, color: Color(0xFF66BB6A), reward: 75),
-    AchievementDef(id: 'cities_all', name: 'Евротур', description: 'Доставить груз во все города', category: 'logistics', icon: Icons.public, color: Color(0xFF66BB6A), reward: 500, tier: 3),
+    AchievementDef(id: 'first_delivery', name: 'Первый рейс', description: 'Выполнить первый контракт', category: 'logistics', icon: AppIcons.checkCircle, color: Color(0xFF66BB6A), reward: 25),
+    AchievementDef(id: 'deliveries_10', name: 'Опытный перевозчик', description: 'Выполнить 10 контрактов', category: 'logistics', icon: AppIcons.checkCircle, color: Color(0xFF66BB6A), reward: 75),
+    AchievementDef(id: 'deliveries_50', name: 'Мастер логистики', description: 'Выполнить 50 контрактов', category: 'logistics', icon: AppIcons.checkCircle, color: Color(0xFF66BB6A), reward: 200, tier: 2),
+    AchievementDef(id: 'deliveries_100', name: 'Легенда дорог', description: 'Выполнить 100 контрактов', category: 'logistics', icon: AppIcons.checkCircle, color: Color(0xFF66BB6A), reward: 500, tier: 3),
+    AchievementDef(id: 'cities_5', name: 'Междугородний', description: 'Доставить груз в 5 разных городов', category: 'logistics', icon: AppIcons.locationCity, color: Color(0xFF66BB6A), reward: 75),
+    AchievementDef(id: 'cities_all', name: 'Евротур', description: 'Доставить груз во все города', category: 'logistics', icon: AppIcons.public, color: Color(0xFF66BB6A), reward: 500, tier: 3),
 
     // Finance
-    AchievementDef(id: 'earned_100k', name: 'Первая прибыль', description: 'Заработать €100K на контрактах', category: 'finance', icon: Icons.euro, color: Color(0xFFF5C542), reward: 25),
-    AchievementDef(id: 'earned_1m', name: 'Миллионер', description: 'Заработать €1M на контрактах', category: 'finance', icon: Icons.euro, color: Color(0xFFF5C542), reward: 100, tier: 2),
-    AchievementDef(id: 'earned_10m', name: 'Тайкон', description: 'Заработать €10M на контрактах', category: 'finance', icon: Icons.euro, color: Color(0xFFF5C542), reward: 300, tier: 3),
-    AchievementDef(id: 'money_5m', name: 'Капитал', description: 'Накопить €5M на балансе', category: 'finance', icon: Icons.account_balance, color: Color(0xFFF5C542), reward: 200, tier: 2),
+    AchievementDef(id: 'earned_100k', name: 'Первая прибыль', description: 'Заработать €100K на контрактах', category: 'finance', icon: AppIcons.euro, color: Color(0xFFF5C542), reward: 25),
+    AchievementDef(id: 'earned_1m', name: 'Миллионер', description: 'Заработать €1M на контрактах', category: 'finance', icon: AppIcons.euro, color: Color(0xFFF5C542), reward: 100, tier: 2),
+    AchievementDef(id: 'earned_10m', name: 'Тайкон', description: 'Заработать €10M на контрактах', category: 'finance', icon: AppIcons.euro, color: Color(0xFFF5C542), reward: 300, tier: 3),
+    AchievementDef(id: 'money_5m', name: 'Капитал', description: 'Накопить €5M на балансе', category: 'finance', icon: AppIcons.accountBalance, color: Color(0xFFF5C542), reward: 200, tier: 2),
 
     // Infrastructure
-    AchievementDef(id: 'first_warehouse', name: 'Первый склад', description: 'Купить первый склад', category: 'infra', icon: Icons.warehouse, color: Color(0xFFCE93D8), reward: 50),
-    AchievementDef(id: 'warehouses_3', name: 'Сеть складов', description: 'Владеть 3 складами', category: 'infra', icon: Icons.warehouse, color: Color(0xFFCE93D8), reward: 100),
-    AchievementDef(id: 'first_driver', name: 'Первый водитель', description: 'Нанять первого водителя', category: 'infra', icon: Icons.person, color: Color(0xFFCE93D8), reward: 25),
-    AchievementDef(id: 'drivers_5', name: 'Команда', description: 'Нанять 5 водителей', category: 'infra', icon: Icons.groups, color: Color(0xFFCE93D8), reward: 100, tier: 2),
+    AchievementDef(id: 'first_warehouse', name: 'Первый склад', description: 'Купить первый склад', category: 'infra', icon: AppIcons.warehouses, color: Color(0xFFCE93D8), reward: 50),
+    AchievementDef(id: 'warehouses_3', name: 'Сеть складов', description: 'Владеть 3 складами', category: 'infra', icon: AppIcons.warehouses, color: Color(0xFFCE93D8), reward: 100),
+    AchievementDef(id: 'first_driver', name: 'Первый водитель', description: 'Нанять первого водителя', category: 'infra', icon: AppIcons.person, color: Color(0xFFCE93D8), reward: 25),
+    AchievementDef(id: 'drivers_5', name: 'Команда', description: 'Нанять 5 водителей', category: 'infra', icon: AppIcons.groups, color: Color(0xFFCE93D8), reward: 100, tier: 2),
 
     // Level
-    AchievementDef(id: 'level_5', name: 'Растущая компания', description: 'Достичь 5-го уровня', category: 'level', icon: Icons.star, color: Color(0xFFFF9800), reward: 100, tier: 2),
-    AchievementDef(id: 'level_10', name: 'Лидер рынка', description: 'Достичь 10-го уровня', category: 'level', icon: Icons.star, color: Color(0xFFFF9800), reward: 300, tier: 3),
-    AchievementDef(id: 'reputation_max', name: 'Безупречная репутация', description: 'Достичь максимальной репутации', category: 'level', icon: Icons.verified, color: Color(0xFFFF9800), reward: 200, tier: 3),
+    AchievementDef(id: 'level_5', name: 'Растущая компания', description: 'Достичь 5-го уровня', category: 'level', icon: AppIcons.star, color: Color(0xFFFF9800), reward: 100, tier: 2),
+    AchievementDef(id: 'level_10', name: 'Лидер рынка', description: 'Достичь 10-го уровня', category: 'level', icon: AppIcons.star, color: Color(0xFFFF9800), reward: 300, tier: 3),
+    AchievementDef(id: 'reputation_max', name: 'Безупречная репутация', description: 'Достичь максимальной репутации', category: 'level', icon: AppIcons.verified, color: Color(0xFFFF9800), reward: 200, tier: 3),
   ];
 
   static AchievementDef? findAchievement(String id) {

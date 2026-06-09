@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:provider/provider.dart';
+import '../config/app_icons.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
@@ -15,6 +17,8 @@ import 'clan_screen.dart';
 import 'event_log_screen.dart';
 import 'market_screen.dart';
 import 'analytics_screen.dart';
+import '../widgets/sparkline.dart';
+import '../widgets/keyboard_shortcuts_overlay.dart';
 
 class Sidebar extends StatelessWidget {
   final VoidCallback onRefresh;
@@ -42,7 +46,7 @@ class Sidebar extends StatelessWidget {
               Container(
                 width: 32, height: 32,
                 decoration: BoxDecoration(color: const Color(0xFFF5C542).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.local_shipping, color: Color(0xFFF5C542), size: 18),
+                child: const Icon(AppIcons.truck, color: Color(0xFFF5C542), size: 18),
               ),
               const SizedBox(width: 10),
               const Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -57,20 +61,20 @@ class Sidebar extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 6),
               children: [
-                _navItem(Icons.description_outlined, 'Контракты', 'C', () => onOpenModal(const ContractsScreen()), badge: game.myContracts.isNotEmpty ? game.myContracts.length : null),
-                _navItem(Icons.local_shipping_outlined, 'Автопарк', 'F', () => onOpenModal(const FleetScreen()), badge: game.idleTrucks.isNotEmpty ? game.idleTrucks.length : null),
-                _navItem(Icons.people_outlined, 'Водители', 'D', () => onOpenModal(const DriversScreen())),
-                _navItem(Icons.warehouse_outlined, 'Филиалы', 'W', () => onOpenModal(const WarehousesScreen())),
-                _navItem(Icons.receipt_long_outlined, 'Финансы', 'T', () => onOpenModal(const TransactionsScreen())),
-                _navItem(Icons.history_outlined, 'Журнал', 'H', () => onOpenModal(const EventLogScreen())),
-                _navItem(Icons.store, 'Рынок', 'M', () => onOpenModal(const MarketScreen())),
+                _navItem(AppIcons.contractsOutlined, 'Контракты', 'C', () => onOpenModal(const ContractsScreen()), badge: game.myContracts.isNotEmpty ? game.myContracts.length : null),
+                _navItem(AppIcons.fleetOutlined, 'Автопарк', 'F', () => onOpenModal(const FleetScreen()), badge: game.idleTrucks.isNotEmpty ? game.idleTrucks.length : null),
+                _navItem(AppIcons.driversOutlined, 'Водители', 'D', () => onOpenModal(const DriversScreen())),
+                _navItem(AppIcons.warehousesOutlined, 'Филиалы', 'W', () => onOpenModal(const WarehousesScreen())),
+                _navItem(AppIcons.financesOutlined, 'Финансы', 'T', () => onOpenModal(const TransactionsScreen())),
+                _navItem(AppIcons.eventLogOutlined, 'Журнал', 'H', () => onOpenModal(const EventLogScreen())),
+                _navItem(AppIcons.marketOutlined, 'Рынок', 'M', () => onOpenModal(const MarketScreen())),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
-                _navItem(Icons.emoji_events_outlined, 'Рейтинг', 'L', () => onOpenModal(const LeaderboardScreen())),
-                _navItem(Icons.military_tech_outlined, 'Достижения', 'A', () => onOpenModal(const AchievementsScreen())),
-                _navItem(Icons.shield_outlined, 'Кланы', 'G', () => onOpenModal(const ClanScreen())),
-                _navItem(Icons.bar_chart, 'Аналитика', 'B', () => onOpenModal(const AnalyticsScreen())),
+                _navItem(AppIcons.leaderboardOutlined, 'Рейтинг', 'L', () => onOpenModal(const LeaderboardScreen())),
+                _navItem(AppIcons.achievementsOutlined, 'Достижения', 'A', () => onOpenModal(const AchievementsScreen())),
+                _navItem(AppIcons.clanOutlined, 'Кланы', 'G', () => onOpenModal(const ClanScreen())),
+                _navItem(AppIcons.analyticsOutlined, 'Аналитика', 'B', () => onOpenModal(const AnalyticsScreen())),
                 const Divider(height: 1, color: AppTheme.divider, indent: 12, endIndent: 12),
-                _navItem(Icons.settings_outlined, 'Настройки', null, () => onOpenModal(const SettingsScreen())),
+                _navItem(AppIcons.settingsOutlined, 'Настройки', null, () => onOpenModal(const SettingsScreen())),
               ],
             ),
           ),
@@ -94,7 +98,7 @@ class Sidebar extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(child: Text(company.name, style: AppTheme.labelSm, overflow: TextOverflow.ellipsis, maxLines: 1)),
                 IconButton(
-                  icon: const Icon(Icons.refresh, color: AppTheme.textMuted, size: 16),
+                  icon: const Icon(AppIcons.refresh, color: AppTheme.textMuted, size: 16),
                   tooltip: 'Обновить',
                   onPressed: onRefresh,
                   padding: EdgeInsets.zero,
@@ -109,6 +113,18 @@ class Sidebar extends StatelessWidget {
                 const Spacer(),
                 Text('Lv.${company.level}', style: AppTheme.monoSm.copyWith(color: const Color(0xFFF5C542))),
               ]),
+              const SizedBox(height: 8),
+              // 7-day earning sparkline
+              Row(children: [
+                const Text('За 7 дней', style: TextStyle(color: Color(0xFF666666), fontSize: 10)),
+                const Spacer(),
+                Sparkline(
+                  data: const [1200, 1850, 950, 2100, 1650, 2300, 1900],
+                  width: 80,
+                  height: 20,
+                  color: const Color(0xFF66BB6A),
+                ),
+              ]),
             ]),
           ),
 
@@ -120,7 +136,7 @@ class Sidebar extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () async { await auth.logout(); },
-                icon: const Icon(Icons.logout, color: AppTheme.red, size: 16),
+                icon: const Icon(AppIcons.logOut, color: AppTheme.red, size: 16),
                 label: const Text('Выйти', style: TextStyle(color: AppTheme.red)),
                 style: OutlinedButton.styleFrom(side: BorderSide(color: AppTheme.red.withOpacity(0.3))),
               ),
@@ -157,14 +173,25 @@ class Sidebar extends StatelessWidget {
                 )),
                 const Spacer(),
                 if (badge != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5C542).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.4), width: 0.5),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 1.2, end: 1.0),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                    builder: (context, scale, child) {
+                      return Transform.scale(
+                        scale: scale,
+                        child: child,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5C542).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFF5C542).withOpacity(0.4), width: 0.5),
+                      ),
+                      child: Text('$badge', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 10, fontWeight: FontWeight.w700)),
                     ),
-                    child: Text('$badge', style: const TextStyle(color: Color(0xFFF5C542), fontSize: 10, fontWeight: FontWeight.w700)),
                   ),
                 if (shortcut != null)
                   Container(
@@ -184,21 +211,21 @@ class Sidebar extends StatelessWidget {
   }
 
   static IconData _iconDataFromName(String name) => switch (name) {
-    'local_shipping' => Icons.local_shipping,
-    'star' => Icons.star,
-    'lightning' => Icons.lightning,
-    'shield' => Icons.shield,
-    'rocket' => Icons.rocket,
-    'crown' => Icons.crown,
-    'diamond' => Icons.diamond,
-    'public' => Icons.public,
-    'anchor' => Icons.anchor,
-    'eco' => Icons.eco,
-    'local_fire_department' => Icons.local_fire_department,
-    'bolt' => Icons.bolt,
-    'settings' => Icons.settings,
-    'flag' => Icons.flag,
-    'favorite' => Icons.favorite,
-    _ => Icons.local_shipping,
+    'local_shipping' => AppIcons.truck,
+    'star' => AppIcons.star,
+    'lightning' => AppIcons.lightning,
+    'shield' => AppIcons.shield,
+    'rocket' => AppIcons.rocket,
+    'crown' => AppIcons.crown,
+    'diamond' => AppIcons.diamond,
+    'public' => AppIcons.public,
+    'anchor' => AppIcons.anchor,
+    'eco' => AppIcons.eco,
+    'local_fire_department' => AppIcons.fire,
+    'bolt' => AppIcons.bolt,
+    'settings' => AppIcons.settings,
+    'flag' => AppIcons.flag,
+    'favorite' => AppIcons.heart,
+    _ => AppIcons.truck,
   };
 }
