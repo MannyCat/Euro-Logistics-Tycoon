@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:latlong2/latlong.dart';
@@ -223,15 +222,18 @@ class _GameMapState extends State<GameMap> {
   Widget build(BuildContext context) {
     return Listener(
       onPointerSignal: (event) {
-        if (event is PointerScrollEvent) {
-          // Scroll wheel zoom: zoom toward cursor position
-          final delta = event.scrollDelta.dy > 0 ? -0.5 : 0.5;
+        // Scroll wheel zoom: zoom toward cursor position
+        try {
+          final dynamic e = event;
+          final Offset scrollDelta = e.scrollDelta;
+          final Offset position = e.localPosition;
+          final delta = scrollDelta.dy > 0 ? -0.5 : 0.5;
           final oldZoom = _camera.zoom;
-          widget.controller.zoomAtPoint(event.localPosition, delta, MediaQuery.of(context).size);
+          widget.controller.zoomAtPoint(position, delta, MediaQuery.of(context).size);
           if (_camera.zoom != oldZoom) {
             setState(() {});
           }
-        }
+        } catch (_) { /* not a scroll event */ }
       },
       child: GestureDetector(
         onScaleStart: _handleScaleStart,
