@@ -134,6 +134,7 @@ class AppIcons {
   // ===== MISC =====
   static const IconData menu = Icons.menu;
   static const IconData logout = Icons.logout_outlined;
+  static const IconData logOut = Icons.logout_outlined;
   static const IconData inventory = Icons.inventory_2_outlined;
   static const IconData scheduleIcon = Icons.schedule;
   static const IconData bolt = Icons.bolt;
@@ -174,7 +175,7 @@ class AppIcons {
   static const IconData localFireDepartment = Icons.local_fire_department_outlined;
   static const IconData inventory2 = Icons.inventory_2_outlined;
   static const IconData addCircleFill = Icons.add_circle;
-  static const IconData scrollText = Icons.scrollText;
+  static const IconData scrollText = Icons.article_outlined;
   static const IconData store = Icons.store;
   static const IconData barChart3 = Icons.bar_chart;
   static const IconData cloudFog = Icons.foggy;
@@ -191,4 +192,9 @@ class AppIcons {
   static const IconData building = Icons.business;
   static const IconData building2 = Icons.business;
   static const IconData landmap = Icons.map;
+
+  // ===== ALIASES (added for compatibility) =====
+  static const IconData refreshCw = Icons.refresh;
+  static const IconData schedule = Icons.schedule;
+  static const IconData outBack = Icons.arrow_back;
 }

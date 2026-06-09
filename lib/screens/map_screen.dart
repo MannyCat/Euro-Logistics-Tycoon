@@ -784,7 +784,7 @@ class MapScreenState extends State<MapScreen> {
                               setState(() => _eventBannerDismissed = true);
                               _eventBannerTimer?.cancel();
                             },
-                            onShowDetails: (event) => _showEventDetailsDialog(event),
+                            onShowDetails: (event) => _showEventDetailsDialog(context, event),
                           ),
                       ],
                     ),
@@ -884,7 +884,6 @@ class MapScreenState extends State<MapScreen> {
       ),
       ),
       ),
-      ),
     );
   }
 
@@ -932,9 +931,8 @@ class MapScreenState extends State<MapScreen> {
       ),
     ),
   );
-}
 
-  void _showEventDetailsDialog(SeasonalEvent event) {
+  void _showEventDetailsDialog(BuildContext context, SeasonalEvent event) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.6),

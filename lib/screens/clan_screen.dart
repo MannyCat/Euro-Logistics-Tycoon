@@ -747,8 +747,7 @@ class _ClanChatSectionState extends State<_ClanChatSection> {
                   controller: _msgCtrl,
                   style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 13),
                   maxLength: 500,
-                  maxLengthEnforcement: MaxLengthEnforcement.truncateAfterCompositionEnds,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Написать сообщение...',
                     hintStyle: TextStyle(color: Color(0xFF666666), fontSize: 12),
                     border: OutlineInputBorder(
@@ -948,7 +947,7 @@ class _ClanMissionsTab extends StatelessWidget {
                 label: const Text('Сгенерировать', style: TextStyle(fontSize: 11)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFF5C542),
-                  side: const BorderSide(color: Color(0xFFF5C542).withOpacity(0.4)),
+                  side: BorderSide(color: const Color(0xFFF5C542).withOpacity(0.4)),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   minimumSize: Size.zero,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),

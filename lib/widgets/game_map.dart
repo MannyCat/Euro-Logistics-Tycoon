@@ -147,7 +147,7 @@ class _GameMapState extends State<GameMap> {
       _dragCenterStart = _camera.center;
     } else if (details.pointerCount >= 2) {
       _pinchZoomBase = _camera.zoom;
-      _pinchScaleStart = details.scale;
+      _pinchScaleStart = 1.0;
     }
   }
 
@@ -205,8 +205,8 @@ class _GameMapState extends State<GameMap> {
     }
 
     // Tapped on empty map area
-    final lat = _camera.center.latitude - (tapPos.dy - size!.height / 2) / scale;
-    final lng = _camera.center.longitude + (tapPos.dx - size!.width / 2) / scale;
+    final lat = _camera.center.latitude - (tapPos.dy - size.height / 2) / scale;
+    final lng = _camera.center.longitude + (tapPos.dx - size.width / 2) / scale;
     widget.onMapTap?.call(tapPos, LatLng(lat, lng));
   }
 

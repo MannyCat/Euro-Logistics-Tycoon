@@ -1450,7 +1450,7 @@ class _SellDialog extends StatelessWidget {
                     Text(GameConstants.formatMoney(sellPrice), style: const TextStyle(color: Color(0xFFEF5350), fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
                   ]),
                   const SizedBox(height: 4),
-                  const Text('Мгновенно, ${(GameConstants.sellBackRatio * 100).toInt()}% от стоимости', style: TextStyle(color: Color(0xFF888888), fontSize: 11)),
+                  Text('Мгновенно, ${(GameConstants.sellBackRatio * 100).toInt()}% от стоимости', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
                 ],
               ),
             ),
@@ -1549,9 +1549,9 @@ class _FleetTable extends StatelessWidget {
           horizontalMargin: 8,
           headingRowHeight: 32,
           dataRowHeight: 36,
-          headingRowColor: MaterialStateProperty.all(const Color(0xFF252525)),
-          dataRowColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) return const Color(0xFF2A2A2A);
+          headingRowColor: WidgetStateProperty.all(const Color(0xFF252525)),
+          dataRowColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return const Color(0xFF2A2A2A);
             return const Color(0xFF1E1E1E);
           }),
           border: TableBorder(
@@ -1639,10 +1639,10 @@ class _FleetTable extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _quickAction(AppIcons.fuel, 'Заправить', const Color(0xFF42A5F5)),
-                _quickAction(AppIcons.wrench, 'Ремонт', const Color(0xFFF5C542)),
-                _quickAction(AppIcons.upgrade, 'Улучшить', const Color(0xFFCE93D8)),
-                _quickAction(AppIcons.sell, 'Продать', const Color(0xFFEF5350)),
+                _quickAction(context, AppIcons.fuel, 'Заправить', const Color(0xFF42A5F5)),
+                _quickAction(context, AppIcons.wrench, 'Ремонт', const Color(0xFFF5C542)),
+                _quickAction(context, AppIcons.upgrade, 'Улучшить', const Color(0xFFCE93D8)),
+                _quickAction(context, AppIcons.sell, 'Продать', const Color(0xFFEF5350)),
               ],
             ),
             const SizedBox(height: 16),
@@ -1652,7 +1652,7 @@ class _FleetTable extends StatelessWidget {
     );
   }
 
-  Widget _quickAction(IconData icon, String label, Color color) {
+  Widget _quickAction(BuildContext context, IconData icon, String label, Color color) {
     return InkWell(
       onTap: () { Navigator.pop(context); },
       borderRadius: BorderRadius.circular(8),

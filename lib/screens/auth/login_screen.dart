@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../config/app_icons.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -60,7 +59,7 @@ class _LoginFormState extends State<_LoginForm> {
       const SizedBox(height: 12),
       TextField(controller: _passCtrl, obscureText: _obscure, decoration: InputDecoration(
         labelText: 'Пароль', prefixIcon: const Icon(AppIcons.locked),
-        suffixIcon: IconButton(icon: Icon(_obscure ? LucideIcons.eyeOff : LucideIcons.eye), onPressed: () => setState(() => _obscure = !_obscure)),
+        suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure)),
       )),
       const SizedBox(height: 20),
 

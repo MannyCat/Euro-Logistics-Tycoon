@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
 import '../config/app_icons.dart';
+import '../models/company.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -552,7 +553,7 @@ class _PrestigeSection extends StatelessWidget {
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFFEF5350).withOpacity(0.5), width: 1.5),
+          side: BorderSide(color: const Color(0xFFEF5350).withOpacity(0.5), width: 1.5),
         ),
         title: const Row(
           children: [
