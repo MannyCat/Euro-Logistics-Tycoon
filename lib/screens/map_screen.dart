@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
@@ -17,6 +18,7 @@ import 'fleet_screen.dart';
 import 'drivers_screen.dart';
 import 'warehouses_screen.dart';
 import 'transactions_screen.dart';
+import 'settings_screen.dart';
 import '../config/game_constants.dart';
 import '../config/ferry_routes.dart';
 import '../utils/pathfinder.dart';
@@ -26,18 +28,32 @@ import 'clan_screen.dart';
 import 'event_log_screen.dart';
 import '../widgets/achievement_toast.dart';
 import '../widgets/tutorial_overlay.dart';
-import '../widgets/game_map.dart';
-import '../widgets/game_map_painter.dart';
+import '../widgets/map_markers.dart';
 import 'market_screen.dart';
 import 'analytics_screen.dart';
 import '../models/seasonal_event.dart';
 import '../config/app_icons.dart';
+import '../config/map_config.dart';
 import '../config/country_boundaries.dart';
+import '../widgets/country_flag.dart';
 import '../widgets/notification_panel.dart';
 import '../widgets/context_pane.dart';
 import '../widgets/skeleton_loader.dart';
 import '../widgets/keyboard_shortcuts_overlay.dart';
 import '../widgets/delivery_timeline.dart';
+
+/// Tile builder that darkens label tiles for subtler text overlay
+Widget darkLabelTileBuilder(BuildContext context, Widget tile, TileLayer layer) {
+  return ColorFiltered(
+    colorFilter: const ColorFilter.matrix([
+      0.5, 0, 0, 0, 0,
+      0, 0.5, 0, 0, 0,
+      0, 0, 0.5, 0, 0,
+      0, 0, 0, 0.7, 0,
+    ]),
+    child: tile,
+  );
+}
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
@@ -71,7 +87,7 @@ class MapScreen extends StatefulWidget {
 }
 
 class MapScreenState extends State<MapScreen> {
-  final GameMapController _mapController = GameMapController();
+  final MapController _mapController = MapController();
   Timer? _refreshTimer;
   Timer? _contractGenTimer;
   Timer? _truckAnimTimer;
@@ -311,48 +327,47 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
-  /// Build road edges for the custom painter (excluding ferry connections).
-  List<RoadEdge> _buildRoadEdges(GameProvider game) {
-    final edges = <RoadEdge>[];
+  /// Build road network polylines (excluding ferry connections).
+  List<Polyline> _buildRoadNetwork(GameProvider game) {
+    final roads = <Polyline>[];
     final cityMap = <int, City>{};
     for (final c in game.cities) { cityMap[c.id] = c; }
     for (final pair in _roadNetwork) {
-      // Skip ferry connections — they are drawn separately
+      // Skip ferry connections — they are drawn separately as dashed lines
       if (FerryRoutes.isFerryRoute(pair[0], pair[1])) continue;
       final a = cityMap[pair[0]];
       final b = cityMap[pair[1]];
       if (a == null || b == null) continue;
-      edges.add(RoadEdge(
-        from: LatLng(a.latitude, a.longitude),
-        to: LatLng(b.latitude, b.longitude),
+      roads.add(Polyline(
+        points: [LatLng(a.latitude, a.longitude), LatLng(b.latitude, b.longitude)],
+        color: const Color(0xFF8B9A46).withOpacity(0.55),
+        strokeWidth: 2.5,
+        borderStrokeWidth: 4.0,
+        borderColor: const Color(0xFF37474F).withOpacity(0.5),
       ));
     }
-    return edges;
+    return roads;
   }
 
-  /// Build ferry edges for the custom painter.
-  List<FerryEdgeData> _buildFerryEdges(GameProvider game) {
-    final edges = <FerryEdgeData>[];
-    final cityMap = <int, City>{};
-    for (final c in game.cities) { cityMap[c.id] = c; }
+  /// Build ferry route polylines (dashed cyan lines across water).
+  List<Polyline> _buildFerryPolylines() {
+    final polylines = <Polyline>[];
     for (final route in FerryRoutes.all) {
-      final fromCity = cityMap[route.fromCityId];
-      final toCity = cityMap[route.toCityId];
-      if (fromCity == null || toCity == null) continue;
-      edges.add(FerryEdgeData(
-        from: LatLng(fromCity.latitude, fromCity.longitude),
-        to: LatLng(toCity.latitude, toCity.longitude),
-        waypoints: route.waypoints,
-        name: route.name,
-        seaName: route.seaName,
+      polylines.add(Polyline(
+        points: route.waypoints,
+        color: const Color(0xFF29B6F6).withOpacity(0.6),
+        strokeWidth: 2.0,
+        borderStrokeWidth: 3.0,
+        borderColor: const Color(0xFF29B6F6).withOpacity(0.3),
+        pattern: const StrokePattern.dashed(segments: [8, 6]),
+        borderPattern: const StrokePattern.dashed(segments: [8, 6]),
       ));
     }
-    return edges;
+    return polylines;
   }
 
-  /// Build route segments for the custom painter.
-  List<RouteSegment> _buildRouteSegments(GameProvider game) {
-    final segments = <RouteSegment>[];
+  List<Polyline> _buildTruckRoutes(GameProvider game) {
+    final routes = <Polyline>[];
     for (final truck in game.transitTrucks) {
       final origin = truck.originCityId != null ? game.getCityById(truck.originCityId!) : null;
       final dest = truck.destinationCityId != null ? game.getCityById(truck.destinationCityId!) : null;
@@ -364,21 +379,21 @@ class MapScreenState extends State<MapScreen> {
         // Fallback: draw direct line
         final pos = _getTruckPosition(truck, game);
         final truckPos = pos ?? LatLng(origin.latitude, origin.longitude);
-        if (truckPos != const LatLng(0, 0)) {
-          segments.add(RouteSegment(
-            points: [LatLng(origin.latitude, origin.longitude), truckPos],
-            isTraveled: true,
-            color: const Color(0xFFF5C542),
-            borderColor: const Color(0xFFD4A017).withOpacity(0.7),
-          ));
-          final pulse = 0.3 + 0.1 * math.sin(DateTime.now().millisecondsSinceEpoch / 500);
-          segments.add(RouteSegment(
-            points: [truckPos, LatLng(dest.latitude, dest.longitude)],
-            isTraveled: false,
-            color: const Color(0xFFF5C542).withOpacity(pulse),
-            borderColor: const Color(0xFFD4A017).withOpacity(pulse * 0.7),
-          ));
-        }
+        routes.add(Polyline(
+          points: [LatLng(origin.latitude, origin.longitude), truckPos],
+          color: const Color(0xFFF5C542),
+          strokeWidth: 4.5,
+          borderStrokeWidth: 2.0,
+          borderColor: const Color(0xFFD4A017).withOpacity(0.7),
+        ));
+        final pulse = 0.3 + 0.1 * math.sin(DateTime.now().millisecondsSinceEpoch / 500);
+        routes.add(Polyline(
+          points: [truckPos, LatLng(dest.latitude, dest.longitude)],
+          color: const Color(0xFFF5C542).withOpacity(pulse),
+          strokeWidth: 3.0,
+          borderStrokeWidth: 1.5,
+          borderColor: const Color(0xFFD4A017).withOpacity(pulse * 0.7),
+        ));
         continue;
       }
 
@@ -399,10 +414,11 @@ class MapScreenState extends State<MapScreen> {
         truckPos,
       ];
       if (traveledPoints.length >= 2) {
-        segments.add(RouteSegment(
+        routes.add(Polyline(
           points: traveledPoints,
-          isTraveled: true,
           color: const Color(0xFFF5C542),
+          strokeWidth: 4.5,
+          borderStrokeWidth: 2.0,
           borderColor: const Color(0xFFD4A017).withOpacity(0.7),
         ));
       }
@@ -414,15 +430,65 @@ class MapScreenState extends State<MapScreen> {
       ];
       if (remainingPoints.length >= 2) {
         final pulse = 0.3 + 0.1 * math.sin(DateTime.now().millisecondsSinceEpoch / 500);
-        segments.add(RouteSegment(
+        routes.add(Polyline(
           points: remainingPoints,
-          isTraveled: false,
           color: const Color(0xFFF5C542).withOpacity(pulse),
+          strokeWidth: 3.0,
+          borderStrokeWidth: 1.5,
           borderColor: const Color(0xFFD4A017).withOpacity(pulse * 0.7),
         ));
       }
     }
-    return segments;
+    return routes;
+  }
+
+  /// Builds subtle country shading polygons from CountryBoundaries data.
+  /// Each country occupied by an in-game city gets a semi-transparent fill.
+  List<Polygon> _buildCountryShading(GameProvider game) {
+    final polygons = <Polygon>[];
+    // Collect unique countries present in the game's city list.
+    final seenCountries = <String>{};
+    for (final city in game.cities) {
+      if (seenCountries.add(city.country.toLowerCase())) {
+        final verts = CountryBoundaries.polygonFor(city.country);
+        final color = CountryBoundaries.colorFor(city.country);
+        if (verts != null && color != null) {
+          polygons.add(Polygon(
+            points: verts,
+            color: color.withOpacity(0.35),
+            borderColor: color.withOpacity(0.5),
+            borderStrokeWidth: 1.0,
+            isFilled: true,
+          ));
+        }
+      }
+    }
+    return polygons;
+  }
+
+  void _showEventDetailsDialog(BuildContext context, SeasonalEvent event) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.6),
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: const Color(0xFFF5C542).withOpacity(0.3)),
+        ),
+        title: Text(event.title, style: const TextStyle(color: Color(0xFFF5C542), fontWeight: FontWeight.w700)),
+        content: Text(
+          event.description,
+          style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Закрыть', style: TextStyle(color: Color(0xFF999999))),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -575,68 +641,132 @@ class MapScreenState extends State<MapScreen> {
             Expanded(
               child: Stack(
                 children: [
-                  // Custom Canvas-based game map
-                  Builder(
-                    builder: (context) {
-                      final painterData = GameMapPainterData(
-                        cityMarkers: game.cities.map((city) {
-                          final hasWarehouse = game.myWarehouses.any((w) => w.cityId == city.id);
-                          final hasGarage = game.hasGarageInCity(city.id);
-                          final hasTruck = game.myTrucks.any((t) => t.currentCityId == city.id && t.isIdle);
-                          return CityMarkerData(
-                            cityId: '${city.id}',
-                            position: LatLng(city.latitude, city.longitude),
-                            hasWarehouse: hasWarehouse,
-                            hasGarage: hasGarage,
-                            hasTruck: hasTruck,
-                            isSelected: _selectedCityId == city.id,
-                            hasFerryPort: FerryRoutes.portCityIds.contains(city.id),
-                            cityName: city.name,
-                            countryCode: city.countryCode,
-                          );
-                        }).toList(),
-                        truckMarkers: game.myTrucks.map((truck) {
-                          final pos = _getTruckPosition(truck, game);
-                          if (pos == null) return const TruckMarkerData(truckId: '', position: LatLng(0, 0));
-                          final isDistressed = truck.fuelLevel < truck.maxFuel * 0.15 || truck.condition < 20;
-                          final heading = _calcHeading(truck, game);
-                          return TruckMarkerData(
-                            truckId: truck.id,
-                            position: pos,
-                            isIdle: truck.isIdle,
-                            isDistressed: isDistressed,
-                            isLoading: truck.status == 'loading',
-                            heading: heading,
-                          );
-                        }).where((tm) => tm.position != const LatLng(0, 0)).toList(),
-                        roads: _buildRoadEdges(game),
-                        ferryEdges: _buildFerryEdges(game),
-                        routes: _buildRouteSegments(game),
-                        countryNames: game.cities.map((c) => c.country).toSet(),
-                      );
-                      return Container(
-                        color: const Color(0xFF1A1A1A),
-                        child: GameMap(
-                          controller: _mapController,
-                          painterData: painterData,
-                          onCityTap: (cityId) {
-                            final city = game.getCityById(int.parse(cityId));
-                            if (city != null) _onCityTap(city);
-                          },
-                          onTruckTap: (truckId) {
-                            final truck = game.myTrucks.firstWhere((t) => t.id == truckId);
-                            if (truck.isIdle && truck.currentCityId != null) {
-                              setState(() { _selectedTruck = null; _onCityTap(game.getCityById(truck.currentCityId!)!); });
-                            } else {
-                              setState(() { _selectedCityId = null; _selectedTruck = truck; });
-                            }
-                          },
-                          onMapTap: (_, __) => setState(() { _selectedCityId = null; _selectedTruck = null; }),
-                          minZoom: 1.2,
-                          maxZoom: 18,
+                  // Dark background behind map tiles (prevents white flash)
+                  Container(
+                    color: const Color(0xFF1A1A1A),
+                    child: FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        initialCenter: const LatLng(50, 10),
+                        initialZoom: 4,
+                        minZoom: 3,
+                        maxZoom: 18,
+                        interactionOptions: const InteractionOptions(
+                          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                         ),
-                      );
-                    },
+                        onTap: (_, __) => setState(() { _selectedCityId = null; _selectedTruck = null; }),
+                      ),
+                      children: [
+                        // Dark map tiles (configurable via MapConfig)
+                        TileLayer(
+                          urlTemplate: MapConfig.baseTileUrl,
+                          userAgentPackageName: MapConfig.userAgent,
+                          retinaMode: MapConfig.retinaMode,
+                        ),
+                        if (MapConfig.useSeparateLabels)
+                          TileLayer(
+                            urlTemplate: MapConfig.labelTileUrl,
+                            userAgentPackageName: MapConfig.userAgent,
+                            retinaMode: MapConfig.retinaMode,
+                            tileBuilder: darkLabelTileBuilder,
+                          ),
+                        // Country shading polygons
+                        PolygonLayer(
+                          polygons: _buildCountryShading(game),
+                        ),
+                        PolylineLayer(polylines: _buildRoadNetwork(game)),
+                        PolylineLayer(polylines: _buildFerryPolylines()),
+                        PolylineLayer(polylines: _buildTruckRoutes(game)),
+
+                        // City markers
+                        MarkerLayer(
+                          markers: game.cities.map((city) {
+                            final hasWarehouse = game.myWarehouses.any((w) => w.cityId == city.id);
+                            final hasGarage = game.hasGarageInCity(city.id);
+                            final hasTruck = game.myTrucks.any((t) => t.currentCityId == city.id && t.isIdle);
+                            return Marker(
+                              point: LatLng(city.latitude, city.longitude),
+                              width: 48,
+                              height: 48,
+                              child: CityMarker(
+                                hasWarehouse: hasWarehouse,
+                                hasGarage: hasGarage,
+                                hasTruck: hasTruck,
+                                isSelected: _selectedCityId == city.id,
+                                onTap: () => _onCityTap(city),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+
+                        // City labels with country flags
+                        MarkerLayer(
+                          markers: game.cities.map((city) {
+                            return Marker(
+                              point: LatLng(city.latitude, city.longitude),
+                              width: 130, height: 22,
+                              child: Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Transform.translate(
+                                  offset: const Offset(0, -12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A1A1A).withOpacity(0.75),
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        CountryFlag(countryCode: city.countryCode, size: 12),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          city.name,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Color(0xFFD0D0D0),
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.8,
+                                            shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1))],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+
+                        // Truck markers
+                        MarkerLayer(
+                          markers: [
+                            ...game.myTrucks.map((truck) {
+                              final pos = _getTruckPosition(truck, game);
+                              if (pos == null) return const Marker(point: LatLng(0, 0), width: 0, height: 0, child: SizedBox());
+                              final isDistressed = truck.fuelLevel < truck.maxFuel * 0.15 || truck.condition < 20;
+                              final heading = _calcHeading(truck, game);
+                              return Marker(
+                                point: pos,
+                                width: 36,
+                                height: 36,
+                                child: TruckMarker(
+                                  isIdle: truck.isIdle,
+                                  isDistressed: isDistressed,
+                                  isLoading: truck.status == 'loading',
+                                  heading: heading,
+                                  onTap: truck.isIdle
+                                      ? () => setState(() { _selectedTruck = null; _onCityTap(game.getCityById(truck.currentCityId!)!); })
+                                      : () => setState(() { _selectedCityId = null; _selectedTruck = truck; }),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
 
                   // ===== WEATHER OVERLAY =====
@@ -841,7 +971,7 @@ class MapScreenState extends State<MapScreen> {
                           _hudDivider(),
                           _hudItem(AppIcons.weatherIcon, GameConstants.weatherLabel.split(' ').last, GameConstants.weatherColor),
                           _hudDivider(),
-                          _hudItem(AppIcons.fuel, '${GameConstants.currentFuelPricePerLiter.toStringAsFixed(1)}', 
+                          _hudItem(AppIcons.fuel, '${GameConstants.currentFuelPricePerLiter.toStringAsFixed(1)}',
                             GameConstants.currentFuelPricePerLiter > 1.8 ? const Color(0xFFEF5350) : const Color(0xFF66BB6A)),
                         ],
                       ),
@@ -880,6 +1010,7 @@ class MapScreenState extends State<MapScreen> {
             ),
           ],
         ),
+      ),
       ),
       ),
       ),
@@ -931,31 +1062,6 @@ class MapScreenState extends State<MapScreen> {
       ),
     ),
   );
-
-  void _showEventDetailsDialog(BuildContext context, SeasonalEvent event) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.6),
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: const Color(0xFFF5C542).withOpacity(0.3)),
-        ),
-        title: Text(event.title, style: const TextStyle(color: Color(0xFFF5C542), fontWeight: FontWeight.w700)),
-        content: Text(
-          event.description,
-          style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Закрыть', style: TextStyle(color: Color(0xFF999999))),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ===== SEASONAL EVENT BANNER =====
@@ -1266,48 +1372,20 @@ class _TruckInfoPopup extends StatelessWidget {
               ),
             ])),
           ]),
-
-          // Distressed warning
-          if (isDistressed) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF5350).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.25)),
-              ),
-              child: Row(children: [
-                const Icon(AppIcons.warning, size: 14, color: Color(0xFFEF5350)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    truck.fuelLevel < truck.maxFuel * 0.15 && truck.condition < 20
-                        ? 'Низкое топливо и плохое состояние!'
-                        : truck.fuelLevel < truck.maxFuel * 0.15
-                            ? 'Мало топлива — заправьте грузовик!'
-                            : 'Плохое состояние — отремонтируйте!',
-                    style: const TextStyle(color: Color(0xFFEF5350), fontSize: 11, fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ]),
-            ),
-          ],
         ],
       ),
     );
   }
-
-  double _calcProgress(Truck truck) {
-    if (truck.estimatedArrival != null && truck.departureTime != null) {
-      final total = truck.estimatedArrival!.difference(truck.departureTime!).inSeconds;
-      if (total > 0) {
-        final elapsed = DateTime.now().difference(truck.departureTime!).inSeconds;
-        return (elapsed / total).clamp(0.0, 1.0);
-      }
-    }
-    return 0.0;
-  }
 }
 
+/// Top-level helper so it can be used inside the private _TruckInfoPopup widget.
+double _calcProgress(Truck truck) {
+  if (truck.estimatedArrival != null && truck.departureTime != null) {
+    final total = truck.estimatedArrival!.difference(truck.departureTime!).inSeconds;
+    if (total > 0) {
+      final elapsed = DateTime.now().difference(truck.departureTime!).inSeconds;
+      return (elapsed / total).clamp(0.0, 1.0);
+    }
+  }
+  return 0.0;
+}
