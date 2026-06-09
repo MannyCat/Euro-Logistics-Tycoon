@@ -190,16 +190,36 @@ class GameConstants {
 
   // ===== SUPPLY / DEMAND =====
   static const Map<int, Map<String, double>> cityCargoDemand = {
-    2: {'Electronics': 1.3, 'Machinery': 1.2},
-    6: {'Building Materials': 1.25, 'Machinery': 1.2},
-    1: {'FMCG': 1.2, 'Electronics': 1.15},
-    4: {'Food': 1.3, 'FMCG': 1.2},
-    3: {'Chemicals': 1.3, 'Machinery': 1.2},
-    9: {'Fashion': 1.2},
-    7: {'Building Materials': 1.2, 'Food': 1.15},
-    11: {'Food': 1.2, 'FMCG': 1.15},
-    12: {'Machinery': 1.25},
-    13: {'Food': 1.3, 'Building Materials': 1.15},
+    1: {'FMCG': 1.2, 'Electronics': 1.15, 'Fashion': 1.1},       // London
+    2: {'Electronics': 1.3, 'Machinery': 1.2, 'Fashion': 1.15},    // Paris
+    3: {'Chemicals': 1.3, 'Machinery': 1.2, 'Automotive': 1.15},  // Berlin
+    4: {'Food': 1.3, 'FMCG': 1.2, 'Perishable': 1.15},          // Amsterdam
+    5: {'FMCG': 1.15, 'Fashion': 1.2},                          // Brussels
+    6: {'Building Materials': 1.25, 'Machinery': 1.2},           // Frankfurt
+    7: {'Building Materials': 1.2, 'Food': 1.15, 'Pharmaceutical': 1.1}, // Zurich
+    8: {'Food': 1.15, 'Perishable': 1.2, 'Fashion': 1.15},      // Madrid
+    9: {'Fashion': 1.2, 'Pharmaceutical': 1.1, 'Food': 1.1},    // Rome
+    10: {'Building Materials': 1.15, 'Machinery': 1.2},           // Warsaw
+    11: {'Food': 1.2, 'FMCG': 1.15, 'Pharmaceutical': 1.1},      // Vienna
+    12: {'Machinery': 1.25, 'Automotive': 1.15},                 // Prague
+    13: {'Food': 1.3, 'Building Materials': 1.15, 'Perishable': 1.1}, // Budapest
+    14: {'Automotive': 1.2, 'Machinery': 1.15, 'Electronics': 1.1}, // Stockholm
+    15: {'Seafood': 1.2, 'Food': 1.15},                         // Oslo
+    16: {'Food': 1.15, 'Perishable': 1.2},                      // Hamburg
+    17: {'Automotive': 1.25, 'Electronics': 1.2, 'Machinery': 1.15}, // Munich
+    18: {'Food': 1.2, 'Perishable': 1.15, 'Pharmaceutical': 1.1}, // Lyon
+    19: {'Fashion': 1.2, 'Electronics': 1.15, 'Food': 1.1},    // Barcelona
+    20: {'Fashion': 1.3, 'Electronics': 1.2, 'Automotive': 1.15}, // Milan
+    21: {'Food': 1.15, 'Perishable': 1.2, 'FMCG': 1.1},       // Copenhagen
+    22: {'Pharmaceutical': 1.2, 'Electronics': 1.15, 'FMCG': 1.1}, // Dublin
+    23: {'Building Materials': 1.15, 'Machinery': 1.2},          // Bucharest
+    24: {'Food': 1.15, 'Perishable': 1.1},                     // Sofia
+    25: {'Building Materials': 1.2, 'Machinery': 1.15},           // Belgrade
+    26: {'Food': 1.1, 'FMCG': 1.15},                          // Zagreb
+    27: {'Electronics': 1.15, 'Automotive': 1.1},               // Helsinki
+    28: {'Food': 1.2, 'Perishable': 1.15, 'Fashion': 1.1},      // Athens
+    29: {'Electronics': 1.2, 'Fashion': 1.15, 'FMCG': 1.2},   // Istanbul
+    30: {'Food': 1.15, 'Perishable': 1.2, 'Chemicals': 1.1},   // Marseille
   };
 
   /// Get demand multiplier for cargo type at destination city
@@ -264,13 +284,30 @@ class GameConstants {
   }
 
   static const List<TruckTypeInfo> truckTypes = [
-    TruckTypeInfo(type: 'light', name: 'Mercedes Actros L', price: 80000, speed: 85, fuel: 120, capacity: 12, icon: '🚚'),
-    TruckTypeInfo(type: 'medium', name: 'Volvo FH16', price: 150000, speed: 80, fuel: 200, capacity: 22, icon: '🚛'),
-    TruckTypeInfo(type: 'heavy', name: 'Scania R730', price: 250000, speed: 75, fuel: 300, capacity: 30, icon: '🚚'),
-    TruckTypeInfo(type: 'special', name: 'MAN TGX 41.680', price: 400000, speed: 70, fuel: 400, capacity: 44, icon: '🚛'),
+    TruckTypeInfo(type: 'micro', name: 'Renault Master', price: 45000, speed: 90, fuel: 80, capacity: 6, icon: '🚐', desc: 'Малый фургон — быстрые доставки по городу'),
+    TruckTypeInfo(type: 'light', name: 'Mercedes Actros L', price: 80000, speed: 85, fuel: 120, capacity: 12, icon: '🚚', desc: 'Лёгкий грузовик — короткие маршруты'),
+    TruckTypeInfo(type: 'medium', name: 'Volvo FH16', price: 150000, speed: 80, fuel: 200, capacity: 22, icon: '🚛', desc: 'Средний грузовик — стандартные рейсы'),
+    TruckTypeInfo(type: 'heavy', name: 'Scania R730', price: 250000, speed: 75, fuel: 300, capacity: 30, icon: '🚚', desc: 'Тяжёлый грузовик — длинные маршруты'),
+    TruckTypeInfo(type: 'express', name: 'Mercedes Actros F', price: 320000, speed: 95, fuel: 250, capacity: 16, icon: '🚀', desc: 'Экспресс — высокая скорость, малая грузоподъёмность'),
+    TruckTypeInfo(type: 'special', name: 'MAN TGX 41.680', price: 400000, speed: 70, fuel: 400, capacity: 44, icon: '🚛', desc: 'Спецтранспорт — крупногабаритные грузы'),
+    TruckTypeInfo(type: 'oversized', name: 'Volvo FH16 750', price: 500000, speed: 60, fuel: 500, capacity: 55, icon: '🏗️', desc: 'Сверхтяжёлый — максимальная грузоподъёмность'),
+    TruckTypeInfo(type: 'refrigerated', name: 'Scania R450', price: 280000, speed: 78, fuel: 280, capacity: 20, icon: '❄️', desc: 'Рефрижератор — скоропортящиеся грузы (+20% оплата)'),
   ];
 
-  static const List<String> cargoTypes = ['FMCG', 'Machinery', 'Food', 'Electronics', 'Building Materials', 'Chemicals'];
+  static const List<String> cargoTypes = ['FMCG', 'Machinery', 'Food', 'Electronics', 'Building Materials', 'Chemicals', 'Fashion', 'Perishable', 'Automotive', 'Pharmaceutical'];
+
+  static const Map<String, double> cargoRewardMultiplier = {
+    'Electronics': 1.5,
+    'Pharmaceutical': 1.45,
+    'Machinery': 1.35,
+    'Chemicals': 1.25,
+    'Fashion': 1.2,
+    'Automotive': 1.15,
+    'FMCG': 1.0,
+    'Perishable': 1.1,
+    'Food': 0.85,
+    'Building Materials': 0.9,
+  };
 
   static const Map<String, String> _cargoAssetMap = {
     'FMCG': 'assets/cargo/fmcg.png',
@@ -279,6 +316,10 @@ class GameConstants {
     'Electronics': 'assets/cargo/electronics.png',
     'Building Materials': 'assets/cargo/building_materials.png',
     'Chemicals': 'assets/cargo/chemicals.png',
+    'Fashion': 'assets/cargo/fashion.png',
+    'Perishable': 'assets/cargo/perishable.png',
+    'Automotive': 'assets/cargo/automotive.png',
+    'Pharmaceutical': 'assets/cargo/pharmaceutical.png',
   };
 
   static String cargoAssetPath(String type) => _cargoAssetMap[type] ?? '';
@@ -312,8 +353,9 @@ class TruckTypeInfo {
   final double fuel;
   final int capacity;
   final String icon;
+  final String desc;
 
-  const TruckTypeInfo({required this.type, required this.name, required this.price, required this.speed, required this.fuel, required this.capacity, required this.icon});
+  const TruckTypeInfo({required this.type, required this.name, required this.price, required this.speed, required this.fuel, required this.capacity, required this.icon, this.desc = ''});
 }
 
 class LevelUnlock {

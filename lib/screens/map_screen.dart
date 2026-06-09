@@ -40,10 +40,26 @@ import '../widgets/delivery_timeline.dart';
 
 /// ETS2 road network — highway connections between cities (city id pairs).
 const List<List<int>> _roadNetwork = [
+  // ─── Original 15 cities ───
   [1, 5], [1, 4], [1, 2], [2, 5], [2, 8], [2, 6], [2, 7],
   [4, 5], [4, 3], [5, 6], [6, 3], [6, 7], [6, 12],
   [7, 9], [7, 11], [12, 11], [12, 10], [12, 3], [11, 13],
   [10, 3], [10, 13], [15, 14], [14, 10], [8, 9], [13, 9],
+  // ─── New cities (16-30) ───
+  [16, 3], [16, 4], [16, 21],         // Hamburg
+  [17, 6], [17, 7], [17, 11], [17, 12], // Munich
+  [18, 2], [18, 30], [18, 7],         // Lyon
+  [19, 8], [19, 30],                  // Barcelona
+  [20, 9], [20, 7], [20, 17],         // Milan
+  [21, 16], [21, 14],                 // Copenhagen
+  [22, 1],                            // Dublin
+  [23, 13], [23, 24], [23, 25],       // Bucharest
+  [24, 25], [24, 28],                 // Sofia
+  [25, 13], [25, 26],                 // Belgrade
+  [26, 11], [26, 13],                 // Zagreb
+  [27, 14],                           // Helsinki
+  [28, 24], [28, 29],                 // Athens
+  [29, 23],                           // Istanbul
 ];
 
 class MapScreen extends StatefulWidget {

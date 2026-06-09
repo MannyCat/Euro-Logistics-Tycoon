@@ -16,10 +16,33 @@ class PathResult {
 
 class PathFinder {
   static const List<List<int>> roadNetwork = [
-    [1, 5], [1, 4], [1, 2], [2, 5], [2, 8], [2, 6], [2, 7],
-    [4, 5], [4, 3], [5, 6], [6, 3], [6, 7], [6, 12],
-    [7, 9], [7, 11], [12, 11], [12, 10], [12, 3], [11, 13],
-    [10, 3], [10, 13], [15, 14], [14, 10], [8, 9], [13, 9],
+    // ─── Original 15 cities ───
+    [1, 5], [1, 4], [1, 2],       // London↔Brussels, London↔Amsterdam, London↔Paris
+    [2, 5], [2, 8], [2, 6], [2, 7], // Paris↔Brussels, Paris↔Madrid, Paris↔Frankfurt, Paris↔Zurich
+    [4, 5], [4, 3],                 // Amsterdam↔Brussels, Amsterdam↔Berlin
+    [5, 6],                          // Brussels↔Frankfurt
+    [6, 3], [6, 7], [6, 12],        // Frankfurt↔Berlin, Frankfurt↔Zurich, Frankfurt↔Prague
+    [7, 9], [7, 11],                // Zurich↔Rome, Zurich↔Vienna
+    [12, 11], [12, 10], [12, 3],    // Prague↔Vienna, Prague↔Warsaw, Prague↔Berlin
+    [11, 13],                        // Vienna↔Budapest
+    [10, 3], [10, 13],              // Warsaw↔Berlin, Warsaw↔Budapest
+    [15, 14], [14, 10],              // Oslo↔Stockholm, Stockholm↔Warsaw
+    [8, 9], [13, 9],                // Madrid↔Rome, Budapest↔Rome
+    // ─── New cities (16-30) ───
+    [16, 3], [16, 4], [16, 21],     // Hamburg↔Berlin, Hamburg↔Amsterdam, Hamburg↔Copenhagen
+    [17, 6], [17, 7], [17, 11], [17, 12], // Munich↔Frankfurt, Munich↔Zurich, Munich↔Vienna, Munich↔Prague
+    [18, 2], [18, 30], [18, 7],     // Lyon↔Paris, Lyon↔Marseille, Lyon↔Zurich
+    [19, 8], [19, 30],              // Barcelona↔Madrid, Barcelona↔Marseille
+    [20, 9], [20, 7], [20, 17],     // Milan↔Rome, Milan↔Zurich, Milan↔Munich
+    [21, 16], [21, 14],             // Copenhagen↔Hamburg, Copenhagen↔Stockholm
+    [22, 1],                         // Dublin↔London (ferry)
+    [23, 13], [23, 24], [23, 25],    // Bucharest↔Budapest, Bucharest↔Sofia, Bucharest↔Belgrade
+    [24, 25], [24, 28],              // Sofia↔Belgrade, Sofia↔Athens
+    [25, 13], [25, 26],              // Belgrade↔Budapest, Belgrade↔Zagreb
+    [26, 11], [26, 13],              // Zagreb↔Vienna, Zagreb↔Budapest
+    [27, 14],                        // Helsinki↔Stockholm (ferry)
+    [28, 24], [28, 29],              // Athens↔Sofia, Athens↔Istanbul
+    [29, 23],                        // Istanbul↔Bucharest
   ];
 
   /// Build adjacency list from the road network (bidirectional).

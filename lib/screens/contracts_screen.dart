@@ -290,6 +290,25 @@ class _ContractCard extends StatelessWidget {
   final bool isOwn;
   const _ContractCard({required this.contract, required this.game, required this.companyId, required this.isOwn});
 
+  String _timeRemaining() {
+    if (contract.expiresAt == null) return '';
+    final diff = contract.expiresAt!.difference(DateTime.now());
+    if (diff.isNegative) return 'Истёк!';
+    if (diff.inHours >= 1) return '${diff.inHours}ч ${diff.inMinutes % 60}м';
+    return '${diff.inMinutes}м ${diff.inSeconds % 60}с';
+  }
+
+  bool get _isUrgent {
+    if (contract.expiresAt == null) return false;
+    return DateTime.now().difference(contract.createdAt).inSeconds >
+        (contract.expiresAt!.difference(contract.createdAt).inSeconds * 0.7);
+  }
+
+  bool get _isExpress {
+    if (contract.deadlineHours <= 18) return true;
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final origin = game.getCityById(contract.originCityId);
@@ -480,6 +499,22 @@ class _ContractCard extends StatelessWidget {
                 const SizedBox(width: 8),
               ],
               Text('${contract.deadlineHours}ч', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
+              if (!isOwn && contract.isAvailable && contract.expiresAt != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _isUrgent ? const Color(0xFFEF5350).withOpacity(0.15) : _isExpress ? const Color(0xFFF5C542).withOpacity(0.15) : const Color(0xFF42A5F5).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: _isUrgent ? const Color(0xFFEF5350).withOpacity(0.3) : _isExpress ? const Color(0xFFF5C542).withOpacity(0.3) : const Color(0xFF42A5F5).withOpacity(0.2)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(_isUrgent ? AppIcons.warning : AppIcons.timer, size: 10, color: _isUrgent ? const Color(0xFFEF5350) : _isExpress ? const Color(0xFFF5C542) : const Color(0xFF42A5F5)),
+                    const SizedBox(width: 2),
+                    Text(_timeRemaining(), style: TextStyle(color: _isUrgent ? const Color(0xFFEF5350) : _isExpress ? const Color(0xFFF5C542) : const Color(0xFF42A5F5), fontSize: 10, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+                  ]),
+                ),
+              ],
             ],
           ),
           // Economy details row
