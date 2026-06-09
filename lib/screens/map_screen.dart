@@ -20,9 +20,11 @@ import 'warehouses_screen.dart';
 import 'transactions_screen.dart';
 import 'settings_screen.dart';
 import '../config/game_constants.dart';
+import '../utils/pathfinder.dart';
 import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
 import 'clan_screen.dart';
+import 'event_log_screen.dart';
 import '../widgets/achievement_toast.dart';
 
 /// ETS2 road network — highway connections between cities (city id pairs).
@@ -125,6 +127,17 @@ class MapScreenState extends State<MapScreen> {
     });
   }
 
+  double _calcProgress(Truck truck) {
+    if (truck.estimatedArrival != null && truck.departureTime != null) {
+      final total = truck.estimatedArrival!.difference(truck.departureTime!).inSeconds;
+      if (total > 0) {
+        final elapsed = DateTime.now().difference(truck.departureTime!).inSeconds;
+        return (elapsed / total).clamp(0.0, 1.0);
+      }
+    }
+    return 0.0;
+  }
+
   LatLng? _getTruckPosition(Truck truck, GameProvider game) {
     if (truck.isIdle && truck.currentCityId != null) {
       final city = game.getCityById(truck.currentCityId!);
@@ -132,17 +145,18 @@ class MapScreenState extends State<MapScreen> {
     }
     if ((truck.status == 'in_transit' || truck.status == 'loading') &&
         truck.originCityId != null && truck.destinationCityId != null) {
+      // Use pathfinding for in-transit trucks
+      final path = PathFinder.findPath(truck.originCityId!, truck.destinationCityId!);
+      if (path.isNotEmpty) {
+        final progress = _calcProgress(truck);
+        final (lat, lng) = PathFinder.interpolateAlongPath(game.cities, path, progress);
+        return LatLng(lat, lng);
+      }
+      // Fallback: direct line interpolation
       final origin = game.getCityById(truck.originCityId!);
       final dest = game.getCityById(truck.destinationCityId!);
       if (origin != null && dest != null) {
-        double progress = 0.0;
-        if (truck.estimatedArrival != null && truck.departureTime != null) {
-          final total = truck.estimatedArrival!.difference(truck.departureTime!).inSeconds;
-          if (total > 0) {
-            final elapsed = DateTime.now().difference(truck.departureTime!).inSeconds;
-            progress = (elapsed / total).clamp(0.0, 1.0);
-          }
-        }
+        final progress = _calcProgress(truck);
         return _interpolate(
           LatLng(origin.latitude, origin.longitude),
           LatLng(dest.latitude, dest.longitude),
@@ -198,22 +212,70 @@ class MapScreenState extends State<MapScreen> {
       final origin = truck.originCityId != null ? game.getCityById(truck.originCityId!) : null;
       final dest = truck.destinationCityId != null ? game.getCityById(truck.destinationCityId!) : null;
       if (origin == null || dest == null) continue;
-      final pos = _getTruckPosition(truck, game);
-      final truckPos = pos ?? LatLng(origin.latitude, origin.longitude);
-      routes.add(Polyline(
-        points: [LatLng(origin.latitude, origin.longitude), truckPos],
-        color: const Color(0xFFF5C542),
-        strokeWidth: 4.5,
-        borderStrokeWidth: 2.0,
-        borderColor: const Color(0xFFD4A017).withOpacity(0.7),
-      ));
-      routes.add(Polyline(
-        points: [truckPos, LatLng(dest.latitude, dest.longitude)],
-        color: const Color(0xFFF5C542).withOpacity(0.35),
-        strokeWidth: 3.0,
-        borderStrokeWidth: 1.5,
-        borderColor: const Color(0xFFD4A017).withOpacity(0.25),
-      ));
+
+      final path = PathFinder.findPath(truck.originCityId!, truck.destinationCityId!);
+
+      if (path.length < 2) {
+        // Fallback: draw direct line
+        final pos = _getTruckPosition(truck, game);
+        final truckPos = pos ?? LatLng(origin.latitude, origin.longitude);
+        routes.add(Polyline(
+          points: [LatLng(origin.latitude, origin.longitude), truckPos],
+          color: const Color(0xFFF5C542),
+          strokeWidth: 4.5,
+          borderStrokeWidth: 2.0,
+          borderColor: const Color(0xFFD4A017).withOpacity(0.7),
+        ));
+        routes.add(Polyline(
+          points: [truckPos, LatLng(dest.latitude, dest.longitude)],
+          color: const Color(0xFFF5C542).withOpacity(0.35),
+          strokeWidth: 3.0,
+          borderStrokeWidth: 1.5,
+          borderColor: const Color(0xFFD4A017).withOpacity(0.25),
+        ));
+        continue;
+      }
+
+      // Build polyline points from path cities
+      final pathPoints = path.map((id) {
+        final city = game.getCityById(id);
+        if (city == null) return null;
+        return LatLng(city.latitude, city.longitude);
+ }).whereType<LatLng>().toList();
+
+      final progress = _calcProgress(truck);
+      final segIdx = PathFinder.findSegmentIndex(game.cities, path, progress);
+      final truckPos = _getTruckPosition(truck, game) ?? pathPoints.first;
+
+      // Traveled portion: from start to truck position (bright)
+      final traveledPoints = <LatLng>[
+        ...pathPoints.take(segIdx),
+        truckPos,
+      ];
+      if (traveledPoints.length >= 2) {
+        routes.add(Polyline(
+          points: traveledPoints,
+          color: const Color(0xFFF5C542),
+          strokeWidth: 4.5,
+          borderStrokeWidth: 2.0,
+          borderColor: const Color(0xFFD4A017).withOpacity(0.7),
+        ));
+      }
+
+      // Remaining portion: from truck position to end (dim)
+      final remainingPoints = <LatLng>[
+        truckPos,
+        if (segIdx + 1 < pathPoints.length) ...pathPoints.skip(segIdx + 1),
+      ];
+      if (remainingPoints.length >= 2) {
+        routes.add(Polyline(
+          points: remainingPoints,
+          color: const Color(0xFFF5C542).withOpacity(0.35),
+          strokeWidth: 3.0,
+          borderStrokeWidth: 1.5,
+          borderColor: const Color(0xFFD4A017).withOpacity(0.25),
+        ));
+      }
     }
     return routes;
   }
@@ -288,6 +350,9 @@ class MapScreenState extends State<MapScreen> {
             return KeyEventResult.handled;
           case LogicalKeyboardKey.keyT:
             _openModal(const TransactionsScreen());
+            return KeyEventResult.handled;
+          case LogicalKeyboardKey.keyH:
+            _openModal(const EventLogScreen());
             return KeyEventResult.handled;
           case LogicalKeyboardKey.keyL:
             _openModal(const LeaderboardScreen());

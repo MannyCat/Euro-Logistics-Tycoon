@@ -11,6 +11,8 @@ import '../models/contract.dart';
 import '../models/warehouse.dart';
 import '../models/achievement.dart';
 import '../models/clan.dart';
+import '../utils/pathfinder.dart';
+import '../models/event_log.dart';
 
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
   const R = 6371.0;
@@ -43,6 +45,7 @@ class GameProvider extends ChangeNotifier {
   Clan? _myClan;
   List<ClanMember> _clanMembers = [];
   List<Map<String, dynamic>> _clanLeaderboard = [];
+  List<EventLog> _eventLog = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
@@ -59,6 +62,9 @@ class GameProvider extends ChangeNotifier {
   List<Truck> get transitTrucks => _myTrucks.where((t) => t.isInTransit).toList();
   List<Driver> get myDrivers => _myDrivers;
   List<Driver> get availableDrivers => _myDrivers.where((d) => d.isAvailable).toList();
+  List<Driver> get assignedDrivers => _myDrivers.where((d) => d.isAssigned).toList();
+  List<Driver> get tiredDrivers => _myDrivers.where((d) => d.isTired).toList();
+  double get avgSkillLevel => _myDrivers.isEmpty ? 0.0 : _myDrivers.map((d) => d.skillLevel).reduce((a, b) => a + b) / _myDrivers.length;
   List<Contract> get availableContracts => _availableContracts.where((c) => c.isAvailable && !c.isExpired).toList();
   List<Contract> get myContracts => _myContracts;
   List<Warehouse> get myWarehouses => _myWarehouses;
@@ -68,6 +74,7 @@ class GameProvider extends ChangeNotifier {
   Clan? get myClan => _myClan;
   List<ClanMember> get clanMembers => _clanMembers;
   List<Map<String, dynamic>> get clanLeaderboard => _clanLeaderboard;
+  List<EventLog> get eventLog => _eventLog;
   String? get myClanRole {
     for (final m in _clanMembers) {
       if (m.companyId == _currentCompanyId) return m.role;
@@ -256,6 +263,20 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadEventLog(String companyId) async {
+    try {
+      final resp = await _supabase
+          .from('event_log')
+          .select()
+          .eq('company_id', companyId)
+          .order('created_at', ascending: false)
+          .limit(50);
+      _eventLog = resp.map<EventLog>((e) => EventLog.fromJson(e)).toList();
+    } catch (e) {
+      debugPrint('Load event log error: $e');
+    }
+  }
+
   Future<void> loadClanLeaderboard() async {
     try {
       final resp = await _supabase.rpc('clan_leaderboard');
@@ -313,6 +334,7 @@ class GameProvider extends ChangeNotifier {
         loadLeaderboard(),
         loadMyClan(companyId),
         loadClanLeaderboard(),
+        loadEventLog(companyId),
       ]);
       // Try to complete expired contracts server-side
       await _supabase.rpc('complete_expired_contracts');
@@ -350,6 +372,37 @@ class GameProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Refresh error: $e');
     }
+  }
+
+  // ===== LOG EVENT HELPER =====
+  Future<void> logEvent({
+    required String companyId,
+    required String eventType,
+    required String title,
+    String description = '',
+    String iconName = 'info',
+    String colorHex = '66BB6A',
+    Map<String, dynamic> metadata = const {},
+  }) async {
+    try {
+      await _supabase.rpc('log_event', params: {
+        'p_company_id': companyId,
+        'p_event_type': eventType,
+        'p_title': title,
+        'p_description': description,
+        'p_icon_name': iconName,
+        'p_color_hex': colorHex,
+        'p_metadata': metadata,
+      });
+    } catch (e) {
+      debugPrint('Log event error: $e');
+    }
+  }
+
+  // ===== PATHFINDING =====
+  PathResult? findRoute(int fromCityId, int toCityId) {
+    if (_cities.isEmpty) return null;
+    return PathFinder.findRoute(_cities, fromCityId, toCityId);
   }
 
   // ===== FIND NEAREST TRUCK =====
@@ -406,6 +459,15 @@ class GameProvider extends ChangeNotifier {
       });
       await loadMyTrucks(companyId);
       await loadCompany(companyId);
+      await logEvent(
+        companyId: companyId,
+        eventType: 'truck_purchased',
+        title: 'Грузовик куплен',
+        description: 'Приобретён $name ($truckType)',
+        iconName: 'truck_purchased',
+        colorHex: '42A5F5',
+        metadata: {'truck_name': name, 'truck_type': truckType, 'amount': -info.price},
+      );
       return true;
     } catch (e) { _error = 'Ошибка покупки: $e'; return false; }
     finally { _isLoading = false; notifyListeners(); }
@@ -427,6 +489,12 @@ class GameProvider extends ChangeNotifier {
         'skill_level': 1 + math.Random().nextInt(4),
         'salary_daily': GameConstants.driverBaseSalary + math.Random().nextInt(200),
         'status': 'available',
+        'xp': 0,
+        'trips_completed': 0,
+        'fatigue': 0,
+        'speed_skill': math.Random().nextInt(10),
+        'fuel_efficiency_skill': math.Random().nextInt(10),
+        'reliability_skill': math.Random().nextInt(10),
       });
       await _supabase.from('companies').update({'money': money - cost}).eq('id', companyId);
       await _supabase.from('transactions').insert({
@@ -437,6 +505,15 @@ class GameProvider extends ChangeNotifier {
       });
       await loadMyDrivers(companyId);
       await loadCompany(companyId);
+      await logEvent(
+        companyId: companyId,
+        eventType: 'driver_hired',
+        title: 'Водитель нанят',
+        description: '$first $last присоединился к компании',
+        iconName: 'driver_hired',
+        colorHex: '64B5F6',
+        metadata: {'driver_name': '$first $last', 'amount': -cost},
+      );
       return true;
     } catch (e) { _error = 'Ошибка найма: $e'; return false; }
     finally { _isLoading = false; notifyListeners(); }
@@ -475,9 +552,36 @@ class GameProvider extends ChangeNotifier {
           loadMyContracts(companyId),
           loadCompany(companyId),
         ]);
-        // Find the truck that just got assigned (status = loading)
+        // Find truck and its assigned driver, grant driver XP
         final assignedTruck = _myTrucks.where((t) => t.contractId == contractId).firstOrNull;
+        if (assignedTruck?.driverId != null) {
+          try {
+            await _supabase.rpc('driver_complete_trip', params: {'p_driver_id': assignedTruck!.driverId});
+            await loadMyDrivers(companyId);
+          } catch (e) {
+            debugPrint('Driver XP grant error: $e'); // non-critical
+          }
+        }
         final truckName = assignedTruck?.name ?? 'Грузовик';
+        // Look up contract for origin/destination info
+        final contract = _myContracts.where((c) => c.id == contractId).firstOrNull;
+        final originName = contract != null ? (getCityById(contract.originCityId)?.name ?? '') : '';
+        final destName = contract != null ? (getCityById(contract.destinationCityId)?.name ?? '') : '';
+        final routeStr = originName.isNotEmpty && destName.isNotEmpty ? ' $originName → $destName' : '';
+        await logEvent(
+          companyId: companyId,
+          eventType: 'contract_accepted',
+          title: 'Контракт принят',
+          description: 'Грузовик «$truckName» отправлен$routeStr',
+          iconName: 'contract_accepted',
+          colorHex: '42A5F5',
+          metadata: {
+            'truck_name': truckName,
+            if (originName.isNotEmpty) 'origin': originName,
+            if (destName.isNotEmpty) 'destination': destName,
+            if (contract != null) 'amount': contract.reward,
+          },
+        );
         return (success: true, truckName: truckName);
       } else {
         _error = 'Не удалось принять контракт (возможно, уже занят или нет грузовика в городе отправления)';
@@ -490,6 +594,54 @@ class GameProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<bool> assignDriver(String driverId, String truckId, String companyId) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final resp = await _supabase.rpc('assign_driver', params: {
+        'p_driver_id': driverId,
+        'p_truck_id': truckId,
+        'p_company_id': companyId,
+      });
+      if (resp == true) {
+        await Future.wait([loadMyDrivers(companyId), loadMyTrucks(companyId)]);
+        return true;
+      }
+      _error = 'Не удалось назначить водителя';
+      return false;
+    } catch (e) { _error = 'Ошибка назначения: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
+  Future<bool> unassignDriver(String driverId, String companyId) async {
+    try {
+      _isLoading = true; _error = null; notifyListeners();
+      final resp = await _supabase.rpc('unassign_driver', params: {
+        'p_driver_id': driverId,
+        'p_company_id': companyId,
+      });
+      if (resp == true) {
+        await Future.wait([loadMyDrivers(companyId), loadMyTrucks(companyId)]);
+        return true;
+      }
+      _error = 'Не удалось снять водителя';
+      return false;
+    } catch (e) { _error = 'Ошибка снятия: $e'; return false; }
+    finally { _isLoading = false; notifyListeners(); }
+  }
+
+  Future<bool> restDriver(String driverId, String companyId) async {
+    try {
+      final resp = await _supabase.rpc('driver_rest', params: {
+        'p_driver_id': driverId,
+      });
+      if (resp == true) {
+        await loadMyDrivers(companyId);
+        return true;
+      }
+      return false;
+    } catch (e) { _error = 'Ошибка отдыха: $e'; return false; }
   }
 
   Future<bool> refuelTruck(String truckId, String companyId) async {
@@ -511,6 +663,15 @@ class GameProvider extends ChangeNotifier {
       });
       await loadMyTrucks(companyId);
       await loadCompany(companyId);
+      await logEvent(
+        companyId: companyId,
+        eventType: 'refuel',
+        title: 'Заправка',
+        description: '${truck.name} заправлен полностью',
+        iconName: 'refuel',
+        colorHex: 'F5C542',
+        metadata: {'truck_name': truck.name, 'amount': -cost},
+      );
       return true;
     } catch (e) { _error = 'Ошибка заправки: $e'; notifyListeners(); return false; }
   }
@@ -532,6 +693,15 @@ class GameProvider extends ChangeNotifier {
       });
       await loadMyTrucks(companyId);
       await loadCompany(companyId);
+      await logEvent(
+        companyId: companyId,
+        eventType: 'repair',
+        title: 'Ремонт',
+        description: '${truck.name} отремонтирован',
+        iconName: 'repair',
+        colorHex: 'EF5350',
+        metadata: {'truck_name': truck.name, 'amount': -cost},
+      );
       return true;
     } catch (e) { _error = 'Ошибка ремонта: $e'; notifyListeners(); return false; }
   }
@@ -551,6 +721,15 @@ class GameProvider extends ChangeNotifier {
       });
       await loadMyTrucks(companyId);
       await loadCompany(companyId);
+      await logEvent(
+        companyId: companyId,
+        eventType: 'truck_sold',
+        title: 'Грузовик продан',
+        description: '${truck.name} продан за ${GameConstants.formatMoney(sellPrice)}',
+        iconName: 'truck_sold',
+        colorHex: 'CE93D8',
+        metadata: {'truck_name': truck.name, 'amount': sellPrice},
+      );
       return true;
     } catch (e) { _error = 'Ошибка продажи: $e'; return false; }
   }
@@ -596,6 +775,15 @@ class GameProvider extends ChangeNotifier {
       });
       await loadCompany(companyId);
       await loadMyWarehouses(companyId);  // Sync warehouses with map
+      await logEvent(
+        companyId: companyId,
+        eventType: 'warehouse_bought',
+        title: 'Склад куплен',
+        description: 'Филиал открыт в городе ${city.name}',
+        iconName: 'warehouse',
+        colorHex: '42A5F5',
+        metadata: {'city_name': city.name, 'amount': -city.warehouseCost},
+      );
       return true;
     } catch (e) { _error = 'Ошибка покупки склада: $e'; return false; }
     finally { _isLoading = false; notifyListeners(); }
@@ -616,6 +804,15 @@ class GameProvider extends ChangeNotifier {
         await loadClanLeaderboard();
         await loadMyTrucks(companyId);
         await loadCompany(companyId);
+        await logEvent(
+          companyId: companyId,
+          eventType: 'clan_created',
+          title: 'Клан создан',
+          description: 'Клан «$name» [$tag] успешно создан',
+          iconName: 'clan',
+          colorHex: 'CE93D8',
+          metadata: {'clan_name': name, 'clan_tag': tag},
+        );
         return true;
       }
       _error = 'Не удалось создать клан';
@@ -634,6 +831,15 @@ class GameProvider extends ChangeNotifier {
       if (resp == true) {
         await loadMyClan(companyId);
         await loadClanLeaderboard();
+        await logEvent(
+          companyId: companyId,
+          eventType: 'clan_joined',
+          title: 'Вступление в клан',
+          description: 'Вы вступили в клан',
+          iconName: 'clan',
+          colorHex: 'CE93D8',
+          metadata: {'clan_id': clanId},
+        );
         return true;
       }
       _error = 'Не удалось вступить в клан';
@@ -650,6 +856,15 @@ class GameProvider extends ChangeNotifier {
         _myClan = null;
         _clanMembers = [];
         await loadClanLeaderboard();
+        await logEvent(
+          companyId: companyId,
+          eventType: 'clan_left',
+          title: 'Выход из клана',
+          description: 'Вы покинули клан',
+          iconName: 'clan',
+          colorHex: 'EF5350',
+          metadata: {},
+        );
         return true;
       }
       _error = 'Не удалось покинуть клан';

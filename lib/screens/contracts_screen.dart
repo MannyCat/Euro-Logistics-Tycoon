@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
 import '../widgets/ets2_modal.dart';
 import '../providers/game_provider.dart' as gp show haversineKm;
+import '../utils/pathfinder.dart';
 
 class ContractsScreen extends StatefulWidget {
   const ContractsScreen({super.key});
@@ -274,9 +275,12 @@ class _ContractCard extends StatelessWidget {
     final origin = game.getCityById(contract.originCityId);
     final dest = game.getCityById(contract.destinationCityId);
 
-    // Calculate distance
+    // Calculate road distance via pathfinding
     double distKm = 0;
-    if (origin != null && dest != null) {
+    final route = game.findRoute(contract.originCityId, contract.destinationCityId);
+    if (route != null) {
+      distKm = route.totalDistanceKm;
+    } else if (origin != null && dest != null) {
       distKm = gp.haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude);
     }
     final rewardPerKm = distKm > 0 ? (contract.reward / distKm).round() : 0;

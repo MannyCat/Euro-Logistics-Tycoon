@@ -13,6 +13,7 @@ import 'settings_screen.dart';
 import 'achievements_screen.dart';
 import 'leaderboard_screen.dart';
 import 'clan_screen.dart';
+import 'event_log_screen.dart';
 
 class MobileDrawer extends StatelessWidget {
   final void Function(Widget modal) onOpenModal;
@@ -94,6 +95,10 @@ class MobileDrawer extends StatelessWidget {
                   _navItem(context, Icons.receipt_long_outlined, 'Финансы', () {
                     Navigator.pop(context);
                     onOpenModal(const TransactionsScreen());
+                  }),
+                  _navItem(context, Icons.history_outlined, 'Журнал', () {
+                    Navigator.pop(context);
+                    onOpenModal(const EventLogScreen());
                   }),
                   const Divider(height: 1, color: AppTheme.divider, indent: 16, endIndent: 16),
                   _navItem(context, Icons.emoji_events_outlined, 'Рейтинг', () {

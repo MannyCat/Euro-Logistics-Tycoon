@@ -6,6 +6,7 @@ import '../models/city.dart';
 import '../models/contract.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
+import '../utils/pathfinder.dart';
 
 class CityDetailDialog extends StatelessWidget {
   final City city;
@@ -173,9 +174,12 @@ class _ContractCardState extends State<_ContractCard> {
     final origin = game.getCityById(contract.originCityId);
     final dest = game.getCityById(contract.destinationCityId);
 
-    final dist = origin != null && dest != null
-        ? haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude).round()
-        : 0;
+    final roadRoute = game.findRoute(contract.originCityId, contract.destinationCityId);
+    final dist = roadRoute != null
+        ? roadRoute.totalDistanceKm.round()
+        : (origin != null && dest != null
+            ? haversineKm(origin.latitude, origin.longitude, dest.latitude, dest.longitude).round()
+            : 0);
 
     final hasIdle = game.idleTrucks.isNotEmpty;
     final nearest = hasIdle ? game.findNearestIdleTruck(contract.originCityId) : null;

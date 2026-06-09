@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
 import '../config/game_constants.dart';
+import '../models/driver.dart';
 import '../models/truck.dart';
 import '../providers/auth_provider.dart';
 import '../providers/game_provider.dart';
@@ -226,6 +227,8 @@ class _TruckCardState extends State<_TruckCard> {
                 ),
             ],
           ),
+          // Assigned driver info
+          _assignedDriverRow(game),
           // Route info for transit trucks
           if (truck.isInTransit && originCity != null && destCity != null) ...[
             const SizedBox(height: 6),
@@ -318,9 +321,158 @@ class _TruckCardState extends State<_TruckCard> {
               ],
             ),
           ],
+          // Driver assign/unassign buttons
+          if (truck.isIdle) ...[
+            const SizedBox(height: 6),
+            _driverActionButtons(context, game),
+          ],
         ],
       ),
     );
+  }
+
+  Widget _assignedDriverRow(GameProvider game) {
+    final assignedDriver = truck.driverId != null
+        ? game.myDrivers.where((d) => d.id == truck.driverId).firstOrNull
+        : null;
+    if (assignedDriver == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF42A5F5).withOpacity(0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF42A5F5).withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.person, size: 14, color: Color(0xFF42A5F5)),
+            const SizedBox(width: 6),
+            Text(assignedDriver.name, style: const TextStyle(color: Color(0xFF42A5F5), fontSize: 12, fontWeight: FontWeight.w600)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(color: const Color(0xFFF5C542).withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+              child: Text(assignedDriver.skillLevelDisplay, style: const TextStyle(color: Color(0xFFF5C542), fontSize: 10, fontWeight: FontWeight.w600)),
+            ),
+            if (assignedDriver.fatigue >= 50) ...[
+              const SizedBox(width: 6),
+              Text('😴${assignedDriver.fatigue}%', style: const TextStyle(color: Color(0xFFFF9800), fontSize: 10)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _driverActionButtons(BuildContext context, GameProvider game) {
+    final assignedDriver = truck.driverId != null
+        ? game.myDrivers.where((d) => d.id == truck.driverId).firstOrNull
+        : null;
+    final availableDrivers = game.availableDrivers;
+
+    return Row(
+      children: [
+        if (assignedDriver != null) ...[
+          Expanded(
+            child: _ActionButton(
+              icon: Icons.person_remove,
+              label: 'Снять водителя',
+              isLoading: _isRefueling,
+              enabled: true,
+              color: const Color(0xFFEF5350),
+              onPressed: () => _unassignDriver(context, assignedDriver, game),
+            ),
+          ),
+        ] else if (availableDrivers.isNotEmpty) ...[
+          Expanded(
+            child: _ActionButton(
+              icon: Icons.person_add,
+              label: 'Назначить водителя',
+              isLoading: _isRefueling,
+              enabled: true,
+              color: const Color(0xFF42A5F5),
+              onPressed: () => _showAssignDriverDialog(context, availableDrivers, game),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _showAssignDriverDialog(BuildContext context, List<Driver> availableDrivers, GameProvider game) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
+        title: Text('Назначить на ${truck.name}', style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14)),
+        children: availableDrivers.map((driver) {
+          return SimpleDialogOption(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _assignDriverToTruck(context, driver, game);
+            },
+            child: Row(
+              children: [
+                const Icon(Icons.person, color: Color(0xFF66BB6A), size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(driver.name, style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 13)),
+                      Text('${driver.skillLevelDisplay} • ${driver.statusDisplay} • ${GameConstants.formatMoney(driver.salaryDaily)}/день', style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Future<void> _assignDriverToTruck(BuildContext context, Driver driver, GameProvider game) async {
+    setState(() => _isRefueling = true);
+    final ok = await game.assignDriver(driver.id, truck.id, companyId);
+    if (mounted) setState(() => _isRefueling = false);
+    if (mounted && !ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(game.error ?? 'Ошибка назначения'),
+        backgroundColor: const Color(0xFFEF5350),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
+  Future<void> _unassignDriver(BuildContext context, Driver driver, GameProvider game) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFF444444))),
+        title: Text('Снять ${driver.name}?', style: const TextStyle(color: Color(0xFFD0D0D0))),
+        content: const Text('Водитель снова станет свободным.', style: TextStyle(color: Color(0xFF888888))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Color(0xFF888888)))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Снять', style: TextStyle(color: Color(0xFFEF5350)))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    setState(() => _isRefueling = true);
+    final ok = await game.unassignDriver(driver.id, companyId);
+    if (mounted) setState(() => _isRefueling = false);
+    if (mounted && !ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(game.error ?? 'Ошибка снятия'),
+        backgroundColor: const Color(0xFFEF5350),
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 
   Future<void> _refuel() async {
