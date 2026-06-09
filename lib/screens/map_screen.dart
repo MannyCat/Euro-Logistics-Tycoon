@@ -1148,7 +1148,7 @@ class _TruckInfoPopup extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 8, top: 1),
                           child: Text(
                             '${seg.operator} · ${seg.seaName} · €${seg.costEur} · ~${(seg.durationMinutes / 60).round()}ч',
-                            style: const TextStyle(color: Color(0xFF29B6F6).withOpacity(0.7), fontSize: 10),
+                            style: TextStyle(color: Color(0xFF29B6F6).withOpacity(0.7), fontSize: 10),
                           ),
                         ),
                     ],

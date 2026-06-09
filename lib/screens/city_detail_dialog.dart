@@ -118,6 +118,7 @@ class CityDetailDialog extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
+                ),
                 if (!game.canParkAtCity(city.id))
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
@@ -344,7 +345,7 @@ class _GarageSection extends StatelessWidget {
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFFF9800),
-                side: const BorderSide(color: Color(0xFFFF9800).withOpacity(0.5)),
+                side: BorderSide(color: Color(0xFFFF9800).withOpacity(0.5)),
                 minimumSize: const Size(double.infinity, 32),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               ),

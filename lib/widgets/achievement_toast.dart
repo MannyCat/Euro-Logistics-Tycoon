@@ -113,7 +113,7 @@ class _AchievementToastState extends State<_AchievementToast>
     _slideAnim = Tween<Offset>(
       begin: const Offset(1.2, -0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.outBack));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
