@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:latlong2/latlong.dart';
@@ -181,7 +182,7 @@ class _GameMapState extends State<GameMap> {
   void _handleTap(TapUpDetails details) {
     final tapPos = details.localPosition;
     final scale = _camera.scale;
-    final size = context.size;
+    final size = MediaQuery.of(context).size;
 
     // Check if tapped on a truck marker
     for (final tm in widget.painterData.truckMarkers) {
@@ -204,13 +205,13 @@ class _GameMapState extends State<GameMap> {
     }
 
     // Tapped on empty map area
-    final lat = _camera.center.latitude - (tapPos.dy - size.height / 2) / scale;
-    final lng = _camera.center.longitude + (tapPos.dx - size.width / 2) / scale;
+    final lat = _camera.center.latitude - (tapPos.dy - size!.height / 2) / scale;
+    final lng = _camera.center.longitude + (tapPos.dx - size!.width / 2) / scale;
     widget.onMapTap?.call(tapPos, LatLng(lat, lng));
   }
 
-  Offset _latLngToScreen(LatLng point, Size? size) {
-    final s = size ?? context.size;
+  Offset _latLngToScreen(LatLng point, Size size) {
+    final s = size;
     final scale = _camera.scale;
     return Offset(
       (point.longitude - _camera.center.longitude) * scale + s.width / 2,

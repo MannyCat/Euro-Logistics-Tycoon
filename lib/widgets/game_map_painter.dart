@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../config/world_boundaries.dart';
@@ -331,7 +332,7 @@ class GameMapPainter extends CustomPainter {
       if (!anyVisible) continue;
 
       // Build path
-      final path = Path()..moveTo(screenVerts.first.dx, screenVerts.first.dy);
+      final path = ui.Path()..moveTo(screenVerts.first.dx, screenVerts.first.dy);
       for (var i = 1; i < screenVerts.length; i++) {
         path.lineTo(screenVerts[i].dx, screenVerts[i].dy);
       }
@@ -371,7 +372,7 @@ class GameMapPainter extends CustomPainter {
       final screenVerts = verts.map(_toScreen).toList();
       if (screenVerts.every((p) => !_isVisible(p, margin: 200))) continue;
 
-      final path = Path()..moveTo(screenVerts.first.dx, screenVerts.first.dy);
+      final path = ui.Path()..moveTo(screenVerts.first.dx, screenVerts.first.dy);
       for (var i = 1; i < screenVerts.length; i++) {
         path.lineTo(screenVerts[i].dx, screenVerts[i].dy);
       }
@@ -398,7 +399,7 @@ class GameMapPainter extends CustomPainter {
       final screenVerts = body.vertices.map(_toScreen).toList();
       if (screenVerts.every((p) => !_isVisible(p, margin: 200))) continue;
 
-      final path = Path()..moveTo(screenVerts.first.dx, screenVerts.first.dy);
+      final path = ui.Path()..moveTo(screenVerts.first.dx, screenVerts.first.dy);
       for (var i = 1; i < screenVerts.length; i++) {
         path.lineTo(screenVerts[i].dx, screenVerts[i].dy);
       }
@@ -459,7 +460,7 @@ class GameMapPainter extends CustomPainter {
         ..strokeWidth = 8.0
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
-      final glowPath = Path()..moveTo(screenPoints.first.dx, screenPoints.first.dy);
+      final glowPath = ui.Path()..moveTo(screenPoints.first.dx, screenPoints.first.dy);
       for (var i = 1; i < screenPoints.length; i++) {
         glowPath.lineTo(screenPoints[i].dx, screenPoints[i].dy);
       }
@@ -470,13 +471,8 @@ class GameMapPainter extends CustomPainter {
         ..color = ferryColor.withOpacity(0.7)
         ..strokeWidth = 3.0
         ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..setPathEffect(const DashPattern([10, 6]));
-      final dashPath = Path()..moveTo(screenPoints.first.dx, screenPoints.first.dy);
-      for (var i = 1; i < screenPoints.length; i++) {
-        dashPath.lineTo(screenPoints[i].dx, screenPoints[i].dy);
-      }
-      canvas.drawPath(dashPath, dashPaint);
+        ..strokeJoin = StrokeJoin.round;
+      _drawDashedPolyline(canvas, screenPoints, dashPaint);
 
       // Draw anchor/port indicators at each end
       _drawPortAnchor(canvas, screenPoints.first);
@@ -488,7 +484,7 @@ class GameMapPainter extends CustomPainter {
       if (_isVisible(mid)) {
         // Small upward-pointing triangle (ship)
         final s = 6.0;
-        final shipPath = Path()
+        final shipPath = ui.Path()
           ..moveTo(mid.dx, mid.dy - s)
           ..lineTo(mid.dx + s * 0.6, mid.dy + s * 0.4)
           ..lineTo(mid.dx - s * 0.6, mid.dy + s * 0.4)
@@ -550,7 +546,7 @@ class GameMapPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
 
-      final path = Path()..moveTo(screenPoints.first.dx, screenPoints.first.dy);
+      final path = ui.Path()..moveTo(screenPoints.first.dx, screenPoints.first.dy);
       for (var i = 1; i < screenPoints.length; i++) {
         path.lineTo(screenPoints[i].dx, screenPoints[i].dy);
       }
@@ -645,7 +641,7 @@ class GameMapPainter extends CustomPainter {
       canvas.translate(pos.dx, pos.dy);
       canvas.rotate(truck.heading * math.pi / 180);
 
-      final path = Path()
+      final path = ui.Path()
         ..moveTo(0, -s)
         ..lineTo(s * 0.35, -s * 0.3)
         ..lineTo(s * 0.5, s * 0.15)
@@ -847,6 +843,30 @@ class GameMapPainter extends CustomPainter {
     );
 
     tp.paint(canvas, Offset(x, y));
+  }
+
+  /// Draw a dashed polyline manually (no setPathEffect needed).
+  void _drawDashedPolyline(Canvas canvas, List<Offset> points, Paint paint, {double dashLen = 10, double gapLen = 6}) {
+    for (var i = 0; i < points.length - 1; i++) {
+      final from = points[i];
+      final to = points[i + 1];
+      final dx = to.dx - from.dx;
+      final dy = to.dy - from.dy;
+      final dist = math.sqrt(dx * dx + dy * dy);
+      if (dist <= 0) continue;
+      final ux = dx / dist;
+      final uy = dy / dist;
+      double pos = 0;
+      while (pos < dist) {
+        final segEnd = (pos + dashLen).clamp(0.0, dist);
+        canvas.drawLine(
+          Offset(from.dx + ux * pos, from.dy + uy * pos),
+          Offset(from.dx + ux * segEnd, from.dy + uy * segEnd),
+          paint,
+        );
+        pos += dashLen + gapLen;
+      }
+    }
   }
 
   @override

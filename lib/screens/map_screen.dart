@@ -944,7 +944,7 @@ class MapScreenState extends State<MapScreen> {
           borderRadius: BorderRadius.circular(8),
           side: BorderSide(color: const Color(0xFFF5C542).withOpacity(0.3)),
         ),
-        title: Text(event.name, style: const TextStyle(color: Color(0xFFF5C542), fontWeight: FontWeight.w700)),
+        title: Text(event.title, style: const TextStyle(color: Color(0xFFF5C542), fontWeight: FontWeight.w700)),
         content: Text(
           event.description,
           style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14),
@@ -990,7 +990,7 @@ class _SeasonalEventBanner extends StatelessWidget {
             child: GestureDetector(
               onTap: () => onShowDetails(event),
               child: Text(
-                '${event.name}: ${event.description}',
+                '${event.title}: ${event.description}',
                 style: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 12, fontWeight: FontWeight.w500),
                 overflow: TextOverflow.ellipsis,
               ),

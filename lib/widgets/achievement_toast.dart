@@ -12,10 +12,10 @@ class AchievementToastOverlay extends StatefulWidget {
   const AchievementToastOverlay({super.key, required this.child});
 
   @override
-  State<AchievementToastOverlay> createState() => _AchievementToastOverlayState();
+  State<AchievementToastOverlay> createState() => AchievementToastOverlayState();
 }
 
-class _AchievementToastOverlayState extends State<AchievementToastOverlay>
+class AchievementToastOverlayState extends State<AchievementToastOverlay>
     with SingleTickerProviderStateMixin {
   /// Queue of achievement IDs waiting to be shown.
   final List<String> _queue = [];
