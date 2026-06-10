@@ -725,38 +725,53 @@ class GameProvider extends ChangeNotifier {
       final cost = GameConstants.driverBaseSalary * GameConstants.driverHireCostMultiplier;
       if (money < cost) { _error = 'Недостаточно средств (нужно: ${GameConstants.formatMoney(cost)})'; return false; }
 
-      final first = GameConstants.driverFirstNames[math.Random().nextInt(GameConstants.driverFirstNames.length)];
-      final last = GameConstants.driverLastNames[math.Random().nextInt(GameConstants.driverLastNames.length)];
+      final rng = math.Random();
+      final first = GameConstants.driverFirstNames[rng.nextInt(GameConstants.driverFirstNames.length)];
+      final last = GameConstants.driverLastNames[rng.nextInt(GameConstants.driverLastNames.length)];
+      final driverName = '$first $last';
+
+      // 1. Insert driver — core operation
       await _supabase.from('drivers').insert({
         'company_id': companyId,
-        'name': '$first $last',
-        'skill_level': 1 + math.Random().nextInt(4),
-        'salary_daily': GameConstants.driverBaseSalary + math.Random().nextInt(200),
+        'name': driverName,
+        'skill_level': 1 + rng.nextInt(4),
+        'salary_daily': GameConstants.driverBaseSalary + rng.nextInt(200),
         'status': 'available',
+        'assigned_truck_id': null,
         'xp': 0,
         'trips_completed': 0,
         'fatigue': 0,
-        'speed_skill': math.Random().nextInt(10),
-        'fuel_efficiency_skill': math.Random().nextInt(10),
-        'reliability_skill': math.Random().nextInt(10),
+        'speed_skill': rng.nextInt(10),
+        'fuel_efficiency_skill': rng.nextInt(10),
+        'reliability_skill': rng.nextInt(10),
       });
+
+      // 2. Deduct money
       await _supabase.from('companies').update({'money': money - cost}).eq('id', companyId);
-      await _supabase.from('transactions').insert({
-        'company_id': companyId,
-        'type': 'driver_hire',
-        'description': 'Найм: $first $last',
-        'amount': -cost,
-      });
+
+      // 3. Log transaction (non-critical — don't fail the hire)
+      try {
+        await _supabase.from('transactions').insert({
+          'company_id': companyId,
+          'type': 'driver_hire',
+          'description': 'Найм: $driverName',
+          'amount': -cost,
+        });
+      } catch (_) {}
+
+      // 4. Reload data
       await loadMyDrivers(companyId);
       await loadCompany(companyId);
+
+      // 5. Log event (non-critical)
       await logEvent(
         companyId: companyId,
         eventType: 'driver_hired',
         title: 'Водитель нанят',
-        description: '$first $last присоединился к компании',
+        description: '$driverName присоединился к компании',
         iconName: 'driver_hired',
         colorHex: '64B5F6',
-        metadata: {'driver_name': '$first $last', 'amount': -cost},
+        metadata: {'driver_name': driverName, 'amount': -cost},
       );
       SoundManager.instance.success();
       return true;
