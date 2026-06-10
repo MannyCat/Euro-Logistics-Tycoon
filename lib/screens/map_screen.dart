@@ -359,8 +359,6 @@ class MapScreenState extends State<MapScreen> {
         strokeWidth: 2.0,
         borderStrokeWidth: 3.0,
         borderColor: const Color(0xFF29B6F6).withOpacity(0.3),
-        pattern: const StrokePattern.dashed(segments: [8, 6]),
-        borderPattern: const StrokePattern.dashed(segments: [8, 6]),
       ));
     }
     return polylines;
