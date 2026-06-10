@@ -43,7 +43,7 @@ import '../widgets/keyboard_shortcuts_overlay.dart';
 import '../widgets/delivery_timeline.dart';
 
 /// Tile builder that darkens label tiles for subtler text overlay
-Widget darkLabelTileBuilder(BuildContext context, Widget tile, TileLayer layer) {
+Widget darkLabelTileBuilder(BuildContext context, Widget tile, TileImage? image) {
   return ColorFiltered(
     colorFilter: const ColorFilter.matrix([
       0.5, 0, 0, 0, 0,
@@ -1008,7 +1008,6 @@ class MapScreenState extends State<MapScreen> {
             ),
           ],
         ),
-      ),
       ),
       ),
       ),
